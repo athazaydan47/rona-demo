@@ -12,6 +12,7 @@ import { ensureFlashSaleSlots } from "@/lib/flash/ensure";
 import { effectivePrice, type EffectivePrice } from "@/lib/pricing";
 import { locationFlags } from "./availability";
 import { pickSimilar, pickTogether } from "./related";
+import { now as clockNow } from "@/lib/clock";
 
 const SHADE_PACKAGING = new Set<Packaging>(["lipstick", "lip_tint", "lip_cream", "cushion", "foundation_bottle"]);
 
@@ -199,7 +200,7 @@ export type ProductLive = {
 export async function getProductLive(product: Pick<ProductDetail, "id" | "variants">): Promise<ProductLive> {
   await connection();
   await ensureFlashSaleSlots(db);
-  const now = new Date();
+  const now = clockNow();
   const variantIds = product.variants.map((v) => v.id);
   const [locations, stock, flashRows] = await Promise.all([
     db

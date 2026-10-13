@@ -50,6 +50,7 @@ const HIDE_DEV_UI = `
 const FULL_PAGE_FIX = `
   nav[aria-label="Navigasi bawah"] { position: relative !important; }
   [data-sticky-bar] { display: none !important; }
+  [data-fixed-summary] { position: relative !important; bottom: auto !important; }
 `;
 
 /**
@@ -112,43 +113,51 @@ export async function capturePage(browser, url, opts) {
       throw new Error(`Aksi tidak dikenal: ${action}`);
     }
 
-    if (fullPage) {
-      await page.addStyleTag({ content: FULL_PAGE_FIX });
-      await page.waitForTimeout(150);
-    }
-
-    const dims = await page.evaluate(() => ({
-      scrollWidth: document.documentElement.scrollWidth,
-      scrollHeight: document.documentElement.scrollHeight,
-    }));
-    const cssHeight = fullPage ? dims.scrollHeight : height;
-    const chunkCss = Math.floor(MAX_CAPTURE_PX / deviceScaleFactor);
-    const files = [];
-
-    if (!fullPage) {
-      await page.screenshot({ path: out, animations: "disabled" });
-      files.push({ path: out, cssTop: 0, cssHeight });
-    } else if (cssHeight <= chunkCss) {
-      await page.screenshot({ path: out, fullPage: true, animations: "disabled" });
-      files.push({ path: out, cssTop: 0, cssHeight });
-    } else {
-      const base = out.replace(/\.png$/, "");
-      for (let top = 0, i = 1; top < cssHeight; top += chunkCss, i++) {
-        const h = Math.min(chunkCss, cssHeight - top);
-        const path = `${base}-${i}.png`;
-        await page.screenshot({
-          path,
-          fullPage: true,
-          clip: { x: 0, y: top, width, height: h },
-          animations: "disabled",
-        });
-        files.push({ path, cssTop: top, cssHeight: h });
-      }
-    }
-    return { files, cssWidth: width, cssHeight, scrollWidth: dims.scrollWidth };
+    return await shootPage(page, out, { width, height, deviceScaleFactor, fullPage });
   } finally {
     await context.close();
   }
+}
+
+/**
+ * Potret halaman yang sudah terbuka (dipakai capturePage dan alur cuplik bertahap).
+ * @param {import("@playwright/test").Page} page
+ */
+export async function shootPage(page, out, { width, height, deviceScaleFactor = 1, fullPage = true }) {
+  if (fullPage) {
+    await page.addStyleTag({ content: FULL_PAGE_FIX });
+    await page.waitForTimeout(150);
+  }
+
+  const dims = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    scrollHeight: document.documentElement.scrollHeight,
+  }));
+  const cssHeight = fullPage ? dims.scrollHeight : height;
+  const chunkCss = Math.floor(MAX_CAPTURE_PX / deviceScaleFactor);
+  const files = [];
+
+  if (!fullPage) {
+    await page.screenshot({ path: out, animations: "disabled" });
+    files.push({ path: out, cssTop: 0, cssHeight });
+  } else if (cssHeight <= chunkCss) {
+    await page.screenshot({ path: out, fullPage: true, animations: "disabled" });
+    files.push({ path: out, cssTop: 0, cssHeight });
+  } else {
+    const base = out.replace(/\.png$/, "");
+    for (let top = 0, i = 1; top < cssHeight; top += chunkCss, i++) {
+      const h = Math.min(chunkCss, cssHeight - top);
+      const path = `${base}-${i}.png`;
+      await page.screenshot({
+        path,
+        fullPage: true,
+        clip: { x: 0, y: top, width, height: h },
+        animations: "disabled",
+      });
+      files.push({ path, cssTop: top, cssHeight: h });
+    }
+  }
+  return { files, cssWidth: width, cssHeight, scrollWidth: dims.scrollWidth };
 }
 
 /**

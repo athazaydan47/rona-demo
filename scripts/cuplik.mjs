@@ -9,6 +9,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { capturePage, formatBytes, labelWib, launchBrowser, screenshotHtmlToJpeg, stampWib } from "./screenshot.mjs";
+import { captureBuyFlow } from "./cuplik-alur-beli.mjs";
 
 const BASE_URL = (process.env.CUPLIK_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const OUT_DIR = path.resolve("_review");
@@ -32,6 +33,8 @@ const ACTIONS = {
   filter: { width: 375, deviceScaleFactor: 2, label: "bottom sheet filter terbuka", target: "catalog" },
   shade: { width: 375, deviceScaleFactor: 2, label: "Shade Finder terbuka", target: "product" },
   habis: { width: 375, deviceScaleFactor: 2, label: "shade habis dipilih, Kabari aku", target: "product" },
+  // Alur bertahap: tambah 2 produk lalu potret laci, keranjang, checkout, bayar, sukses, pesanan di 375 dan 1440 px.
+  "alur-beli": { flow: true, label: "alur beli" },
 };
 
 function parseArgs(argv) {
@@ -229,6 +232,15 @@ async function main() {
     // Keadaan khusus: pada halaman pertama, atau halaman katalog pertama untuk aksi filter.
     for (const a of aksi) {
       const cfg = ACTIONS[a];
+      if (cfg.flow) {
+        for (const v of VIEWS) {
+          process.stdout.write(`Menjalankan alur beli di ${v.width} px... `);
+          const flowShots = await captureBuyFlow(browser, BASE_URL, { width: v.width, deviceScaleFactor: v.deviceScaleFactor, outDir: tmpDir, slug: a });
+          shots.push(...flowShots);
+          console.log(`${flowShots.length} potretan`);
+        }
+        continue;
+      }
       const p =
         cfg.target === "catalog"
           ? (halaman.find((h) => /^\/(c\/|cari|merek\/|promo)/.test(h)) ?? halaman[0])

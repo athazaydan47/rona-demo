@@ -15,6 +15,7 @@ import { pickFlashSlot } from "@/lib/flash";
 import { readableOn } from "@/lib/color";
 import { SkinTypeTabs } from "./skin-type-tabs";
 import { ScrollRow } from "@/components/ui/scroll-row";
+import { now as clockNow } from "@/lib/clock";
 
 export function SectionHeading({ title, subtitle, href, hrefLabel = "Lihat semua" }: { title: string; subtitle?: string; href?: string; hrefLabel?: string }) {
   return (
@@ -75,7 +76,7 @@ export function CategoryCircles({ categories }: { categories: CategoryNode[] }) 
 // Flash sale: slot aktif dengan hitung mundur dan kuota, atau slot berikutnya dengan hitung mundur menuju mulai.
 export async function FlashSaleSection() {
   await connection();
-  const now = new Date();
+  const now = clockNow();
   const slots = await getFlashSlots(now);
   const { active, next } = pickFlashSlot(slots, now);
   const slot = active ?? next;

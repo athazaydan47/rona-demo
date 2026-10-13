@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { env } from "@/lib/env";
@@ -10,6 +11,7 @@ import { Footer } from "@/components/layout/footer";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { MobileMenuProvider, MobileMenuSheet } from "@/components/layout/mobile-menu";
 import { Toaster } from "@/components/ui/toast";
+import { CartDrawer } from "@/components/cart/cart-drawer";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -56,6 +58,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           />
           <BottomNav />
           <MobileMenuSheet categories={categories} />
+          {/* usePathname di dalam laci butuh Suspense pada rute dinamis. */}
+          <Suspense fallback={null}>
+            <CartDrawer />
+          </Suspense>
           <Toaster />
         </MobileMenuProvider>
       </body>

@@ -117,10 +117,10 @@ export function ProductView({ product, live, siteUrl }: Props) {
   const sensitive = product.skinTypes.includes("sensitif");
   const shadeLabel = variants.length > 1 ? selected.shadeName : "";
 
-  const quickAdd = () => {
-    addToCart(selected.id, 1);
+  const quickAdd = async () => {
     flyToCart(mainImageRef.current);
-    toast({ title: "Ditambahkan ke keranjang", description: `${product.name}${shadeLabel ? `, ${shadeLabel}` : ""}` });
+    const r = await addToCart(selected.id, 1);
+    if (!r.ok) toast({ title: "Belum bisa ditambahkan", description: r.message ?? `${product.name}${shadeLabel ? `, ${shadeLabel}` : ""}`, tone: "info" });
   };
 
   return (

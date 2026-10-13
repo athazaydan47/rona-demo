@@ -24,6 +24,7 @@ import {
   skinTypeLabels,
   undertoneLabels,
 } from "./filters";
+import { now as clockNow } from "@/lib/clock";
 
 // Dibungkus React cache supaya beberapa bagian beranda yang memakai cakupan sama hanya memicu satu kali baca.
 export const fetchCatalogItems = cache(async function fetchCatalogItems(scope: CatalogScope): Promise<CatalogItem[]> {
@@ -63,7 +64,7 @@ export const fetchCatalogItems = cache(async function fetchCatalogItems(scope: C
   if (rows.length === 0) return [];
 
   const ids = rows.map((r) => r.id);
-  const now = new Date();
+  const now = clockNow();
   const [variants, stock, flashRows, locations] = await Promise.all([
     db
       .select({
@@ -311,7 +312,7 @@ export type FlashSlotData = {
 
 export async function getFlashSlots(nowInput?: Date): Promise<FlashSlotData[]> {
   await connection();
-  const now = nowInput ?? new Date();
+  const now = nowInput ?? clockNow();
   await ensureFlashSaleSlots(db, { now });
   const horizon = new Date(now.getTime() + 4 * 86400000);
   const slots = await db

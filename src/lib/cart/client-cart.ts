@@ -1,57 +1,77 @@
 "use client";
 
-// Keranjang sisi klien untuk Fase 2 dan 3: hanya menyimpan variantId dan jumlah di localStorage.
-// Fase 4 memindahkannya ke server; antarmukanya (addToCart, useCartCount) dipertahankan.
+// Jembatan klien ke keranjang server: jumlah item untuk badge, tambah ke keranjang, buka laci.
 import { useSyncExternalStore } from "react";
+import { addToCartAction, cartCountAction, importLocalCartAction } from "./actions";
 
-export type ClientCartItem = { variantId: number; quantity: number; addedAt: string };
+const COUNT_EVENT = "rona:cart";
+export const OPEN_EVENT = "rona:cart-open";
+const LEGACY_KEY = "rona.cart";
+const LEGACY_COUNT_KEY = "rona.cart.count";
 
-const KEY = "rona.cart";
-const COUNT_KEY = "rona.cart.count";
-const EVENT = "rona:cart";
+let count = 0;
 
-export function readCart(): ClientCartItem[] {
-  try {
-    const raw = window.localStorage.getItem(KEY);
-    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-    return Array.isArray(parsed) ? (parsed as ClientCartItem[]).filter((i) => typeof i?.variantId === "number" && i.quantity > 0) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeCart(items: ClientCartItem[]) {
-  try {
-    window.localStorage.setItem(KEY, JSON.stringify(items));
-    window.localStorage.setItem(COUNT_KEY, String(items.reduce((n, i) => n + i.quantity, 0)));
-  } catch {
-    // penyimpanan diblokir: badge tetap berubah lewat event di bawah
-  }
-  window.dispatchEvent(new Event(EVENT));
-}
-
-export function addToCart(variantId: number, quantity = 1) {
-  const items = readCart();
-  const existing = items.find((i) => i.variantId === variantId);
-  if (existing) existing.quantity += quantity;
-  else items.push({ variantId, quantity, addedAt: new Date().toISOString() });
-  writeCart(items);
-  return items;
-}
-
-export function cartCount() {
-  return readCart().reduce((n, i) => n + i.quantity, 0);
+export function setCartCount(n: number) {
+  count = Math.max(0, Math.trunc(n));
+  window.dispatchEvent(new Event(COUNT_EVENT));
 }
 
 function subscribe(cb: () => void) {
-  window.addEventListener(EVENT, cb);
-  window.addEventListener("storage", cb);
-  return () => {
-    window.removeEventListener(EVENT, cb);
-    window.removeEventListener("storage", cb);
-  };
+  window.addEventListener(COUNT_EVENT, cb);
+  return () => window.removeEventListener(COUNT_EVENT, cb);
 }
 
 export function useCartCount() {
-  return useSyncExternalStore(subscribe, cartCount, () => 0);
+  return useSyncExternalStore(subscribe, () => count, () => 0);
+}
+
+export function openCartDrawer() {
+  window.dispatchEvent(new Event(OPEN_EVENT));
+}
+
+export type AddResult = { ok: boolean; message?: string };
+
+export async function addToCart(variantId: number, quantity = 1, opts: { openDrawer?: boolean } = {}): Promise<AddResult> {
+  return addManyToCart([{ variantId, quantity }], opts);
+}
+
+export async function addManyToCart(items: { variantId: number; quantity: number }[], opts: { openDrawer?: boolean } = {}): Promise<AddResult> {
+  try {
+    const r = await addToCartAction(items);
+    setCartCount(r.count);
+    if (r.ok && opts.openDrawer !== false) openCartDrawer();
+    return { ok: r.ok, message: r.message };
+  } catch {
+    return { ok: false, message: "Gagal menambah ke keranjang. Coba lagi." };
+  }
+}
+
+let synced = false;
+
+// Dipanggil sekali saat aplikasi dimuat: pindahkan keranjang lokal lama ke server lalu ambil jumlah item.
+export async function syncCart() {
+  if (synced) return;
+  synced = true;
+  let legacy: { variantId: number; quantity: number }[] = [];
+  try {
+    const raw = window.localStorage.getItem(LEGACY_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    if (Array.isArray(parsed)) legacy = parsed.filter((i) => i && Number.isInteger(i.variantId) && Number.isInteger(i.quantity) && i.quantity > 0).map((i) => ({ variantId: i.variantId, quantity: i.quantity }));
+  } catch {
+    legacy = [];
+  }
+  try {
+    const n = legacy.length ? await importLocalCartAction(legacy) : await cartCountAction();
+    if (legacy.length) {
+      try {
+        window.localStorage.removeItem(LEGACY_KEY);
+        window.localStorage.removeItem(LEGACY_COUNT_KEY);
+      } catch {
+        // abaikan
+      }
+    }
+    setCartCount(n);
+  } catch {
+    synced = false;
+  }
 }

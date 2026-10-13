@@ -45,3 +45,8 @@ next-env.d.ts
 
 # lembar review visual (npm run cuplik)
 /_review/
+
+# hasil uji Playwright
+/test-results/
+/playwright-report/
+/blob-report/

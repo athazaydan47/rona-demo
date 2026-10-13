@@ -15,6 +15,7 @@ import {
   priceSourceEnum,
 } from "./enums";
 import { locations, variants } from "./catalog";
+import { flashSaleItems } from "./promos";
 import { customers } from "./customers";
 
 export type OrderAddressSnapshot = {
@@ -30,6 +31,21 @@ export type OrderAddressSnapshot = {
 };
 
 export type ShipmentEvent = { at: string; status: string; note?: string };
+
+// Salinan rincian harga saat pesanan dibuat (dari mesin harga), untuk ditampilkan apa adanya.
+export type OrderPricingSnapshot = {
+  normalSubtotal: number;
+  subtotal: number;
+  productDiscount: number;
+  voucherCode: string | null;
+  voucherDiscount: number;
+  shippingCost: number;
+  shippingDiscount: number;
+  pointsUsed: number;
+  total: number;
+  weightGram: number;
+  billableKg: number;
+};
 
 export const orders = pgTable(
   "orders",
@@ -48,8 +64,12 @@ export const orders = pgTable(
     courier: text(),
     service: text(),
     shippingCost: integer().notNull().default(0),
+    shippingDiscount: integer().notNull().default(0),
     subtotal: integer().notNull().default(0),
-    discount: integer().notNull().default(0),
+    productDiscount: integer().notNull().default(0),
+    voucherDiscount: integer().notNull().default(0),
+    discount: integer().notNull().default(0), // total potongan (voucher + ongkir), untuk laporan
+    pricing: jsonb().$type<OrderPricingSnapshot>(),
     voucherCode: text(),
     pointsUsed: integer().notNull().default(0),
     total: integer().notNull().default(0),
@@ -57,6 +77,8 @@ export const orders = pgTable(
     expiresAt: timestamp({ withTimezone: true }),
     note: text().notNull().default(""),
     cancelReason: text(),
+    // Token acak untuk membuka pesanan tamu lewat tautan.
+    accessToken: text().notNull().default(""),
     paidAt: timestamp({ withTimezone: true }),
     completedAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -83,11 +105,13 @@ export const orderItems = pgTable(
     shadeName: text().notNull(),
     brandName: text().notNull().default(""),
     unitPrice: integer().notNull(),
+    normalPrice: integer().notNull().default(0),
     quantity: integer().notNull(),
     priceSource: priceSourceEnum().notNull().default("normal"),
+    flashSaleItemId: integer().references(() => flashSaleItems.id, { onDelete: "set null" }),
     weightGram: integer().notNull().default(0),
   },
-  (t) => [index("order_items_order_idx").on(t.orderId)],
+  (t) => [index("order_items_order_idx").on(t.orderId), index("order_items_flash_idx").on(t.flashSaleItemId)],
 );
 
 export const payments = pgTable(
@@ -130,3 +154,26 @@ export const shipments = pgTable(
   },
   (t) => [index("shipments_order_idx").on(t.orderId)],
 );
+
+// Riwayat transisi status untuk lini masa pesanan.
+export const orderStatusHistory = pgTable(
+  "order_status_history",
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    orderId: integer()
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    fromStatus: orderStatusEnum(),
+    toStatus: orderStatusEnum().notNull(),
+    actor: text().notNull(), // "sistem", "pembeli", "staf demo", atau nama staf
+    reason: text(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("order_status_history_order_idx").on(t.orderId, t.createdAt)],
+);
+
+// Penghitung nomor pesanan per bulan (YYMM). Dinaikkan dengan upsert supaya aman saat bersamaan.
+export const orderNumberCounters = pgTable("order_number_counters", {
+  period: text().primaryKey(),
+  lastValue: integer().notNull().default(0),
+});

@@ -6,6 +6,7 @@ import type { PgDatabase } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
 import { toWibParts, wibDate } from "@/lib/format";
 import { roundToPromo } from "@/lib/pricing";
+import { now as clockNow } from "@/lib/clock";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyDb = PgDatabase<any, any, any>;
@@ -48,7 +49,7 @@ export function resetEnsureMemo() {
 export async function ensureFlashSaleSlots(db: AnyDb, opts: { now?: Date; demoMode?: boolean; force?: boolean } = {}): Promise<EnsureResult> {
   const demoMode = opts.demoMode ?? process.env.DEMO_MODE === "true";
   if (!demoMode) return { created: 0, skipped: true };
-  const now = opts.now ?? new Date();
+  const now = opts.now ?? clockNow();
   const p = toWibParts(now);
   const dayKey = `${p.year}-${p.month}-${p.day}`;
   if (!opts.force && ensuredForDay === dayKey) return { created: 0, skipped: true };

@@ -254,6 +254,11 @@ Aturan emas: **semua angka uang dan stok dihitung ulang di server**, tidak perna
 - Cut-off 15.00 untuk kirim dan 16.00 untuk ambil di toko, diatur dari admin. Minggu libur.
 - Disiapkan antarmuka (adapter) supaya nanti tinggal disambung ke API ongkir sungguhan.
 
+### Tambahan aturan (Fase 4)
+
+- Gratis ongkir otomatis: bila subtotal setelah diskon voucher minimal Rp 150.000, ongkir dipotong sampai Rp 20.000. Tidak berlaku untuk kurir instan dan tidak relevan untuk Ambil di Toko.
+- Nomor pesanan berurutan per bulan: RONA-YYMM-000001 (bulan dalam WIB), dibuat dari penghitung per bulan di database dengan penguncian baris sehingga aman dari tabrakan saat ada pesanan bersamaan.
+
 ### Pembayaran
 
 - QRIS dan Virtual Account disimulasikan: nomor dan QR dibuat sistem, masa berlaku 15 menit.

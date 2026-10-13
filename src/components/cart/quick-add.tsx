@@ -107,10 +107,11 @@ export function QuickAdd({ productName, variants, className }: QuickAddProps) {
   );
 }
 
-function ShadePicker({ productName, variants, onDone }: { productName: string; variants: ProductCardVariant[]; onDone: () => void }) {
+function ShadePicker({ variants, onDone }: { productName: string; variants: ProductCardVariant[]; onDone: () => void }) {
   const firstAvailable = variants.find((v) => v.inStock) ?? variants[0];
   const [selectedId, setSelectedId] = useState(firstAvailable?.id);
   const [qty, setQty] = useState(1);
+  const [adding, setAdding] = useState(false);
   const selected = variants.find((v) => v.id === selectedId) ?? firstAvailable;
   const multi = variants.length > 1;
 
@@ -165,11 +166,17 @@ function ShadePicker({ productName, variants, onDone }: { productName: string; v
       ) : null}
       <Button
         className="mt-4 w-full"
-        disabled={!selected || !selected.inStock}
-        onClick={() => {
+        disabled={!selected || !selected.inStock || adding}
+        onClick={async () => {
           if (!selected) return;
-          addToCart(selected.id, qty);
-          toast({ title: "Ditambahkan ke keranjang", description: `${productName}${multi ? `, ${selected.shadeName}` : ""} x${qty}` });
+          setAdding(true);
+          const r = await addToCart(selected.id, qty);
+          setAdding(false);
+          if (!r.ok) {
+            toast({ title: "Belum bisa ditambahkan", description: r.message, tone: "info" });
+            return;
+          }
+          if (r.message) toast({ title: "Ditambahkan ke keranjang", description: r.message, tone: "info" });
           onDone();
         }}
       >

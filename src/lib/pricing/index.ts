@@ -1,3 +1,5 @@
+import { now as clockNow } from "@/lib/clock";
+
 // Fungsi murni untuk harga. Semua angka bilangan bulat rupiah.
 
 // Persen diskon dibulatkan ke bawah. 0 bila tidak ada diskon.
@@ -30,7 +32,7 @@ export type EffectivePrice = {
 };
 
 // Urutan: Flash Sale, lalu Harga Promo (bila dalam periode), lalu Harga Jual.
-export function effectivePrice(v: VariantPriceInput, now = new Date()): EffectivePrice {
+export function effectivePrice(v: VariantPriceInput, now: Date = clockNow()): EffectivePrice {
   if (v.flashPrice != null && v.flashPrice > 0 && v.flashPrice < v.salePrice) {
     return {
       price: v.flashPrice,

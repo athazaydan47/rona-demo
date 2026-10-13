@@ -1,8 +1,43 @@
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/coming-soon";
+import { Suspense } from "react";
+import { cookies } from "next/headers";
+import { connection } from "next/server";
+import { Breadcrumb } from "@/components/catalog/breadcrumb";
+import { CartPage } from "@/components/cart/cart-page";
+import { db } from "@/db/client";
+import { CART_COOKIE } from "@/lib/cart/cookie";
+import { findCartByToken, viewCart } from "@/lib/cart/service";
+import { now } from "@/lib/clock";
+import { ensureFlashSaleSlots } from "@/lib/flash/ensure";
 
 export const metadata: Metadata = { title: "Keranjang" };
 
-export default function Page() {
-  return <ComingSoon title="Keranjang" description="Produk yang kamu tambahkan sudah tersimpan di perangkat ini. Halaman keranjang, voucher, dan checkout 3 langkah menyusul." phase="fase 4" packaging="lip_tint" shade="#E2654A" brandColor="#C2416B" brandName="Lumi" />;
+async function CartContent() {
+  await connection();
+  const token = (await cookies()).get(CART_COOKIE)?.value;
+  const cart = await findCartByToken(db, token);
+  await ensureFlashSaleSlots(db);
+  const view = cart ? await viewCart(db, cart.id, { now: now() }) : null;
+  return <CartPage initial={view} />;
+}
+
+export default function KeranjangPage() {
+  return (
+    <section className="container-rona py-6 md:py-8">
+      <Breadcrumb items={[{ label: "Keranjang" }]} className="mb-3" />
+      <h1 className="font-serif text-3xl font-medium text-kopi md:text-4xl">Keranjang</h1>
+      <div className="mt-6">
+        <Suspense
+          fallback={
+            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]" aria-busy>
+              <div className="h-72 animate-pulse rounded-card bg-garis/50" />
+              <div className="h-72 animate-pulse rounded-card bg-garis/50" />
+            </div>
+          }
+        >
+          <CartContent />
+        </Suspense>
+      </div>
+    </section>
+  );
 }

@@ -31,10 +31,14 @@ export function BuyActions({ productId, productName, shadeName, variantId, maxQt
   const safeQty = Math.min(Math.max(1, qty), Math.max(1, maxQty));
   const label = `${productName}${shadeName ? `, ${shadeName}` : ""}`;
 
-  const add = () => {
-    addToCart(variantId, safeQty);
+  const [busy, setBusy] = useState(false);
+  const add = async () => {
+    setBusy(true);
     flyToCart(flyFromRef.current);
-    toast({ title: "Ditambahkan ke keranjang", description: `${label} x${safeQty}` });
+    const r = await addToCart(variantId, safeQty);
+    setBusy(false);
+    if (!r.ok) toast({ title: "Belum bisa ditambahkan", description: r.message ?? `${label}`, tone: "info" });
+    else if (r.message) toast({ title: "Ditambahkan ke keranjang", description: r.message, tone: "info" });
   };
 
   return (
@@ -69,16 +73,23 @@ export function BuyActions({ productId, productName, shadeName, variantId, maxQt
           />
         ) : (
           <>
-            <Button size="lg" onClick={add} className="col-span-2 sm:col-span-1">
+            <Button size="lg" onClick={add} disabled={busy} className="col-span-2 sm:col-span-1">
               <ShoppingBag /> Tambah ke Keranjang
             </Button>
             <Button
               size="lg"
               variant="dark"
               className="col-span-3 sm:col-span-1"
-              onClick={() => {
-                addToCart(variantId, safeQty);
-                router.push("/keranjang");
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                const r = await addToCart(variantId, safeQty, { openDrawer: false });
+                setBusy(false);
+                if (!r.ok) {
+                  toast({ title: "Belum bisa dibeli", description: r.message, tone: "info" });
+                  return;
+                }
+                router.push("/checkout");
               }}
             >
               Beli Sekarang

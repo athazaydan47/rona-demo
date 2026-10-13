@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { getFlashSlots, type FlashSlotData } from "@/lib/catalog/catalog-queries";
 import { formatDateWib, formatTimeWib } from "@/lib/format";
 import { pickFlashSlot } from "@/lib/flash";
+import { now as clockNow } from "@/lib/clock";
 
 export const metadata: Metadata = { title: "Flash Sale", description: "Slot flash sale yang sedang berjalan dan berikutnya." };
 
@@ -41,7 +42,7 @@ function SlotItems({ slot, live }: { slot: FlashSlotData; live: boolean }) {
 
 async function FlashSaleContent() {
   await connection();
-  const now = new Date();
+  const now = clockNow();
   const slots = await getFlashSlots(now);
   const { active, next } = pickFlashSlot(slots, now);
   const upcoming = slots.filter((s) => s.startsAt.getTime() > now.getTime() && s.id !== next?.id);

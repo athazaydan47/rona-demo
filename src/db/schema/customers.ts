@@ -68,6 +68,7 @@ export const carts = pgTable(
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
     customerId: integer().references(() => customers.id, { onDelete: "cascade" }),
     guestToken: uuid(),
+    voucherCode: text(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
@@ -89,7 +90,11 @@ export const cartItems = pgTable(
       .references(() => variants.id, { onDelete: "cascade" }),
     quantity: integer().notNull().default(1),
     savedForLater: boolean().notNull().default(false),
+    // Harga terakhir yang dilihat pembeli, untuk memberi tahu bila harga berubah (misal flash sale berakhir).
+    seenPrice: integer(),
+    seenSource: text(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("cart_items_cart_variant_idx").on(t.cartId, t.variantId)],
 );
@@ -129,6 +134,9 @@ export const notifications = pgTable(
   {
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
     customerId: integer().references(() => customers.id, { onDelete: "cascade" }),
+    // Pesanan terkait (bila ada) dan jenis peristiwa, misal "dibuat", "dibayar".
+    orderId: integer(),
+    kind: text().notNull().default(""),
     channel: notificationChannelEnum().notNull(),
     recipient: text().notNull(),
     subject: text().notNull().default(""),
@@ -137,5 +145,5 @@ export const notifications = pgTable(
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     sentAt: timestamp({ withTimezone: true }),
   },
-  (t) => [index("notifications_customer_idx").on(t.customerId, t.createdAt)],
+  (t) => [index("notifications_customer_idx").on(t.customerId, t.createdAt), index("notifications_order_idx").on(t.orderId), index("notifications_recipient_idx").on(t.recipient, t.createdAt)],
 );

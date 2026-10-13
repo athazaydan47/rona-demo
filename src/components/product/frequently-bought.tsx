@@ -8,7 +8,7 @@ import { PriceTag } from "@/components/ui/price-tag";
 import { toast } from "@/components/ui/toast";
 import { ProductArt } from "@/components/product-art";
 import { ProductCard } from "@/components/product-card";
-import { addToCart } from "@/lib/cart/client-cart";
+import { addManyToCart } from "@/lib/cart/client-cart";
 import type { ProductCardData } from "@/lib/catalog/catalog-queries";
 import { formatRupiah } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -22,10 +22,10 @@ export function FrequentlyBought({ current, items }: { current: Current; items: 
   const selected = picks.filter((p) => checked[p.product.id]);
   const total = current.price + selected.reduce((n, p) => n + p.variant.price, 0);
   const count = selected.length + 1;
-  const addAll = () => {
-    addToCart(current.variantId, 1);
-    for (const p of selected) addToCart(p.variant.id, 1);
-    toast({ title: "Paket ditambahkan", description: `${count} produk masuk keranjang.` });
+  const addAll = async () => {
+    const r = await addManyToCart([{ variantId: current.variantId, quantity: 1 }, ...selected.map((p) => ({ variantId: p.variant.id, quantity: 1 }))]);
+    if (!r.ok) toast({ title: "Paket belum bisa ditambahkan", description: r.message, tone: "info" });
+    else if (r.message) toast({ title: "Paket ditambahkan", description: r.message, tone: "info" });
   };
   const toggle = (id: number) => setChecked((c) => ({ ...c, [id]: !c[id] }));
 

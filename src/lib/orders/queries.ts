@@ -11,6 +11,7 @@ export type OrderDetail = {
   status: (typeof schema.orderStatusEnum.enumValues)[number];
   method: "kirim" | "ambil";
   customerId: number | null;
+  locationId: number;
   name: string;
   phone: string;
   email: string | null;
@@ -79,6 +80,7 @@ export async function getOrderDetail(db: AnyDb, number: string): Promise<OrderDe
     status: order.status,
     method: order.method,
     customerId: order.customerId,
+    locationId: order.locationId,
     name: order.guestName ?? "",
     phone: order.guestPhone ?? "",
     email: order.guestEmail,

@@ -111,3 +111,19 @@
 @utility text-balance {
   text-wrap: balance;
 }
+
+/* Panel admin memakai root layout yang sama dengan toko. Saat halaman admin tampil (ada [data-admin-root]),
+   kerangka toko (header, footer, menu bawah, pita demo, promo bar) disembunyikan. */
+body:has([data-admin-root]) > header,
+body:has([data-admin-root]) > footer,
+body:has([data-admin-root]) > nav[aria-label="Navigasi bawah"],
+body:has([data-admin-root]) > div[role="note"][aria-label="Pemberitahuan toko demo"],
+body:has([data-admin-root]) > div.bg-blush.text-rona-gelap {
+  display: none !important;
+}
+body:has([data-admin-root]) > main {
+  padding-bottom: 0;
+}
+body:has([data-admin-root]) {
+  background: var(--color-porselen);
+}

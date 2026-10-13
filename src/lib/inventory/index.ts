@@ -107,7 +107,7 @@ async function notifyRestockIfOnline(tx: AnyDb, r: LockedRow, at?: Date) {
   await tx.update(schema.restockRequests).set({ status: "terkirim", notifiedAt: when }).where(inArray(schema.restockRequests.id, ids));
 }
 
-async function log(tx: AnyDb, m: Move, type: "masuk" | "keluar" | "pesan" | "lepas" | "retur", quantity: number, at?: Date) {
+async function log(tx: AnyDb, m: Move, type: "masuk" | "keluar" | "pesan" | "lepas" | "retur" | "transfer" | "opname", quantity: number, at?: Date) {
   await tx.insert(schema.stockMovements).values({ variantId: m.variantId, locationId: m.locationId, type, quantity, reference: m.reference, actor: m.actor, note: m.note ?? "", ...(at ? { createdAt: at } : {}) });
 }
 
@@ -140,6 +140,16 @@ export async function restock(tx: AnyDb, locked: Map<string, LockedRow>, m: Move
   const r = row(locked, m);
   await write(tx, r, r.onHand + m.quantity, r.reserved, at);
   await log(tx, m, "masuk", m.quantity, at);
+}
+
+// Penyesuaian stok fisik oleh staf: transfer (keluar dari asal, masuk ke tujuan) dan opname (sebesar selisih).
+// Stok fisik tidak boleh lebih kecil dari jumlah dipesan.
+export async function adjustOnHand(tx: AnyDb, locked: Map<string, LockedRow>, m: Omit<Move, "quantity"> & { delta: number; type: "transfer" | "opname" }, at?: Date) {
+  const r = row(locked, m);
+  const next = r.onHand + m.delta;
+  if (next < r.reserved) throw new StockError(m.type === "opname" ? "Jumlah fisik lebih kecil dari stok yang sedang dipesan." : "Stok tersedia di lokasi asal tidak cukup.", m.variantId, available(r));
+  await write(tx, r, next, r.reserved, at);
+  await log(tx, { ...m, quantity: Math.abs(m.delta) }, m.type, m.delta, at);
 }
 
 // Ketersediaan per lokasi tanpa mengunci (untuk tampilan dan validasi awal).

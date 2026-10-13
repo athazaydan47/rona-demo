@@ -16,9 +16,10 @@ Isi di Vercel (Settings, Environment Variables) untuk Production dan Preview. Un
 | `STUDIO_NAME` | Opsional | `Ciptalogy` | Kredit "Dibangun oleh" di footer dan Tentang Demo. |
 | `STUDIO_URL` | Opsional | `https://contoh-studio.id` | Tautan kredit pembuat. |
 | `PAYMENT_WEBHOOK_SECRET` | Opsional | string acak 32 karakter atau lebih | Route `/api/pembayaran/webhook` (HMAC). Tanpa ini route menjawab 503; tombol simulasi demo tetap jalan. |
-| `SESSION_SECRET` | Wajib di produksi | string acak 32 karakter atau lebih (`openssl rand -base64 36`) | Kunci HMAC untuk kode OTP dan alamat IP di rate limit masuk (Fase 5). Tanpa ini di Vercel, halaman `/masuk` menampilkan "Masuk belum tersedia". Mengganti nilainya membuat kode OTP yang sedang berjalan tidak berlaku (sesi yang sudah masuk tetap aman). |
+| `SESSION_SECRET` | Wajib di produksi | string acak 32 karakter atau lebih (`openssl rand -base64 36`) | Kunci HMAC untuk kode OTP dan alamat IP di rate limit masuk pembeli (Fase 5) dan staf (Fase 6A). Tanpa ini masuk staf dengan kata sandi juga ditolak. Tanpa ini di Vercel, halaman `/masuk` menampilkan "Masuk belum tersedia". Mengganti nilainya membuat kode OTP yang sedang berjalan tidak berlaku (sesi yang sudah masuk tetap aman). |
 | `BLOB_READ_WRITE_TOKEN` | Opsional | otomatis dari Vercel Blob | Penyimpanan foto ulasan (Fase 5). Tanpa token di Vercel, unggah foto dinonaktifkan dengan pesan ramah dan ulasan teks tetap bisa dikirim. Di lokal foto disimpan di `.data/uploads`. |
-| `DEMO_STAFF_PASSWORD` | Opsional | kata sandi demo pilihanmu | Kata sandi akun staf demo saat seed (bawaan `demo1234`). Dipakai panel admin Fase 6. |
+| `DEMO_STAFF_PASSWORD` | Disarankan | kata sandi demo pilihanmu, minimal 10 karakter | Kata sandi empat akun staf demo (`owner@`, `admin@`, `dinoyo@`, `gudang@rona.demo`) saat seed dan reset harian. Bawaan `demo1234`. Di mode demo pengunjung masuk lewat tombol masuk cepat, jadi kata sandi ini hanya untuk masuk manual. |
+| `DEMO_DAILY_RESET` | Opsional | `true` | Reset data demo tiap malam pukul 03.00 WIB lewat cron harian. Hanya berjalan bila `DEMO_MODE=true` juga. Kosongkan untuk mematikan. |
 | `ALLOW_CLOCK_OVERRIDE` | Jangan diisi di produksi | kosong | Hanya uji Playwright lokal: membuka `/api/demo/jam` untuk memajukan jam server. |
 | `CONFIRM_RESET` | Hanya saat reset | `rona-demo` | Konfirmasi wajib untuk `db:reset` atau `db:seed` ke host selain localhost. Jangan disimpan di Vercel. |
 
@@ -96,6 +97,47 @@ Urutan yang disarankan:
    - Buka `/tentang-demo`, tekan "Masuk sebagai Pembeli Demo", lalu cek `/akun`, `/akun/pesanan`, dan `/akun/notifikasi`.
    - Pada pesanan Dikirim milik Pembeli Demo, tekan "Pesanan diterima", lalu tulis ulasan. Bila Blob belum disambungkan, kotak foto menampilkan pesan bahwa unggah foto belum tersedia.
 
+## Pembaruan ke Fase 6A (panel admin inti)
+
+Migrasi baru: `drizzle/0003_admin.sql`. Isinya menambah tabel `staff_sessions`, `staff_locations`, dan `staff_login_attempts`, kolom `actor_name`, `summary`, `location_id` di `audit_logs` (semua boleh kosong atau punya nilai bawaan), indeks baru, dan satu langkah data: lokasi staf cabang lama disalin ke `staff_locations`. Tidak ada kolom yang dihapus atau diubah, jadi aman dijalankan selagi versi Fase 5 masih tayang.
+
+Urutan yang disarankan:
+
+1. **Env di Vercel** (Production dan Preview):
+   - `DEMO_STAFF_PASSWORD`: kata sandi akun staf demo, minimal 10 karakter.
+   - `DEMO_DAILY_RESET=true` bila ingin data demo bersih lagi tiap malam.
+   - Pastikan `SESSION_SECRET`, `CRON_SECRET`, dan `DEMO_MODE=true` sudah ada dari fase sebelumnya.
+2. **Database Neon**: reset supaya akun staf demo yang baru (termasuk `gudang@rona.demo`), lokasi staf, dan hash kata sandi baru tersedia:
+
+   ```bash
+   DATABASE_URL="<pooled>" DATABASE_URL_UNPOOLED="<direct>" DEMO_STAFF_PASSWORD="<sama dengan di Vercel>" CONFIRM_RESET=rona-demo npm run db:reset
+   ```
+
+   Bila hanya `db:deploy`, data lama tetap ada tapi akun `gudang@rona.demo` belum ada; tombol masuk cepat Gudang akan menjawab "Akun demo belum disiapkan" sampai reset berikutnya (manual atau harian).
+3. **Push** ke `main`.
+4. Verifikasi:
+   - `curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://<domain-mu>/admin` menjawab `307` ke `/admin/masuk?kembali=%2Fadmin`.
+   - Buka `/admin/masuk`, tekan "Owner", cek Dashboard, Pesanan, Stok, Staf dan izin, dan Log aktivitas.
+   - Panggil cron sekali secara manual dan lihat bagian `reset` pada jawabannya:
+
+     ```bash
+     curl -s -H "Authorization: Bearer <CRON_SECRET>" https://<domain-mu>/api/cron/kedaluwarsa
+     ```
+
+### Reset harian demo
+
+Cron harian (`vercel.json`, 20.00 UTC atau 03.00 WIB) menjalankan berurutan: batalkan pesanan kedaluwarsa, tandai Selesai pesanan yang 3 hari Dikirim, lalu reset data demo bila `DEMO_MODE=true` dan `DEMO_DAILY_RESET=true`. Reset tidak menjalankan migrasi: semua tabel data dikosongkan dalam satu transaksi lalu diisi ulang dengan seed yang sama, jadi pengunjung tidak pernah melihat database kosong. Foto ulasan di Vercel Blob (prefix `ulasan/`) ikut dihapus. Route cron diberi `maxDuration = 60` detik.
+
+Owner juga punya tombol "Reset data demo sekarang" di Dashboard (hanya saat `DEMO_MODE=true`, paling sering sekali per 5 menit). Semua sesi pembeli dan staf ikut keluar setelah reset.
+
+Mengukur durasi reset terhadap database Neon (data di database itu akan diganti):
+
+```bash
+DATABASE_URL="<pooled>" DEMO_MODE=true CONFIRM_RESET=rona-demo npm run demo:ukur-reset
+```
+
+Hasil di laptop: sekitar 0,8 detik ke Postgres lokal dan sekitar 3 detik dengan latensi tiruan 1 ms per arah (410 kueri). Dari Vercel `sin1` ke Neon Singapura latensinya sejenis, jadi masih jauh di bawah batas 60 detik.
+
 ## 5. Bagian build yang butuh database
 
 `npm run build` membaca database untuk memprarender data katalog yang di-cache. Build gagal bila `DATABASE_URL` tidak bisa dihubungi. Yang dibaca saat build:
@@ -138,4 +180,6 @@ Stok, harga efektif, flash sale, keranjang, dan pesanan tidak dibaca saat build;
 - **Error relasi atau kolom tidak ada**: migrasi belum dijalankan ke Neon. Jalankan `db:deploy` lalu redeploy.
 - **Tombol simulasi tidak muncul**: `DEMO_MODE` belum `true` di Vercel.
 - **Halaman masuk menampilkan "Masuk belum tersedia"**: `SESSION_SECRET` belum diisi (atau kurang dari 16 karakter) atau `DEMO_MODE` bukan `true`. Adapter WhatsApp sungguhan belum ada, jadi di luar mode demo masuk memang dinonaktifkan.
-- **"Akun demo belum disiapkan"**: Neon hanya dimigrasi tanpa seed. Jalankan `db:reset` seperti di bagian Pembaruan ke Fase 5.
+- **"Akun demo belum disiapkan"**: Neon hanya dimigrasi tanpa seed. Jalankan `db:reset` seperti di bagian Pembaruan ke Fase 5 atau 6A.
+- **Masuk staf menjawab "Terlalu banyak percobaan gagal"**: 5 kali salah untuk satu email mengunci email itu 15 menit (20 kali gagal per IP juga dikunci). Tunggu, atau pakai tombol masuk cepat di mode demo.
+- **Reset harian tidak jalan**: cek `DEMO_MODE=true` dan `DEMO_DAILY_RESET=true` di Vercel, lalu lihat Log aktivitas dengan filter aksi "Reset data demo".

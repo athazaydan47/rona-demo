@@ -261,7 +261,7 @@ export async function placeOrder(db: AnyDb, input: PlaceOrderInput): Promise<Pla
       await tx.delete(schema.cartItems).where(and(eq(schema.cartItems.cartId, cart.id), eq(schema.cartItems.savedForLater, false)));
       await tx.update(schema.carts).set({ voucherCode: null, updatedAt: at }).where(eq(schema.carts.id, cart.id));
 
-      await queueNotifications(tx, order.id, "dibuat", input.siteUrl, at);
+      await queueNotifications(tx, order.id, "dibuat", at);
       return { ok: true as const, orderId: order.id, number, accessToken, total: pricing.total, paymentMethod: input.paymentMethod };
     });
   } catch (err) {
@@ -280,7 +280,15 @@ async function lockOrder(tx: AnyDb, where: { id?: number; number?: string }): Pr
   return { ...order, paymentMethod: payment?.method ?? null, paymentId: payment?.id ?? null, paymentStatus: payment?.status ?? null };
 }
 
-export type TransitionOptions = { actor: string; reason?: string | null; now?: Date; payAtStoreHandover?: boolean; trackingNumber?: string | null; siteUrl?: string };
+export type TransitionOptions = { actor: string; reason?: string | null; now?: Date; payAtStoreHandover?: boolean; trackingNumber?: string | null; courierName?: string | null; siteUrl?: string };
+
+// Status pesanan sudah diubah pihak lain sejak dilihat (perubahan diperiksa dengan status asal di klausa WHERE).
+export class OrderConflictError extends Error {
+  constructor(message = "Pesanan ini baru saja diubah oleh staf lain. Muat ulang untuk melihat status terbaru.") {
+    super(message);
+    this.name = "OrderConflictError";
+  }
+}
 
 // Satu-satunya jalan mengubah status pesanan. Memvalidasi tabel transisi, menjalankan efek samping, mencatat riwayat.
 export async function applyTransition(tx: AnyDb, order: LockedOrder, to: OrderStatus, opts: TransitionOptions) {
@@ -334,7 +342,7 @@ export async function applyTransition(tx: AnyDb, order: LockedOrder, to: OrderSt
 
   if (to === "dikirim") {
     const resi = opts.trackingNumber ?? `${(order.courier ?? "JNE").slice(0, 3).toUpperCase().replace(/[^A-Z]/g, "X")}${order.number.replace(/\D/g, "").slice(-8)}${String(order.id).padStart(4, "0")}`;
-    await tx.insert(schema.shipments).values({ orderId: order.id, courier: courierLabel(order.courier), service: order.service ?? "", trackingNumber: resi, status: "dalam_perjalanan", history: [{ at: at.toISOString(), status: "Paket diserahkan ke kurir" }], createdAt: at, updatedAt: at });
+    await tx.insert(schema.shipments).values({ orderId: order.id, courier: opts.courierName?.trim() || courierLabel(order.courier), service: order.service ?? "", trackingNumber: resi, status: "dalam_perjalanan", history: [{ at: at.toISOString(), status: "Paket diserahkan ke kurir" }], createdAt: at, updatedAt: at });
     event = "dikirim";
   }
   if (to === "siap_diambil") event = "siap_diambil";
@@ -351,10 +359,12 @@ export async function applyTransition(tx: AnyDb, order: LockedOrder, to: OrderSt
     }
   }
 
-  await tx.update(schema.orders).set(patch).where(eq(schema.orders.id, order.id));
+  // Status asal ikut di klausa WHERE: bila baris sudah berubah, tidak ada yang diperbarui dan transisi ditolak.
+  const updated = await tx.update(schema.orders).set(patch).where(and(eq(schema.orders.id, order.id), eq(schema.orders.status, from))).returning({ id: schema.orders.id });
+  if (updated.length === 0) throw new OrderConflictError();
   await tx.insert(schema.orderStatusHistory).values({ orderId: order.id, fromStatus: from, toStatus: to, actor: opts.actor, reason: opts.reason ?? null, createdAt: at });
   Object.assign(order, patch);
-  if (event) await queueNotifications(tx, order.id, event, opts.siteUrl, at);
+  if (event) await queueNotifications(tx, order.id, event, at);
 }
 
 // Poin pesanan Selesai: 1 poin per Rp 1.000 belanja bersih. Idempoten lewat kunci "dapat:<nomor>".
@@ -521,7 +531,7 @@ export async function simulateProcessAndShip(db: AnyDb, number: string, opts: { 
   });
 }
 
-async function queueNotifications(tx: AnyDb, orderId: number, event: OrderEvent, siteUrl = "", at?: Date) {
+async function queueNotifications(tx: AnyDb, orderId: number, event: OrderEvent, at?: Date) {
   const [o] = await tx
     .select({
       number: schema.orders.number,
@@ -554,7 +564,8 @@ async function queueNotifications(tx: AnyDb, orderId: number, event: OrderEvent,
     trackingNumber: shipment?.trackingNumber ?? null,
     courier: courierLabel(o.courier),
     cancelReason: o.cancelReason,
-    link: `${siteUrl}/pesanan/${o.number}?t=${o.accessToken}`,
+    // Path relatif disimpan di database; alamat situs ditambahkan saat ditampilkan atau dikirim (absoluteLinks).
+    link: `/pesanan/${o.number}?t=${o.accessToken}`,
   });
   const rows: (typeof schema.notifications.$inferInsert)[] = [];
   const when = at ? { createdAt: at } : {};

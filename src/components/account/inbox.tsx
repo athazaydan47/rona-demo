@@ -1,9 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCheck, Loader2, Mail, MessageCircle } from "lucide-react";
+import { CheckCheck, ChevronDown, ChevronUp, Loader2, Mail, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { markAllReadAction, markReadAction } from "@/lib/account/actions";
 import { refreshAccountStatus } from "@/lib/auth/client-status";
@@ -11,9 +11,30 @@ import { cn } from "@/lib/utils";
 
 export type InboxRow = { id: number; channel: "wa" | "email"; subject: string; body: string; timeLabel: string; dayLabel: string; unread: boolean; orderNumber: string | null };
 
-// Pesan outbox berisi tautan absolut atau relatif; tampilkan sebagai teks yang bisa dipatah.
+const LONG = 160;
+
+// Pratinjau beberapa baris; pesan panjang bisa dibuka dan ditutup.
 function Body({ text }: { text: string }) {
-  return <p className="text-sm break-words whitespace-pre-line text-kopi">{text}</p>;
+  const [open, setOpen] = useState(false);
+  const long = text.length > LONG || text.split("\n").length > 3;
+  return (
+    <div>
+      <p className={cn("text-sm break-words whitespace-pre-line text-kopi", long && !open && "line-clamp-3")}>{text}</p>
+      {long ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen(!open);
+          }}
+          aria-expanded={open}
+          className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-rona hover:underline"
+        >
+          {open ? <ChevronUp className="size-3.5" aria-hidden /> : <ChevronDown className="size-3.5" aria-hidden />} {open ? "Tutup" : "Buka pesan"}
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 function Item({ n, onOpen }: { n: InboxRow; onOpen: (id: number) => void }) {
@@ -57,10 +78,10 @@ function Item({ n, onOpen }: { n: InboxRow; onOpen: (id: number) => void }) {
   );
 }
 
-export function Inbox({ rows }: { rows: InboxRow[] }) {
+export function Inbox({ rows, page = 1, pageCount = 1, total, unreadTotal }: { rows: InboxRow[]; page?: number; pageCount?: number; total?: number; unreadTotal?: number }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const unread = rows.filter((r) => r.unread).length;
+  const unread = unreadTotal ?? rows.filter((r) => r.unread).length;
   const days: { day: string; items: InboxRow[] }[] = [];
   for (const r of rows) {
     const last = days[days.length - 1];
@@ -116,6 +137,28 @@ export function Inbox({ rows }: { rows: InboxRow[] }) {
           ))}
         </div>
       )}
+      {pageCount > 1 ? (
+        <nav className="mt-5 flex items-center justify-between gap-3" aria-label="Halaman notifikasi">
+          {page > 1 ? (
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/akun/notifikasi${page - 1 > 1 ? `?hal=${page - 1}` : ""}`}>Lebih baru</Link>
+            </Button>
+          ) : (
+            <span />
+          )}
+          <span className="text-sm text-abu-hangat tabular-nums">
+            Halaman {page} dari {pageCount}
+            {total != null ? ` · ${total} pesan` : ""}
+          </span>
+          {page < pageCount ? (
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/akun/notifikasi?hal=${page + 1}`}>Lebih lama</Link>
+            </Button>
+          ) : (
+            <span />
+          )}
+        </nav>
+      ) : null}
     </div>
   );
 }

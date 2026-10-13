@@ -267,6 +267,14 @@ Aturan emas: **semua angka uang dan stok dihitung ulang di server**, tidak perna
 - Pesanan tamu yang sudah Selesai lalu diklaim ke akun (masuk dengan nomor WA yang sama) langsung mendapat poinnya saat diklaim.
 - Pesanan Dikirim otomatis menjadi Selesai 3 hari setelah status Dikirim, lewat cron harian dan pengecekan saat pesanan dibuka.
 
+### Tambahan aturan (Fase 6A)
+
+- Omzet: jumlah total pesanan yang sudah mencapai Dibayar, dikurangi pesanan yang kemudian Dibatalkan atau Diretur. Dikelompokkan per tanggal bayar dalam WIB (hari dimulai pukul 00.00 WIB). Rata-rata nilai pesanan = omzet dibagi jumlah pesanan yang dihitung dalam omzet.
+- Angka keuangan (omzet, rata-rata nilai pesanan, total di daftar terbaru dashboard) hanya tampil untuk akun dengan izin `laporan.keuangan`.
+- "Perlu tindakan" di dashboard: pesanan Dibayar yang belum diproses lebih dari 2 jam, Bayar di Toko yang kedaluwarsa hari ini, pesanan Siap Diambil lebih dari 3 hari, dan varian habis di Gudang Online yang punya peminat "Kabari aku". Ambang stok menipis bawaan 5 (pengaturan `stok.ambangMenipis`).
+- Izin staf berbasis kunci (misal `pesanan.ubah_status`, `stok.transfer`). Empat peran bawaan adalah templat izin; Owner bisa menambah atau mencabut izin per akun. Daftar lokasi yang diampu kosong berarti semua lokasi; Staf Cabang wajib minimal satu lokasi dan hanya melihat data lokasinya.
+- Reset harian demo (03.00 WIB, bersama cron kedaluwarsa dan Selesai otomatis) hanya berjalan bila DEMO_MODE=true dan DEMO_DAILY_RESET=true. Semua tabel data dikosongkan lalu diisi ulang dengan seed deterministik yang sama, dan foto ulasan pengunjung ikut dihapus.
+
 ### Profil kulit (bentuk data, Fase 5)
 
 Disimpan di `customers.skin_profile` (JSON). Formulir di /akun/profil-kulit mengisi sebagian; kuis kulit Fase 7 boleh mengisi semuanya. Semua kolom opsional:

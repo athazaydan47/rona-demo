@@ -1,6 +1,6 @@
 // Adapter penyimpanan foto ulasan: Vercel Blob bila BLOB_READ_WRITE_TOKEN ada, disk lokal saat dev,
 // dan nonaktif di Vercel tanpa token (disk serverless tidak permanen).
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 export type PhotoStorageKind = "blob" | "lokal" | "nonaktif";
@@ -78,4 +78,29 @@ export async function readLocalPhoto(key: string) {
   } catch {
     return null;
   }
+}
+
+// Hapus semua foto ulasan (dipakai reset harian demo). Mengembalikan jumlah berkas yang dihapus bila diketahui.
+export async function deleteAllReviewPhotos(env: Record<string, string | undefined> = process.env): Promise<{ kind: PhotoStorageKind; deleted: number }> {
+  const kind = storageKind(env);
+  if (kind === "blob") {
+    const { list, del } = await import("@vercel/blob");
+    const token = env.BLOB_READ_WRITE_TOKEN;
+    let deleted = 0;
+    let cursor: string | undefined;
+    do {
+      const page = await list({ prefix: "ulasan/", cursor, limit: 1000, token });
+      if (page.blobs.length) {
+        await del(page.blobs.map((b) => b.url), { token });
+        deleted += page.blobs.length;
+      }
+      cursor = page.hasMore ? page.cursor : undefined;
+    } while (cursor);
+    return { kind, deleted };
+  }
+  if (kind === "lokal") {
+    await rm(path.join(LOCAL_UPLOAD_DIR, "ulasan"), { recursive: true, force: true });
+    return { kind, deleted: 0 };
+  }
+  return { kind, deleted: 0 };
 }

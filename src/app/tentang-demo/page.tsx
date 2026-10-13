@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DemoLoginButton } from "@/components/account/demo-login-button";
-import { Button } from "@/components/ui/button";
+import { DemoStaffButtons } from "@/components/admin/login-form";
+import { DEMO_QUICK_LOGIN } from "@/lib/admin/staff";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { env } from "@/lib/env";
 
@@ -39,16 +40,19 @@ export default function AboutDemoPage() {
         <h2 className="font-serif text-xl text-kopi">Akun demo</h2>
         <p className="mt-2 text-sm text-abu-hangat">
           {env.demoMode
-            ? "Masuk sebagai Pembeli Demo tanpa OTP: akun ini sudah berisi alamat, pesanan di berbagai status, poin, wishlist, dan profil kulit. Masuk cepat sebagai Admin dan Staf Cabang menyusul bersama panel admin."
+            ? "Masuk sebagai Pembeli Demo tanpa OTP: akun ini sudah berisi alamat, pesanan di berbagai status, poin, wishlist, dan profil kulit. Panel admin bisa dicoba dari empat sudut pandang: Owner, Admin Online, Staf Cabang Dinoyo, dan Gudang."
             : "Akun demo hanya aktif di mode demo."}{" "}
           Data direset setiap malam supaya demo selalu bersih.
         </p>
-        <div className="mt-4 flex flex-wrap gap-3">
-          {env.demoMode ? <DemoLoginButton className="min-w-64" /> : null}
-          <Button variant="outline" disabled>
-            Masuk sebagai Admin Demo
-          </Button>
-        </div>
+        {env.demoMode ? (
+          <div className="mt-4 space-y-4">
+            <DemoLoginButton className="max-w-xs" />
+            <div>
+              <p className="mb-2 text-sm font-semibold text-kopi">Masuk ke panel admin sebagai</p>
+              <DemoStaffButtons accounts={DEMO_QUICK_LOGIN} compact />
+            </div>
+          </div>
+        ) : null}
       </div>
       <p className="mt-10 text-sm text-abu-hangat">
         Dibangun oleh <span className="font-semibold text-kopi">{env.studioName}</span>.{" "}

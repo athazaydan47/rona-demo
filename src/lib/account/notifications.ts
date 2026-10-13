@@ -5,7 +5,19 @@ import type { AnyDb } from "@/lib/db-types";
 
 export type InboxItem = { id: number; kind: string; channel: "wa" | "email"; subject: string; body: string; createdAt: Date; readAt: Date | null; orderNumber: string | null };
 
-export async function listInbox(db: AnyDb, customerId: number, limit = 40): Promise<InboxItem[]> {
+export const INBOX_PAGE_SIZE = 20;
+
+export async function listInboxPage(db: AnyDb, customerId: number, page = 1, pageSize = INBOX_PAGE_SIZE) {
+  const safePage = Math.max(1, Math.floor(page));
+  const [[{ n }], rows] = await Promise.all([
+    db.select({ n: count() }).from(schema.notifications).where(eq(schema.notifications.customerId, customerId)),
+    listInbox(db, customerId, pageSize, (safePage - 1) * pageSize),
+  ]);
+  const total = Number(n);
+  return { rows, total, page: safePage, pageCount: Math.max(1, Math.ceil(total / pageSize)) };
+}
+
+export async function listInbox(db: AnyDb, customerId: number, limit = 40, offset = 0): Promise<InboxItem[]> {
   return db
     .select({
       id: schema.notifications.id,
@@ -21,7 +33,8 @@ export async function listInbox(db: AnyDb, customerId: number, limit = 40): Prom
     .leftJoin(schema.orders, eq(schema.notifications.orderId, schema.orders.id))
     .where(eq(schema.notifications.customerId, customerId))
     .orderBy(desc(schema.notifications.createdAt), desc(schema.notifications.id))
-    .limit(limit);
+    .limit(limit)
+    .offset(offset);
 }
 
 export async function unreadCount(db: AnyDb, customerId: number) {

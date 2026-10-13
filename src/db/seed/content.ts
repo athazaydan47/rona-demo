@@ -1,3 +1,4 @@
+import { ROLE_SLUGS, ROLE_TEMPLATES, type RoleSlug } from "../../lib/admin/permissions";
 export const articleSeed = [
   {
     slug: "cara-memilih-shade-cushion-untuk-kulit-sawo-matang",
@@ -135,37 +136,20 @@ export const voucherSeed = [
   },
 ];
 
-export const roleSeed = [
-  {
-    slug: "owner",
-    name: "Owner",
-    description: "Semua akses, termasuk laporan keuangan, pengaturan, dan kelola akun.",
-    defaultPermissions: ["*"],
-  },
-  {
-    slug: "admin_online",
-    name: "Admin Online",
-    description: "Pesanan online, produk, promo, voucher, ulasan.",
-    defaultPermissions: ["pesanan.*", "produk.*", "promo.*", "voucher.*", "ulasan.*", "pelanggan.lihat", "stok.lihat"],
-  },
-  {
-    slug: "staf_cabang",
-    name: "Staf Cabang",
-    description: "Pesanan ambil di toko dan stok cabangnya sendiri.",
-    defaultPermissions: ["pesanan.ambil", "stok.cabang", "stok.lihat"],
-  },
-  {
-    slug: "gudang",
-    name: "Gudang",
-    description: "Stok masuk, transfer, opname.",
-    defaultPermissions: ["stok.*"],
-  },
-];
+// Peran bawaan; izin sebenarnya diambil dari ROLE_TEMPLATES di kode (src/lib/admin/permissions.ts).
+export const roleSeed = ROLE_SLUGS.map((slug) => ({
+  slug,
+  name: ROLE_TEMPLATES[slug].name,
+  description: ROLE_TEMPLATES[slug].description,
+  defaultPermissions: [...ROLE_TEMPLATES[slug].permissions],
+}));
 
-export const staffSeed = [
-  { name: "Owner Demo", email: "owner@rona.demo", role: "owner", location: null },
-  { name: "Admin Online Demo", email: "admin@rona.demo", role: "admin_online", location: "gudang-online" },
-  { name: "Staf Dinoyo Demo", email: "dinoyo@rona.demo", role: "staf_cabang", location: "dinoyo" },
+// Akun staf demo. Daftar lokasi kosong berarti mengampu semua lokasi.
+export const staffSeed: { name: string; email: string; role: RoleSlug; locations: string[] }[] = [
+  { name: "Owner Demo", email: "owner@rona.demo", role: "owner", locations: [] },
+  { name: "Admin Online Demo", email: "admin@rona.demo", role: "admin_online", locations: [] },
+  { name: "Staf Dinoyo Demo", email: "dinoyo@rona.demo", role: "staf_cabang", locations: ["dinoyo"] },
+  { name: "Gudang Demo", email: "gudang@rona.demo", role: "gudang", locations: [] },
 ];
 
 export const settingsSeed: Record<string, unknown> = {

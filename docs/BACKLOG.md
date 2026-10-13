@@ -40,12 +40,23 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 - Bila query database gagal, pesan error Drizzle bisa memuat parameter (misal nomor WA) di log server. Aplikasi sendiri tidak mencatat OTP, token, atau nomor; pertimbangkan pembungkus error yang menyamarkan parameter di Fase 8. (Fase 5)
 - Foto ulasan yang sudah diunggah tapi ulasannya batal dikirim tetap tersimpan (yatim). Tambahkan pembersihan berkala atau unggah sementara di Fase 8. (Fase 5)
 - Foto ulasan di Vercel Blob bersifat publik dengan nama acak; moderasi (sembunyikan ulasan dan fotonya) hadir di panel admin Fase 6. (Fase 5)
-- Reset harian data demo (termasuk mengembalikan akun Pembeli Demo ke keadaan seed) belum dijadwalkan; saat ini lewat `db:reset` manual. Uji E2E membersihkan ulasan Pembeli Demo sendiri sebelum berjalan. (Fase 5)
 - Status moderasi ulasan di skema bernama "tampil" (prompt menyebut "tayang"); artinya sama, enum tidak diubah supaya migrasi tetap aditif. (Fase 5)
 - Ikon hati baru ada di halaman produk dan header (tautan ke wishlist); kartu produk di katalog belum punya tombol hati. (Fase 5)
 - Belum ada daftar perangkat yang sedang masuk; yang tersedia "Keluar" dan "Keluar dari semua perangkat". (Fase 5)
 - Pembeli yang masuk memakai nomor WA akun sebagai kontak pesanan; nomor penerima di alamat bisa berbeda. Pesanan tamu hanya bisa dikonfirmasi diterima oleh pemilik yang masuk; tamu mengandalkan Selesai otomatis 3 hari. (Fase 5)
 - Tautan footer ke halaman bantuan (cara belanja, cek ongkir, FAQ, hubungi, kebijakan) masih 404 dan ikut diprefetch; halaman pendukung dijadwalkan Fase 8. (Fase 5)
+
+## Panel admin
+
+- Panel admin memakai root layout yang sama dengan toko; kerangka toko disembunyikan dengan CSS `:has([data-admin-root])`. Header toko tetap dirender (tersembunyi) dan komponen kliennya (jumlah keranjang, status akun) ikut memanggil server di halaman admin. Pisahkan ke route group dengan root layout sendiri setelah `global-not-found` Next stabil. (Fase 6A)
+- Matriks stok dan opname memuat seluruh varian lalu menyaring dan memaginasi di memori (cukup untuk 228 varian demo). Pindahkan ke SQL bila katalog ribuan varian. (Fase 6A)
+- Kanban memuat 30 kartu terbaru per kolom; Selesai dan Dibatalkan hanya 14 hari terakhir. Sisanya di tampilan tabel. (Fase 6A)
+- Seret kartu kanban memakai drag and drop HTML5 yang tidak jalan di layar sentuh; di HP kanban sengaja jadi tab status dan aksi ada di halaman detail. (Fase 6A)
+- Konfirmasi reset demo dan atur ulang kata sandi staf masih memakai `window.prompt`; ganti dengan dialog Radix di Fase 8. (Fase 6A)
+- Saat DEMO_MODE, akun staf demo dikunci lebih ketat dari prompt: selain tidak bisa dinonaktifkan atau diganti kata sandinya, peran, izin, dan lokasinya juga tidak bisa diubah (supaya Owner demo tidak terkunci). Pengunjung bebas membuat akun baru untuk mencoba. (Fase 6A)
+- Label kirim memakai font standar PDF (WinAnsi); karakter di luar Latin-1 di nama atau alamat dibuang. Sematkan font TTF bila toko sungguhan mengirim ke nama beraksara lain. (Fase 6A)
+- Reset demo memakai jalur seed yang sama (410 kueri, sebagian besar dari pesanan Pembeli Demo lewat layanan pesanan sungguhan). Durasi ke Neon belum diukur langsung; perintah `npm run demo:ukur-reset` tersedia. Bila lambat, pesanan demo bisa disisipkan massal. (Fase 6A)
+- Pencarian pelanggan di Cmd+K mengarah ke tabel pesanan bernomor WA itu karena halaman Pelanggan baru ada di 6B. (Fase 6A)
 
 ## Deploy
 
@@ -65,6 +76,8 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 - Flash sale bisa hilang 3 hari setelah reset: `ensureFlashSaleSlots` menambah slot otomatis saat DEMO_MODE. (Fase 2.1)
 - Route cron kedaluwarsa dijadwalkan harian lewat `vercel.json` (03.00 WIB) dan menerima header Authorization: Bearer CRON_SECRET dari Vercel Cron. (Fase 4.1)
 - Header situs tampak di tengah formulir checkout pada lembar cuplik: artefak skrip (potretan satu halaman penuh diambil saat halaman sudah tergulir), bukan bug header. Skrip kini menggulir ke atas dan menunggu header kembali sebelum memotret. (Fase 4.1)
+- Tautan di isi notifikasi kini disimpan relatif dan diberi alamat situs saat ditampilkan; data lama berisi localhost ikut dibetulkan saat tampil. Kotak Notifikasi menampilkan pratinjau 3 baris dengan tombol buka atau tutup dan paginasi 20 per halaman. (Fase 6A, dari review Fase 5)
+- Reset harian demo terjadwal bersama cron (DEMO_DAILY_RESET=true) dan tombol Owner. (Fase 6A)
 - Kotak Notifikasi membaca outbox notifications per pembeli, dengan penanda belum dibaca dan tandai semua dibaca. (Fase 5)
 - Unggah foto ulasan sungguhan: dikompresi di browser ke WebP 1600 px, divalidasi ulang di server, disimpan di disk lokal atau Vercel Blob. Ulasan seed tetap memakai foto pengganti. (Fase 5)
 - Pemeriksa konsistensi poin sempat salah karena subkueri berkorelasi di sql`` (masalah yang sama dengan Fase 2.1); diganti LEFT JOIN + GROUP BY dan ditutup uji. (Fase 5)

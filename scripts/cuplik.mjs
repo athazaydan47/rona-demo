@@ -14,6 +14,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { capturePage, formatBytes, labelWib, launchBrowser, screenshotHtmlToJpeg, stampWib } from "./screenshot.mjs";
+import { captureAdminFlow } from "./cuplik-admin.mjs";
 import { captureAccountFlow } from "./cuplik-akun.mjs";
 import { captureBuyFlow } from "./cuplik-alur-beli.mjs";
 
@@ -46,6 +47,8 @@ const ACTIONS = {
   // Alur akun: masuk dengan OTP demo, halaman /akun, formulir ulasan, checkout dengan poin. Halaman /akun di --halaman
   // tidak dipotret terpisah (tanpa sesi isinya hanya pengalihan ke /masuk).
   akun: { flow: true, label: "alur akun", capture: captureAccountFlow, covers: ["/akun"] },
+  // Alur admin: masuk staf, dashboard, pesanan, label, stok, transfer, opname, staf, log, dashboard Staf Dinoyo di HP.
+  admin: { flow: true, label: "alur admin", capture: captureAdminFlow, covers: ["/admin"] },
 };
 
 function parseArgs(argv) {

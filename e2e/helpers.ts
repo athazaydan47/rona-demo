@@ -105,3 +105,9 @@ export async function loginAsDemo(page: Page, kembali = "/akun") {
   await page.getByRole("button", { name: "Masuk sebagai Pembeli Demo" }).click();
   await page.waitForURL((url) => url.pathname === kembali.split("?")[0]);
 }
+
+export async function loginStaff(page: Page, label: "Owner" | "Admin Online" | "Staf Cabang Dinoyo" | "Gudang", kembali = "/admin") {
+  await page.goto(`/admin/masuk?kembali=${encodeURIComponent(kembali)}`);
+  await page.getByRole("button", { name: label, exact: true }).click();
+  await page.waitForURL((u) => u.pathname === kembali.split("?")[0]);
+}

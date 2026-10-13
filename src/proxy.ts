@@ -1,6 +1,6 @@
 // Proxy (Node.js):
 // 1. Memastikan /p/[slug] yang tidak ada mengembalikan HTTP 404 sungguhan.
-// 2. /akun tanpa cookie sesi diarahkan ke /masuk lalu kembali lagi.
+// 2. /akun tanpa cookie sesi diarahkan ke /masuk, dan /admin tanpa cookie staf ke /admin/masuk, lalu kembali lagi.
 // 3. Cookie sesi diperpanjang 30 hari saat pembeli aktif (paling sering sekali sehari, lewat cookie penanda).
 //    Masa berlaku di database diperpanjang terpisah oleh readSession.
 // Dengan Cache Components, slug yang tidak diprarender langsung dikirim sebagai App Shell (status 200),
@@ -38,6 +38,7 @@ async function productExists(slug: string) {
 }
 
 const SESSION_COOKIE = "rona_sesi";
+const STAFF_COOKIE = "rona_staf";
 const SESSION_FRESH_COOKIE = "rona_sesi_segar";
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 
@@ -52,6 +53,12 @@ function refreshSession(request: NextRequest, response: NextResponse) {
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  // Panel admin: tanpa cookie sesi staf langsung ke /admin/masuk, lalu kembali ke halaman tujuan.
+  if ((pathname === "/admin" || pathname.startsWith("/admin/")) && pathname !== "/admin/masuk" && !request.cookies.get(STAFF_COOKIE)) {
+    const url = new URL("/admin/masuk", request.url);
+    url.searchParams.set("kembali", `${pathname}${search}`);
+    return NextResponse.redirect(url);
+  }
   if (pathname === "/akun" || pathname.startsWith("/akun/")) {
     if (!request.cookies.get(SESSION_COOKIE)) {
       const url = new URL("/masuk", request.url);

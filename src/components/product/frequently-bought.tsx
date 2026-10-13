@@ -46,8 +46,8 @@ export function FrequentlyBought({ current, items }: { current: Current; items: 
             <span className="min-w-0 flex-1">
               <span className="line-clamp-2 text-sm font-medium text-kopi">{current.name}</span>
               <span className="block truncate text-xs text-abu-hangat">{current.shadeName ? `Shade ${current.shadeName}` : "Produk ini"}</span>
+              <PriceTag price={current.price} size="sm" className="mt-0.5" />
             </span>
-            <PriceTag price={current.price} size="sm" className="shrink-0" />
           </li>
           {picks.map((p) => (
             <li key={p.product.id} className={cn("flex items-center gap-3 p-3", !checked[p.product.id] && "opacity-60")}>
@@ -60,8 +60,8 @@ export function FrequentlyBought({ current, items }: { current: Current; items: 
                   {p.product.name}
                 </Link>
                 <span className="block truncate text-xs text-abu-hangat">{p.product.variantCount > 1 ? p.variant.shadeName : p.product.brandName}{!p.variant.inStock ? ", habis" : ""}</span>
+                <PriceTag price={p.variant.price} normalPrice={p.variant.normalPrice} size="sm" className="mt-0.5" />
               </span>
-              <PriceTag price={p.variant.price} normalPrice={p.variant.normalPrice} size="sm" className="shrink-0" />
             </li>
           ))}
         </ul>

@@ -12,7 +12,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed/index.ts",
-    "db:reset": "tsx src/db/reset.ts"
+    "db:reset": "tsx src/db/reset.ts",
+    "cuplik": "node scripts/cuplik.mjs",
+    "cuplik:art": "tsx scripts/cuplik-art.tsx"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

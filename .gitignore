@@ -42,3 +42,6 @@ next-env.d.ts
 
 # env: hanya .env.example yang boleh di-commit
 !.env.example
+
+# lembar review visual (npm run cuplik)
+/_review/

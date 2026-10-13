@@ -2,7 +2,7 @@
 //
 // Sebagai CLI:
 //   node scripts/screenshot.mjs <url> <lebar> <keluaran.png> [aksi]
-//   aksi: full | menu | megamenu | hover:<teks tombol> | click:<aria-label tombol>
+//   aksi: full | menu | megamenu | filter | hover:<teks tombol> | click:<aria-label tombol>
 //
 // Sebagai modul: dipakai oleh scripts/cuplik.mjs dan scripts/cuplik-art.tsx.
 import { chromium } from "@playwright/test";
@@ -78,6 +78,10 @@ export async function capturePage(browser, url, opts) {
     if (action === "menu") {
       await page.getByRole("button", { name: "Buka menu kategori" }).first().click();
       await page.waitForTimeout(600);
+      fullPage = false;
+    } else if (action === "filter") {
+      await page.getByRole("button", { name: "Buka filter" }).first().click();
+      await page.waitForTimeout(700);
       fullPage = false;
     } else if (action === "megamenu") {
       await page.locator('nav[aria-label="Navigasi utama"] button').first().hover();

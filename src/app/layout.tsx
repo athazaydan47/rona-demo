@@ -9,6 +9,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { MobileMenuProvider, MobileMenuSheet } from "@/components/layout/mobile-menu";
+import { Toaster } from "@/components/ui/toast";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -55,6 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           />
           <BottomNav />
           <MobileMenuSheet categories={categories} />
+          <Toaster />
         </MobileMenuProvider>
       </body>
     </html>

@@ -38,6 +38,8 @@ export function MobileMenuTrigger({ className }: { className?: string }) {
 const quickLinks = [
   { href: "/promo", label: "Promo" },
   { href: "/flash-sale", label: "Flash Sale" },
+  { href: "/c/semua?urut=terbaru", label: "Baru Datang" },
+  { href: "/c/semua?urut=terlaris", label: "Terlaris" },
   { href: "/merek", label: "Semua Merek" },
   { href: "/jurnal", label: "Jurnal" },
   { href: "/toko", label: "Toko Kami" },

@@ -42,3 +42,9 @@ Brief lengkap ada di `docs/BRIEF.md`. Baca bagian yang relevan sebelum mengerjak
 1. Lint, typecheck, test, dan build bersih.
 2. Dicek di lebar 375 px dan 1440 px.
 3. Laporan akhir berisi: apa yang dibuat, keputusan yang diambil sendiri, dan apa yang belum atau perlu dicek manual.
+
+## Aturan cache
+
+- Data katalog yang jarang berubah (nama, deskripsi, merek, kategori, atribut produk, artikel, pengaturan toko) boleh di-cache dengan `use cache` dan `cacheTag` per produk, kategori, dan merek. Helper tag terpusat ada di `src/lib/cache-tags.ts`; jangan menulis string tag secara langsung.
+- Stok, harga efektif, flash sale, dan kuota tidak boleh basi: baca tanpa cache (di dalam `Suspense`) atau dengan `cacheLife` sangat pendek.
+- Setiap modul yang mengubah data (admin, checkout, inventory, promo) wajib memanggil `revalidateTag` untuk tag yang terdampak lewat helper di `src/lib/cache-tags.ts`.

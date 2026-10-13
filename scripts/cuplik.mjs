@@ -29,6 +29,7 @@ const VIEWS = [
 const ACTIONS = {
   menu: { width: 375, deviceScaleFactor: 2, label: "menu HP terbuka" },
   megamenu: { width: 1440, deviceScaleFactor: 1, label: "MegaMenu terbuka" },
+  filter: { width: 375, deviceScaleFactor: 2, label: "bottom sheet filter terbuka", target: "catalog" },
 };
 
 function parseArgs(argv) {
@@ -223,10 +224,10 @@ async function main() {
         console.log(`tinggi ${shot.cssHeight} px${shot.scrollWidth > v.width ? `, PERINGATAN: melebar ke ${shot.scrollWidth} px` : ""}`);
       }
     }
-    // Keadaan khusus pada halaman pertama.
+    // Keadaan khusus: pada halaman pertama, atau halaman katalog pertama untuk aksi filter.
     for (const a of aksi) {
       const cfg = ACTIONS[a];
-      const p = halaman[0];
+      const p = cfg.target === "catalog" ? (halaman.find((h) => /^\/(c\/|cari|merek\/|promo)/.test(h)) ?? halaman[0]) : halaman[0];
       process.stdout.write(`Memotret ${p} di ${cfg.width} px (${cfg.label})... `);
       const out = path.join(tmpDir, `${pageSlug(p)}-${cfg.width}-${a}.png`);
       const shot = await capturePage(browser, `${BASE_URL}${p}`, {

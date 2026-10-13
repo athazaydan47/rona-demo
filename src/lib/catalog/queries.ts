@@ -1,8 +1,7 @@
 import { cacheLife, cacheTag } from "next/cache";
-import { and, asc, desc, eq, gt, inArray, lte } from "drizzle-orm";
+import { asc, desc, eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db/client";
-import type { Packaging } from "@/db/schema/enums";
-import { effectivePrice } from "@/lib/pricing";
+import { cacheTags } from "@/lib/cache-tags";
 
 export type CategoryChild = { id: number; name: string; slug: string };
 export type CategoryNode = {
@@ -17,7 +16,7 @@ export type CategoryNode = {
 export async function getCategoryTree(): Promise<CategoryNode[]> {
   "use cache";
   cacheLife("hours");
-  cacheTag("categories");
+  cacheTag(cacheTags.categories());
   const rows = await db
     .select({
       id: schema.categories.id,
@@ -55,7 +54,7 @@ export type StoreLocation = {
 export async function getLocations(): Promise<StoreLocation[]> {
   "use cache";
   cacheLife("hours");
-  cacheTag("locations");
+  cacheTag(cacheTags.locations());
   return db
     .select({
       id: schema.locations.id,
@@ -76,129 +75,125 @@ export async function getLocations(): Promise<StoreLocation[]> {
 export async function getPromoMessages(): Promise<string[]> {
   "use cache";
   cacheLife("hours");
-  cacheTag("settings");
+  cacheTag(cacheTags.settings());
   const [row] = await db.select({ value: schema.settings.value }).from(schema.settings).where(eq(schema.settings.key, "promo.bar"));
   const value = row?.value;
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 }
 
-export type ProductCardData = {
+
+export type BrandSummary = {
   id: number;
   name: string;
   slug: string;
-  brandName: string;
-  brandSlug: string;
-  brandColor: string;
-  packaging: Packaging;
-  ratingAvg: number;
-  reviewCount: number;
-  soldCount: number;
-  isNew: boolean;
-  isBestseller: boolean;
-  price: number;
-  normalPrice: number;
-  hexes: string[];
-  primaryHex: string;
-  primaryShade: string;
-  variantCount: number;
-  inStock: boolean;
-  isFlash: boolean; // ada varian di slot flash sale yang sedang berjalan
+  color: string;
+  tagline: string;
+  description: string;
+  priceMin: number;
+  priceMax: number;
+  productCount: number;
 };
 
-// Produk unggulan untuk beranda: terlaris dulu, lalu paling banyak terjual.
-export async function getFeaturedProducts(limit = 12): Promise<ProductCardData[]> {
+// Daftar merek beserta jumlah produk aktif. Deskriptif, jarang berubah.
+export async function getBrands(): Promise<BrandSummary[]> {
   "use cache";
-  // Lebih pendek dari data katalog lain karena harga flash sale berubah per slot jam.
-  cacheLife("minutes");
-  cacheTag("products");
-  cacheTag("flash-sales");
-  const products = await db
+  cacheLife("hours");
+  cacheTag(cacheTags.brands());
+  const rows = await db
     .select({
-      id: schema.products.id,
-      name: schema.products.name,
-      slug: schema.products.slug,
-      packaging: schema.products.packaging,
-      ratingAvg: schema.products.ratingAvg,
-      reviewCount: schema.products.reviewCount,
-      soldCount: schema.products.soldCount,
-      isNew: schema.products.isNew,
-      isBestseller: schema.products.isBestseller,
-      brandName: schema.brands.name,
-      brandSlug: schema.brands.slug,
-      brandColor: schema.brands.color,
+      id: schema.brands.id,
+      name: schema.brands.name,
+      slug: schema.brands.slug,
+      color: schema.brands.color,
+      tagline: schema.brands.tagline,
+      description: schema.brands.description,
+      priceMin: schema.brands.priceMin,
+      priceMax: schema.brands.priceMax,
+      productCount: sql<number>`(select count(*) from products p where p.brand_id = ${schema.brands.id} and p.status = 'aktif')`,
     })
-    .from(schema.products)
-    .innerJoin(schema.brands, eq(schema.products.brandId, schema.brands.id))
-    .where(eq(schema.products.status, "aktif"))
-    .orderBy(desc(schema.products.isBestseller), desc(schema.products.soldCount), asc(schema.products.name))
+    .from(schema.brands)
+    .orderBy(asc(schema.brands.name));
+  return rows.map((r) => ({ ...r, productCount: Number(r.productCount) }));
+}
+
+export async function getBrand(slug: string): Promise<BrandSummary | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(cacheTags.brands());
+  cacheTag(cacheTags.brand(slug));
+  const all = await getBrands();
+  return all.find((b) => b.slug === slug) ?? null;
+}
+
+export type CategoryInfo = {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  parent: { name: string; slug: string } | null;
+};
+
+export async function getCategoryInfo(slug: string): Promise<CategoryInfo | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(cacheTags.categories());
+  cacheTag(cacheTags.category(slug));
+  const tree = await getCategoryTree();
+  for (const p of tree) {
+    if (p.slug === slug) return { id: p.id, name: p.name, slug: p.slug, description: p.description, parent: null };
+    const c = p.children.find((x) => x.slug === slug);
+    if (c) return { id: c.id, name: c.name, slug: c.slug, description: "", parent: { name: p.name, slug: p.slug } };
+  }
+  return null;
+}
+
+export type ArticleSummary = {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string;
+  author: string;
+  publishedAt: Date | null;
+  linkedProductIds: number[];
+};
+
+export async function getArticles(limit = 10): Promise<ArticleSummary[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(cacheTags.articles());
+  return db
+    .select({
+      id: schema.articles.id,
+      title: schema.articles.title,
+      slug: schema.articles.slug,
+      excerpt: schema.articles.excerpt,
+      author: schema.articles.author,
+      publishedAt: schema.articles.publishedAt,
+      linkedProductIds: schema.articles.linkedProductIds,
+    })
+    .from(schema.articles)
+    .orderBy(desc(schema.articles.publishedAt))
     .limit(limit);
-  if (products.length === 0) return [];
+}
 
-  const ids = products.map((p) => p.id);
-  const variants = await db
+export async function getArticle(slug: string): Promise<(ArticleSummary & { body: string }) | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(cacheTags.articles());
+  cacheTag(cacheTags.article(slug));
+  const [row] = await db
     .select({
-      id: schema.variants.id,
-      productId: schema.variants.productId,
-      shadeName: schema.variants.shadeName,
-      hex: schema.variants.hex,
-      normalPrice: schema.variants.normalPrice,
-      salePrice: schema.variants.salePrice,
-      promoPrice: schema.variants.promoPrice,
-      promoStartsAt: schema.variants.promoStartsAt,
-      promoEndsAt: schema.variants.promoEndsAt,
-      sortOrder: schema.variants.sortOrder,
+      id: schema.articles.id,
+      title: schema.articles.title,
+      slug: schema.articles.slug,
+      excerpt: schema.articles.excerpt,
+      author: schema.articles.author,
+      publishedAt: schema.articles.publishedAt,
+      linkedProductIds: schema.articles.linkedProductIds,
+      body: schema.articles.body,
     })
-    .from(schema.variants)
-    .where(inArray(schema.variants.productId, ids))
-    .orderBy(asc(schema.variants.sortOrder));
-  const variantIds = variants.map((v) => v.id);
-  const stock = await db
-    .select({ variantId: schema.inventory.variantId, onHand: schema.inventory.onHand, reserved: schema.inventory.reserved })
-    .from(schema.inventory)
-    .where(inArray(schema.inventory.variantId, variantIds));
-  const available = new Map<number, number>();
-  for (const s of stock) available.set(s.variantId, (available.get(s.variantId) ?? 0) + Math.max(0, s.onHand - s.reserved));
-
-  const now = new Date();
-  const flashRows = await db
-    .select({ variantId: schema.flashSaleItems.variantId, flashPrice: schema.flashSaleItems.flashPrice })
-    .from(schema.flashSaleItems)
-    .innerJoin(schema.flashSales, eq(schema.flashSaleItems.flashSaleId, schema.flashSales.id))
-    .where(
-      and(
-        inArray(schema.flashSaleItems.variantId, variantIds),
-        eq(schema.flashSales.isActive, true),
-        lte(schema.flashSales.startsAt, now),
-        gt(schema.flashSales.endsAt, now),
-      ),
-    );
-  const flashByVariant = new Map(flashRows.map((f) => [f.variantId, f.flashPrice]));
-
-  return products.map((p) => {
-    const vs = variants.filter((v) => v.productId === p.id && v.sortOrder >= 0);
-    const priced = vs.map((v) => effectivePrice({ ...v, flashPrice: flashByVariant.get(v.id) ?? null }, now));
-    const cheapest = priced.reduce((min, cur) => (cur.price < min.price ? cur : min), priced[0] ?? { price: 0, normalPrice: 0, source: "normal" as const, percent: 0 });
-    return {
-      id: p.id,
-      name: p.name,
-      slug: p.slug,
-      brandName: p.brandName,
-      brandSlug: p.brandSlug,
-      brandColor: p.brandColor,
-      packaging: p.packaging,
-      ratingAvg: p.ratingAvg,
-      reviewCount: p.reviewCount,
-      soldCount: p.soldCount,
-      isNew: p.isNew,
-      isBestseller: p.isBestseller,
-      price: cheapest.price,
-      normalPrice: cheapest.normalPrice,
-      hexes: vs.map((v) => v.hex),
-      primaryHex: vs[0]?.hex ?? p.brandColor,
-      primaryShade: vs[0]?.shadeName ?? "",
-      variantCount: vs.length,
-      inStock: vs.some((v) => (available.get(v.id) ?? 0) > 0),
-      isFlash: priced.some((pr) => pr.source === "flash"),
-    };
-  });
+    .from(schema.articles)
+    .where(eq(schema.articles.slug, slug))
+    .limit(1);
+  return row ?? null;
 }

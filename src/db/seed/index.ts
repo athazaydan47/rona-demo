@@ -247,37 +247,44 @@ export async function runSeed(url = process.env.DATABASE_URL) {
         .where(eq(schema.products.id, productId));
     }
 
-    // 7. Flash sale: 2 slot hari ini (WIB), 12.00 sampai 14.00 dan 20.00 sampai 22.00
+    // 7. Flash sale: slot 12.00 sampai 14.00 dan 20.00 sampai 22.00 WIB, hari ini sampai 3 hari ke depan,
+    // supaya selalu ada slot yang berjalan atau segera mulai kapan pun demo dibuka.
     const slots = [
       { name: "Flash Sale Siang", start: [12, 0], end: [14, 0] },
       { name: "Flash Sale Malam", start: [20, 0], end: [22, 0] },
     ] as const;
     const bestsellerVariants = variantRows.filter((v) => productMeta.get(v.productId)!.popularity >= 8);
     const flashPool = rng.shuffle(bestsellerVariants);
-    for (const [si, slot] of slots.entries()) {
-      const [sale] = await db
-        .insert(schema.flashSales)
-        .values({
-          name: slot.name,
-          startsAt: wibDate(today.year, today.month, today.day, slot.start[0], slot.start[1]),
-          endsAt: wibDate(today.year, today.month, today.day, slot.end[0], slot.end[1]),
-          isActive: true,
-        })
-        .returning({ id: schema.flashSales.id });
-      const picks = flashPool.slice(si * 6, si * 6 + 6);
-      await db.insert(schema.flashSaleItems).values(
-        picks.map((v) => {
-          const quota = rng.int(20, 40);
-          return {
-            flashSaleId: sale.id,
-            variantId: v.id,
-            flashPrice: roundToPromo(v.salePrice * 0.78),
-            quota,
-            sold: rng.int(0, Math.floor(quota * 0.6)),
-            maxPerCustomer: 2,
-          };
-        }),
-      );
+    for (let dayOffset = 0; dayOffset <= 3; dayOffset++) {
+      const dayParts = toWibParts(new Date(now.getTime() + dayOffset * 86400000));
+      for (const [si, slot] of slots.entries()) {
+        const [sale] = await db
+          .insert(schema.flashSales)
+          .values({
+            name: slot.name,
+            startsAt: wibDate(dayParts.year, dayParts.month, dayParts.day, slot.start[0], slot.start[1]),
+            endsAt: wibDate(dayParts.year, dayParts.month, dayParts.day, slot.end[0], slot.end[1]),
+            isActive: true,
+          })
+          .returning({ id: schema.flashSales.id });
+        const offset = ((dayOffset * 2 + si) * 6) % Math.max(1, flashPool.length - 6);
+        const picks = flashPool.slice(offset, offset + 6);
+        await db.insert(schema.flashSaleItems).values(
+          picks.map((v) => {
+            const quota = rng.int(20, 40);
+            // Slot yang sudah lewat atau sedang berjalan punya penjualan, slot mendatang masih 0.
+            const started = dayOffset === 0 && slot.start[0] <= today.hour;
+            return {
+              flashSaleId: sale.id,
+              variantId: v.id,
+              flashPrice: roundToPromo(v.salePrice * 0.78),
+              quota,
+              sold: started ? rng.int(2, Math.floor(quota * 0.6)) : 0,
+              maxPerCustomer: 2,
+            };
+          }),
+        );
+      }
     }
 
     // 8. Voucher
@@ -396,7 +403,7 @@ export async function runSeed(url = process.env.DATABASE_URL) {
     });
 
     console.log(
-      `Seed selesai: ${brandRows.length} merek, ${parentRows.length + childRows.length} kategori, ${locationRows.length} lokasi, ${productIds.length} produk, ${variantRows.length} varian, ${inventoryValues.length} baris stok, ${reviewValues.length} ulasan, 2 flash sale, ${voucherSeed.length} voucher, ${articleSeed.length} artikel.`,
+      `Seed selesai: ${brandRows.length} merek, ${parentRows.length + childRows.length} kategori, ${locationRows.length} lokasi, ${productIds.length} produk, ${variantRows.length} varian, ${inventoryValues.length} baris stok, ${reviewValues.length} ulasan, 8 slot flash sale, ${voucherSeed.length} voucher, ${articleSeed.length} artikel.`,
     );
   } finally {
     await client.end();

@@ -2,7 +2,7 @@
 //
 // Sebagai CLI:
 //   node scripts/screenshot.mjs <url> <lebar> <keluaran.png> [aksi]
-//   aksi: full | menu | megamenu | filter | shade | hover:<teks tombol> | click:<aria-label tombol>
+//   aksi: full | menu | megamenu | filter | shade | habis | hover:<teks tombol> | click:<aria-label tombol>
 //
 // Sebagai modul: dipakai oleh scripts/cuplik.mjs dan scripts/cuplik-art.tsx.
 import { chromium } from "@playwright/test";
@@ -83,6 +83,14 @@ export async function capturePage(browser, url, opts) {
     } else if (action === "filter") {
       await page.getByRole("button", { name: "Buka filter" }).first().click();
       await page.waitForTimeout(700);
+      fullPage = false;
+    } else if (action === "habis") {
+      // Pilih shade yang habis di semua lokasi supaya tombol "Kabari aku saat tersedia" terlihat.
+      await page.getByRole("radio", { name: /, habis/ }).first().click();
+      await page.waitForTimeout(700);
+      await page.getByRole("button", { name: /Kabari aku/ }).first().scrollIntoViewIfNeeded();
+      await page.evaluate(() => window.scrollBy(0, -180));
+      await page.waitForTimeout(300);
       fullPage = false;
     } else if (action === "shade") {
       await page.getByRole("button", { name: "Cari shade-ku" }).first().click();

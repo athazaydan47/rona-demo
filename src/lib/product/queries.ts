@@ -4,15 +4,14 @@ import { connection } from "next/server";
 import { and, asc, desc, eq, gt, inArray, lte } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db, schema } from "@/db/client";
-import type { OpeningHours } from "@/db/schema";
 import type { Packaging } from "@/db/schema/enums";
 import { cacheTags } from "@/lib/cache-tags";
 import { fetchCatalogItems, toCardData, type ProductCardData } from "@/lib/catalog/catalog-queries";
-import { sortItems, emptyFilters, type CatalogItem } from "@/lib/catalog/filters";
+import { sortItems, emptyFilters } from "@/lib/catalog/filters";
 import { ensureFlashSaleSlots } from "@/lib/flash/ensure";
-import { toWibParts } from "@/lib/format";
 import { effectivePrice, type EffectivePrice } from "@/lib/pricing";
-import { hexToRgb } from "@/lib/color";
+import { locationFlags } from "./availability";
+import { pickSimilar, pickTogether } from "./related";
 
 const SHADE_PACKAGING = new Set<Packaging>(["lipstick", "lip_tint", "lip_cream", "cushion", "foundation_bottle"]);
 
@@ -166,6 +165,15 @@ export async function getProductDetail(slug: string): Promise<ProductDetail | nu
   };
 }
 
+// Daftar slug produk aktif untuk generateStaticParams.
+export async function getActiveProductSlugs(): Promise<string[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(cacheTags.products());
+  const rows = await db.select({ slug: schema.products.slug }).from(schema.products).where(eq(schema.products.status, "aktif"));
+  return rows.map((r) => r.slug);
+}
+
 export type LiveLocation = {
   slug: string;
   name: string;
@@ -187,23 +195,6 @@ export type ProductLive = {
   flash: Record<number, VariantFlash>;
   prices: Record<number, EffectivePrice>;
 };
-
-const DAY_KEYS: (keyof OpeningHours)[] = ["min", "sen", "sel", "rab", "kam", "jum", "sab"];
-
-function parseClock(s: string) {
-  const [h, m] = s.split(".").map((n) => Number.parseInt(n, 10));
-  return (h || 0) * 60 + (m || 0);
-}
-
-export function locationFlags(loc: { type: "gudang" | "toko"; openingHours: OpeningHours | null }, now: Date) {
-  const p = toWibParts(now);
-  const minutes = p.hour * 60 + p.minute;
-  const today = loc.openingHours?.[DAY_KEYS[p.weekday]] ?? null;
-  const openNow = today ? minutes >= parseClock(today.open) && minutes < parseClock(today.close) : false;
-  const shipsToday = loc.type === "gudang" && p.weekday >= 1 && p.weekday <= 6 && p.hour < 15;
-  const pickupToday = loc.type === "toko" && openNow && p.hour < 16;
-  return { openNow, shipsToday, pickupToday };
-}
 
 export async function getProductLive(product: Pick<ProductDetail, "id" | "variants">): Promise<ProductLive> {
   await connection();
@@ -342,85 +333,12 @@ export async function getProductReviews(productId: number): Promise<ProductRevie
   }));
 }
 
-// Pelengkap per sub kategori: tiga sub kategori lain yang biasa dibeli bersama.
-const complements: Record<string, string[]> = {
-  cushion: ["sunscreen-wajah", "primer-dan-setting-spray", "lip-tint"],
-  foundation: ["primer-dan-setting-spray", "bedak", "concealer"],
-  bedak: ["cushion", "blush", "primer-dan-setting-spray"],
-  concealer: ["foundation", "bedak", "perawatan-mata"],
-  blush: ["highlighter-dan-contour", "lip-tint", "cushion"],
-  "highlighter-dan-contour": ["blush", "bedak", "primer-dan-setting-spray"],
-  "primer-dan-setting-spray": ["cushion", "foundation", "sunscreen-wajah"],
-  lipstick: ["lip-balm-dan-lip-care", "blush", "cushion"],
-  "lip-tint": ["lip-balm-dan-lip-care", "blush", "cushion"],
-  "lip-cream": ["lip-balm-dan-lip-care", "lip-gloss", "cushion"],
-  "lip-gloss": ["lipstick", "lip-balm-dan-lip-care", "blush"],
-  "lip-balm-dan-lip-care": ["lipstick", "lip-tint", "pelembap"],
-  mascara: ["eyeliner", "alis", "eyeshadow"],
-  eyeliner: ["mascara", "alis", "eyeshadow"],
-  eyeshadow: ["primer-dan-setting-spray", "mascara", "eyeliner"],
-  alis: ["mascara", "eyeliner", "highlighter-dan-contour"],
-  "bulu-mata": ["mascara", "eyeliner", "eyeshadow"],
-  pembersih: ["toner", "pelembap", "sunscreen-wajah"],
-  toner: ["serum-dan-essence", "pelembap", "sunscreen-wajah"],
-  "serum-dan-essence": ["toner", "pelembap", "sunscreen-wajah"],
-  pelembap: ["serum-dan-essence", "sunscreen-wajah", "pembersih"],
-  masker: ["toner", "pelembap", "serum-dan-essence"],
-  "perawatan-mata": ["serum-dan-essence", "pelembap", "concealer"],
-  "perawatan-jerawat": ["pembersih", "pelembap", "sunscreen-wajah"],
-  "paket-skincare": ["sunscreen-wajah", "masker", "perawatan-mata"],
-  "sunscreen-wajah": ["pelembap", "cushion", "pembersih"],
-  "sunscreen-tubuh": ["body-lotion", "body-wash", "sunscreen-wajah"],
-  "tinted-sunscreen": ["bedak", "lip-tint", "pelembap"],
-  "body-lotion": ["body-wash", "scrub", "body-mist"],
-  "body-wash": ["body-lotion", "scrub", "deodoran"],
-  scrub: ["body-lotion", "body-wash", "body-mist"],
-  deodoran: ["body-wash", "body-mist", "body-lotion"],
-  shampoo: ["hair-treatment", "body-wash", "body-lotion"],
-  "hair-treatment": ["shampoo", "body-lotion", "body-mist"],
-  "eau-de-parfum": ["body-mist", "body-lotion", "scrub"],
-  "body-mist": ["body-lotion", "eau-de-parfum", "body-wash"],
-  "skincare-pria": ["rambut-pria", "parfum-pria", "sunscreen-wajah"],
-  "rambut-pria": ["skincare-pria", "parfum-pria", "shampoo"],
-  "parfum-pria": ["skincare-pria", "rambut-pria", "body-mist"],
-};
-
 export type RelatedProducts = { together: ProductCardData[]; similar: ProductCardData[] };
 
 export async function getRelatedProducts(product: ProductDetail): Promise<RelatedProducts> {
   const items = await fetchCatalogItems({ kind: "all" });
-  const others = items.filter((i) => i.id !== product.id);
-  const bySold = sortItems(others, { ...emptyFilters(), sort: "terlaris" });
-
-  const targets = complements[product.category.slug] ?? [];
-  const together: CatalogItem[] = [];
-  for (const sub of targets) {
-    const pick = bySold.find((i) => i.categorySlug === sub && !together.includes(i));
-    if (pick) together.push(pick);
-  }
-  for (const i of bySold) {
-    if (together.length >= 3) break;
-    if (i.categorySlug !== product.category.slug && !together.includes(i) && i.parentSlug !== product.parent?.slug) together.push(i);
-  }
-
-  const base = product.variants[0];
-  const basePrice = base?.salePrice ?? 0;
-  const baseRgb = base ? hexToRgb(base.hex) : null;
-  const similar = others
-    .filter((i) => i.categorySlug === product.category.slug)
-    .map((i) => {
-      const v = i.variants[0];
-      const rgb = hexToRgb(v.hex);
-      const colorDist = baseRgb ? Math.hypot(rgb.r - baseRgb.r, rgb.g - baseRgb.g, rgb.b - baseRgb.b) / 441 : 0;
-      const priceDist = basePrice ? Math.min(1, Math.abs(v.price - basePrice) / basePrice) : 0;
-      return { item: i, score: colorDist + priceDist };
-    })
-    .sort((a, b) => a.score - b.score)
-    .slice(0, 8)
-    .map((s) => s.item);
-  const fallback = similar.length < 4 ? bySold.filter((i) => i.parentSlug === product.parent?.slug && !similar.includes(i)).slice(0, 8 - similar.length) : [];
-
-  return { together: together.slice(0, 3).map((i) => toCardData(i)), similar: [...similar, ...fallback].map((i) => toCardData(i)) };
+  const ref = { id: product.id, categorySlug: product.category.slug, parentSlug: product.parent?.slug ?? null, hex: product.variants[0]?.hex ?? "#D9A98B", price: product.variants[0]?.salePrice ?? 0 };
+  return { together: pickTogether(items, ref).map((i) => toCardData(i)), similar: pickSimilar(items, ref).map((i) => toCardData(i)) };
 }
 
 export async function getBestsellerCards(limit = 4): Promise<ProductCardData[]> {

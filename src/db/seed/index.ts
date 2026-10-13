@@ -90,6 +90,7 @@ export async function runSeed(url = process.env.DATABASE_URL) {
     const productIds: number[] = [];
     const variantRows: { id: number; productId: number; salePrice: number; shadeName: string }[] = [];
     const productMeta = new Map<number, { kind: (typeof productSeed)[number]["kind"]; popularity: number; slug: string }>();
+    const productIdBySlugEarly = new Map<string, number>();
     const seenSlugs = new Set<string>();
 
     for (const [pi, p] of productSeed.entries()) {
@@ -138,6 +139,7 @@ export async function runSeed(url = process.env.DATABASE_URL) {
         .returning({ id: schema.products.id });
       productIds.push(product.id);
       productMeta.set(product.id, { kind: p.kind, popularity: p.popularity, slug });
+      productIdBySlugEarly.set(slug, product.id);
 
       // Sekitar 1 dari 8 produk punya harga promo aktif.
       const hasPromo = rng.chance(0.14);
@@ -175,10 +177,15 @@ export async function runSeed(url = process.env.DATABASE_URL) {
     // 5. Stok per varian per lokasi + buku stok awal
     const inventoryValues: (typeof schema.inventory.$inferInsert)[] = [];
     const movementValues: (typeof schema.stockMovements.$inferInsert)[] = [];
+    // Satu shade cushion Pualam Velvet Matte sengaja habis di semua lokasi untuk memamerkan "Kabari aku".
+    const cushionId = productIdBySlugEarly.get("pualam-velvet-matte-cushion-spf-50");
+    const soldOutVariant = variantRows.find((v) => v.productId === cushionId && v.shadeName === "10N Kayu Manis");
     for (const v of variantRows) {
       for (const loc of locationRows) {
         let onHand: number;
         const roll = rng.next();
+        if (soldOutVariant && v.id === soldOutVariant.id) onHand = 0;
+        else
         if (loc.type === "gudang") {
           onHand = roll < 0.06 ? 0 : roll < 0.14 ? rng.int(1, 4) : rng.int(8, 60);
         } else {

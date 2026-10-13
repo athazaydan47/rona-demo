@@ -21,7 +21,6 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 
 ## Halaman produk
 
-- Produk tidak ditemukan mengembalikan status HTTP 200 (bukan 404) karena notFound() dipanggil di dalam Suspense setelah shell statis terkirim (perilaku Partial Prerender). Untuk SEO, pertimbangkan generateStaticParams untuk slug yang ada atau pengecekan slug di proxy. (Fase 3)
 - Tombol "Membantu" di ulasan: belum ada kolom di skema, jumlah awal deterministik dari id ulasan dan suara tersimpan lokal. Tambahkan kolom helpful_count dan tabel suara di Fase 5. (Fase 3)
 - HTML halaman produk sekitar 850 KB karena banyak SVG ProductArt inline (galeri, 4 tampilan, produk serupa, paket). Pertimbangkan gambar PNG dari route og untuk kartu rekomendasi atau lazy render di Fase 8. (Fase 3)
 - Foto ulasan masih pengganti (ShadeSwatchArt) untuk data seed; unggah foto sungguhan hadir di Fase 5. (Fase 3)
@@ -37,3 +36,4 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 - Jumlah produk per merek selalu 0: subquery berkorelasi di dalam sql`` merender kolom tanpa nama tabel. Diganti agregasi GROUP BY dan ditutup uji integrasi. (Fase 2.1)
 - Beranda HP terlalu panjang: Terlaris, Baru datang, jenis kulit, jurnal, etalase merek, cabang, dan ajakan jadi baris geser. (Fase 2.1)
 - Flash sale bisa hilang 3 hari setelah reset: `ensureFlashSaleSlots` menambah slot otomatis saat DEMO_MODE. (Fase 2.1)
+- Produk tidak ditemukan kini mengembalikan HTTP 404 sungguhan: `generateStaticParams` plus pengecekan produk di luar Suspense; dicek lewat `npm run cek:404`. (Fase 3.1)

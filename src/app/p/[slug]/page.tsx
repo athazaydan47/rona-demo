@@ -12,10 +12,17 @@ import { ProductView } from "@/components/product/product-view";
 import { ReturnPolicy } from "@/components/product/return-policy";
 import { ReviewsSection } from "@/components/product/reviews-section";
 import { concernLabels, skinTypeLabels } from "@/lib/catalog/filters";
-import { getProductDetail, getProductLive, getProductReviews, getRelatedProducts } from "@/lib/product/queries";
+import { getActiveProductSlugs, getProductDetail, getProductLive, getProductReviews, getRelatedProducts, type ProductDetail } from "@/lib/product/queries";
 import { formatRupiah } from "@/lib/format";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ shade?: string }> };
+
+// Semua slug aktif diprarender. Dengan ini, params boleh dibaca di luar Suspense dan produk yang tidak ada
+// memanggil notFound() sebelum shell terkirim, sehingga statusnya 404 sungguhan.
+export async function generateStaticParams() {
+  const slugs = await getActiveProductSlugs();
+  return slugs.map((slug) => ({ slug }));
+}
 
 function siteUrl() {
   return (process.env.NEXT_PUBLIC_SITE_URL ?? process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000").replace(/\/$/, "");
@@ -38,10 +45,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   };
 }
 
-async function ProductRoute({ params, searchParams }: Props) {
-  const [{ slug }, sp] = await Promise.all([params, searchParams]);
-  const product = await getProductDetail(slug);
-  if (!product || product.status !== "aktif" || product.variants.length === 0) notFound();
+async function ProductRoute({ product, searchParams }: { product: ProductDetail; searchParams: Props["searchParams"] }) {
+  const sp = await searchParams;
   const [live, reviews, related] = await Promise.all([getProductLive(product), getProductReviews(product.id), getRelatedProducts(product)]);
   const selected = product.variants.find((v) => v.shadeSlug === sp.shade) ?? product.variants[0];
   const base = siteUrl();
@@ -106,7 +111,7 @@ async function ProductRoute({ params, searchParams }: Props) {
 
       <div className="container-rona space-y-12 pb-10">
         <ReviewsSection reviews={reviews} ratingAvg={product.ratingAvg} />
-        <FrequentlyBought current={{ name: product.name, variantId: selected.id, price: live.prices[selected.id]?.price ?? selected.salePrice }} items={related.together} />
+        <FrequentlyBought current={{ name: product.name, variantId: selected.id, price: live.prices[selected.id]?.price ?? selected.salePrice, packaging: product.packaging, hex: selected.hex, brandColor: product.brand.color, brandName: product.brand.name, shadeName: product.variants.length > 1 ? selected.shadeName : "" }} items={related.together} />
         {related.similar.length > 0 ? (
           <section aria-labelledby="serupa-heading">
             <h2 id="serupa-heading" className="font-serif text-2xl text-kopi md:text-3xl">
@@ -153,10 +158,13 @@ function ProductSkeleton() {
   );
 }
 
-export default function ProductPage(props: Props) {
+export default async function ProductPage({ params, searchParams }: Props) {
+  const { slug } = await params;
+  const product = await getProductDetail(slug);
+  if (!product || product.status !== "aktif" || product.variants.length === 0) notFound();
   return (
     <Suspense fallback={<ProductSkeleton />}>
-      <ProductRoute {...props} />
+      <ProductRoute product={product} searchParams={searchParams} />
     </Suspense>
   );
 }

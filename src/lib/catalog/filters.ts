@@ -1,5 +1,6 @@
 // Filter katalog: parsing URL, predikat murni, dan pengurutan. Tidak menyentuh database.
 import type { Packaging } from "@/db/schema/enums";
+import { formatRupiah } from "@/lib/format";
 
 export const SORT_KEYS = ["relevan", "terlaris", "terbaru", "rating", "termurah", "termahal"] as const;
 export type SortKey = (typeof SORT_KEYS)[number];
@@ -232,7 +233,7 @@ export function activeFilterChips(f: CatalogFilters, labels: { brands?: Record<s
   const chips: ActiveChip[] = [];
   for (const b of f.brands) chips.push({ key: "brands", label: labels.brands?.[b] ?? b, next: { ...f, brands: f.brands.filter((x) => x !== b), page: 1 } });
   if (f.priceMin != null || f.priceMax != null) {
-    const fmt = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
+    const fmt = formatRupiah;
     const label =
       f.priceMin != null && f.priceMax != null
         ? `${fmt(f.priceMin)} sampai ${fmt(f.priceMax)}`

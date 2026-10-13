@@ -10,13 +10,17 @@ import {
 
 describe("formatRupiah", () => {
   it("memisahkan ribuan dengan titik", () => {
-    expect(formatRupiah(129000)).toBe("Rp 129.000");
-    expect(formatRupiah(1250000)).toBe("Rp 1.250.000");
-    expect(formatRupiah(500)).toBe("Rp 500");
-    expect(formatRupiah(0)).toBe("Rp 0");
+    expect(formatRupiah(129000)).toBe("Rp\u00A0129.000");
+    expect(formatRupiah(1250000)).toBe("Rp\u00A01.250.000");
+    expect(formatRupiah(500)).toBe("Rp\u00A0500");
+    expect(formatRupiah(0)).toBe("Rp\u00A00");
   });
   it("menangani nilai negatif", () => {
-    expect(formatRupiah(-15000)).toBe("-Rp 15.000");
+    expect(formatRupiah(-15000)).toBe("-Rp\u00A015.000");
+  });
+  it("memakai spasi tak putus supaya Rp dan angka tidak terpisah baris", () => {
+    expect(formatRupiah(89000)).not.toContain(" ");
+    expect(formatRupiah(89000)).toContain("\u00A0");
   });
 });
 

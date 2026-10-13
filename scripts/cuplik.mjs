@@ -31,6 +31,7 @@ const ACTIONS = {
   megamenu: { width: 1440, deviceScaleFactor: 1, label: "MegaMenu terbuka" },
   filter: { width: 375, deviceScaleFactor: 2, label: "bottom sheet filter terbuka", target: "catalog" },
   shade: { width: 375, deviceScaleFactor: 2, label: "Shade Finder terbuka", target: "product" },
+  habis: { width: 375, deviceScaleFactor: 2, label: "shade habis dipilih, Kabari aku", target: "product" },
 };
 
 function parseArgs(argv) {

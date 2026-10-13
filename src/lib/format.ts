@@ -1,8 +1,11 @@
-// Uang: bilangan bulat rupiah, ditampilkan "Rp 129.000".
+// Spasi tak putus (U+00A0) supaya "Rp" dan angkanya tidak pernah patah di baris berbeda.
+export const NBSP = "\u00A0";
+
+// Uang: bilangan bulat rupiah, ditampilkan "Rp 129.000" dengan spasi tak putus setelah "Rp".
 export function formatRupiah(amount: number) {
   const abs = Math.abs(Math.round(amount));
   const grouped = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return `${amount < 0 ? "-" : ""}Rp ${grouped}`;
+  return `${amount < 0 ? "-" : ""}Rp${NBSP}${grouped}`;
 }
 
 const MONTHS_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];

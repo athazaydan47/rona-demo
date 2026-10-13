@@ -149,7 +149,7 @@ describe("activeFilterChips", () => {
   it("membuat chip per nilai dan filter tanpa chip itu", () => {
     const f = parseCatalogParams({ merek: "lumi,pualam", harga_maks: "100000", cabang: "dinoyo" });
     const chips = activeFilterChips(f, { brands: { lumi: "Lumi" }, locations: { dinoyo: "Rona Dinoyo" } });
-    expect(chips.map((c) => c.label)).toEqual(["Lumi", "pualam", "Di bawah Rp 100.000", "Tersedia di Rona Dinoyo"]);
+    expect(chips.map((c) => c.label)).toEqual(["Lumi", "pualam", "Di bawah Rp\u00A0100.000", "Tersedia di Rona Dinoyo"]);
     expect(chips[0].next.brands).toEqual(["pualam"]);
     expect(chips[2].next.priceMax).toBeNull();
     expect(chips[3].next.location).toBeNull();

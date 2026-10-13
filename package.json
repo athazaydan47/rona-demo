@@ -14,7 +14,8 @@
     "db:seed": "tsx src/db/seed/index.ts",
     "db:reset": "tsx src/db/reset.ts",
     "cuplik": "node scripts/cuplik.mjs",
-    "cuplik:art": "tsx scripts/cuplik-art.tsx"
+    "cuplik:art": "tsx scripts/cuplik-art.tsx",
+    "cek:404": "node scripts/cek-404.mjs"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",

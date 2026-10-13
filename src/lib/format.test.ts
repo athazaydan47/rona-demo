@@ -37,7 +37,9 @@ describe("format WIB", () => {
 describe("formatCompactNumber", () => {
   it("meringkas ribuan", () => {
     expect(formatCompactNumber(850)).toBe("850");
-    expect(formatCompactNumber(1200)).toBe("1.2rb");
-    expect(formatCompactNumber(12000)).toBe("12rb");
+    expect(formatCompactNumber(1200)).toBe("1,2 rb");
+    expect(formatCompactNumber(2000)).toBe("2 rb");
+    expect(formatCompactNumber(12000)).toBe("12 rb");
+    expect(formatCompactNumber(1500000)).toBe("1,5 jt");
   });
 });

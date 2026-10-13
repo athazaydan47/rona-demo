@@ -3,16 +3,17 @@ import type { Packaging } from "@/db/schema/enums";
 import { cn } from "@/lib/utils";
 import { buildCtx, type ProductArtView } from "./context";
 import { Defs } from "./primitives";
-import { packagingLabels, shapes } from "./shapes";
+import { detailLabels, packagingLabels, shapes } from "./shapes";
 
 export type { ProductArtView };
+export { ShadeSwatchArt, swatchTextureLabels, type SwatchTexture } from "./swatch-art";
 
 export type ProductArtProps = {
   packaging: Packaging;
-  shade: string; // hex warna shade atau isi produk
-  brandColor: string; // hex warna merek
+  shade: string; // hex warna isi: shade varian, atau warna produk untuk skincare tanpa shade
+  brandColor: string; // hex warna merek untuk badan kemasan
   brandName: string;
-  view?: ProductArtView;
+  view?: ProductArtView; // "depan" (packshot) atau "detail" (adegan pelengkap per bentuk)
   background?: "soft" | "none";
   className?: string;
   title?: string; // teks aksesibilitas, misal nama produk dan shade
@@ -25,7 +26,7 @@ export function ProductArt({
   shade,
   brandColor,
   brandName,
-  view = "front",
+  view = "depan",
   background = "soft",
   className,
   title,
@@ -35,7 +36,7 @@ export function ProductArt({
   const id = `pa${rawId.replace(/[^a-zA-Z0-9]/g, "")}`;
   const ctx = buildCtx({ id, view, packaging, shade, brand: brandColor, brandName });
   const draw = shapes[packaging] ?? shapes.cream_jar;
-  const label = title ?? `${packagingLabels[packaging]} ${brandName}`;
+  const label = title ?? `${packagingLabels[packaging]} ${brandName}${view === "detail" ? `, ${detailLabels[packaging].toLowerCase()}` : ""}`;
   return (
     <svg
       viewBox="0 0 200 240"
@@ -54,4 +55,4 @@ export function ProductArt({
   );
 }
 
-export { packagingLabels };
+export { packagingLabels, detailLabels };

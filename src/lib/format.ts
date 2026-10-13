@@ -60,7 +60,13 @@ export function wibDate(year: number, month: number, day: number, hour = 0, minu
   return new Date(Date.UTC(year, month - 1, day, hour - 7, minute));
 }
 
+// Angka ringkas ala Indonesia: 850, 1,2 rb, 12 rb, 1,5 jt.
 export function formatCompactNumber(n: number) {
-  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(".0", "")}rb`;
+  const one = (v: number, unit: string) => {
+    const s = v >= 10 ? Math.round(v).toString() : v.toFixed(1).replace(".0", "").replace(".", ",");
+    return `${s} ${unit}`;
+  };
+  if (n >= 1_000_000) return one(n / 1_000_000, "jt");
+  if (n >= 1000) return one(n / 1000, "rb");
   return n.toString();
 }

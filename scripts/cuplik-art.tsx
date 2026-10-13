@@ -37,7 +37,7 @@ const CSS = `
 async function main() {
   const nama = (argValue("nama") ?? "art").toLowerCase().replace(/[^a-z0-9-]+/g, "-");
   const shades = artSheetShades.slice(0, 3);
-  const views = ["front", "side"] as const;
+  const views = ["depan", "detail"] as const;
   const cols = shades.length * views.length;
   const cellWidth = Math.floor((WIDTH - PAD * 2 - LABEL_W - GAP * cols) / cols);
 
@@ -61,7 +61,7 @@ async function main() {
         <body>
           <div className="sheet">
             <header>
-              <h1>Rona Beauty, ProductArt: 14 bentuk, depan dan samping, 3 shade</h1>
+              <h1>Rona Beauty, ProductArt: 14 bentuk, depan dan detail, 3 shade</h1>
               <div className="meta">{labelWib(now)}</div>
             </header>
             <ArtGrid shades={shades} views={[...views]} cellWidth={cellWidth} labelWidth={LABEL_W} gap={GAP} />

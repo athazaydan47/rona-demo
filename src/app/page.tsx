@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Sparkles, Store, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductArt } from "@/components/product-art";
+import { HeroComposition } from "@/components/hero-composition";
 import { ProductCard } from "@/components/product-card";
 import { getFeaturedProducts } from "@/lib/catalog/queries";
 
@@ -10,12 +11,12 @@ export default async function HomePage() {
   return (
     <>
       <section className="relative overflow-hidden bg-[linear-gradient(135deg,#FAF7F5_0%,#F4DCDF_100%)]">
-        <div className="container-rona grid items-center gap-10 py-12 md:grid-cols-2 md:py-20">
+        <div className="container-rona grid items-center gap-10 py-12 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:py-16 lg:gap-16 lg:py-20">
           <div className="max-w-xl">
             <p className="inline-flex items-center gap-2 rounded-pill bg-putih/70 px-3 py-1 text-xs font-semibold tracking-wide text-rona uppercase">
               <Sparkles className="size-3.5" /> Cocok dulu, baru beli
             </p>
-            <h1 className="mt-5 font-serif text-4xl leading-[1.05] font-medium text-balance text-kopi md:text-[56px] md:leading-[1.02]">
+            <h1 className="mt-5 font-serif text-4xl leading-[1.05] font-medium text-balance text-kopi md:text-[56px] md:leading-[1.02] lg:text-[68px]">
               Temukan rona terbaikmu.
             </h1>
             <p className="mt-5 max-w-md text-lg text-abu-hangat">
@@ -40,7 +41,8 @@ export default async function HomePage() {
               </li>
             </ul>
           </div>
-          <div className="relative mx-auto grid w-full max-w-md grid-cols-3 items-end gap-3 md:max-w-none">
+          {/* HP: tiga packshot sederhana. Desktop: komposisi still-life. */}
+          <div className="relative mx-auto grid w-full max-w-md grid-cols-3 items-end gap-3 md:hidden">
             <div className="translate-y-6">
               <ProductArt packaging="serum_dropper" shade="#D9EBE7" brandColor="#2F5D62" brandName="Kirana Lab" title="Ilustrasi serum" />
             </div>
@@ -51,6 +53,7 @@ export default async function HomePage() {
               <ProductArt packaging="lipstick" shade="#B8475D" brandColor="#C2416B" brandName="Lumi" title="Ilustrasi lipstick" />
             </div>
           </div>
+          <HeroComposition className="hidden w-full md:block" />
         </div>
       </section>
 
@@ -68,7 +71,7 @@ export default async function HomePage() {
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
           {products.map((p) => (
-            <ProductCard key={p.id} product={p} />
+            <ProductCard key={p.id} product={p} hideBadges={["terlaris"]} />
           ))}
         </div>
       </section>

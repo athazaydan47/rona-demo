@@ -10,7 +10,7 @@ import { HelpText, Input, Label } from "@/components/ui/input";
 import { PriceTag } from "@/components/ui/price-tag";
 import { RatingStars } from "@/components/ui/rating-stars";
 import { SwatchDots } from "@/components/ui/swatch-dots";
-import { ProductArt, packagingLabels } from "@/components/product-art";
+import { ProductArt, ShadeSwatchArt, detailLabels, packagingLabels, swatchTextureLabels, type SwatchTexture } from "@/components/product-art";
 import { ChipDemo } from "./chip-demo";
 
 export const metadata: Metadata = { title: "Design system" };
@@ -70,9 +70,9 @@ export default function DesignPage() {
           kosong.
         </p>
         <nav className="mt-5 flex flex-wrap gap-2" aria-label="Bagian">
-          {["warna", "huruf", "bentuk", "tombol", "input", "chip", "badge", "kartu", "harga", "rating", "productart"].map((s) => (
+          {["warna", "huruf", "bentuk", "tombol", "input", "chip", "badge", "kartu", "harga", "rating", "productart", "swatch"].map((s) => (
             <Chip key={s} asChild>
-              <a href={`#${s}`}>{s === "productart" ? "ProductArt" : s[0].toUpperCase() + s.slice(1)}</a>
+              <a href={`#${s}`}>{s === "productart" ? "ProductArt" : s === "swatch" ? "ShadeSwatchArt" : s[0].toUpperCase() + s.slice(1)}</a>
             </Chip>
           ))}
         </nav>
@@ -253,7 +253,7 @@ export default function DesignPage() {
         </div>
       </Section>
 
-      <Section id="productart" title="ProductArt" intro="14 bentuk kemasan digambar dari data: bentuk, warna shade, warna merek, dan nama merek. Kolom pertama tampak depan, berikutnya shade lain, kolom terakhir tampak samping.">
+      <Section id="productart" title="ProductArt" intro="14 bentuk kemasan digambar dari data. Badan kemasan memakai warna merek; shade hanya mewarnai isi yang terlihat. Empat kolom pertama tampak depan dengan shade berbeda, kolom terakhir tampilan detail.">
         <div className="space-y-8">
           {packagingValues.map((packaging) => (
             <div key={packaging}>
@@ -268,9 +268,27 @@ export default function DesignPage() {
                   </div>
                 ))}
                 <div className="rounded-card border border-dashed border-garis bg-putih p-1.5">
-                  <ProductArt packaging={packaging} shade={sampleShades[0].shade} brandColor={sampleShades[0].brand} brandName={sampleShades[0].brandName} view="side" title={`${packagingLabels[packaging]} tampak samping`} />
-                  <p className="mt-1 truncate px-1 text-[11px] text-abu-hangat">Tampak samping</p>
+                  <ProductArt packaging={packaging} shade={sampleShades[0].shade} brandColor={sampleShades[0].brand} brandName={sampleShades[0].brandName} view="detail" title={`${packagingLabels[packaging]}, ${detailLabels[packaging]}`} />
+                  <p className="mt-1 truncate px-1 text-[11px] text-abu-hangat">Detail: {detailLabels[packaging]}</p>
                 </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section id="swatch" title="ShadeSwatchArt" intro="Usapan tekstur produk berwarna shade untuk galeri halaman produk: krim, cair, bubuk, satin.">
+        <div className="space-y-6">
+          {sampleShades.slice(0, 3).map((s) => (
+            <div key={s.label}>
+              <h3 className="mb-3 text-sm font-semibold text-kopi">{s.label}</h3>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {(Object.keys(swatchTextureLabels) as SwatchTexture[]).map((t) => (
+                  <div key={t} className="rounded-card border border-garis bg-putih p-1.5">
+                    <ShadeSwatchArt shade={s.shade} texture={t} title={`Swatch ${swatchTextureLabels[t].toLowerCase()} ${s.label}`} />
+                    <p className="mt-1 px-1 text-[11px] text-abu-hangat">{swatchTextureLabels[t]}</p>
+                  </div>
+                ))}
               </div>
             </div>
           ))}

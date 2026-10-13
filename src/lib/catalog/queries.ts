@@ -1,5 +1,5 @@
 import { cacheLife, cacheTag } from "next/cache";
-import { asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, lte } from "drizzle-orm";
 import { db, schema } from "@/db/client";
 import type { Packaging } from "@/db/schema/enums";
 import { effectivePrice } from "@/lib/pricing";
@@ -102,13 +102,16 @@ export type ProductCardData = {
   primaryShade: string;
   variantCount: number;
   inStock: boolean;
+  isFlash: boolean; // ada varian di slot flash sale yang sedang berjalan
 };
 
 // Produk unggulan untuk beranda: terlaris dulu, lalu paling banyak terjual.
 export async function getFeaturedProducts(limit = 12): Promise<ProductCardData[]> {
   "use cache";
-  cacheLife("hours");
+  // Lebih pendek dari data katalog lain karena harga flash sale berubah per slot jam.
+  cacheLife("minutes");
   cacheTag("products");
+  cacheTag("flash-sales");
   const products = await db
     .select({
       id: schema.products.id,
@@ -157,9 +160,23 @@ export async function getFeaturedProducts(limit = 12): Promise<ProductCardData[]
   for (const s of stock) available.set(s.variantId, (available.get(s.variantId) ?? 0) + Math.max(0, s.onHand - s.reserved));
 
   const now = new Date();
+  const flashRows = await db
+    .select({ variantId: schema.flashSaleItems.variantId, flashPrice: schema.flashSaleItems.flashPrice })
+    .from(schema.flashSaleItems)
+    .innerJoin(schema.flashSales, eq(schema.flashSaleItems.flashSaleId, schema.flashSales.id))
+    .where(
+      and(
+        inArray(schema.flashSaleItems.variantId, variantIds),
+        eq(schema.flashSales.isActive, true),
+        lte(schema.flashSales.startsAt, now),
+        gt(schema.flashSales.endsAt, now),
+      ),
+    );
+  const flashByVariant = new Map(flashRows.map((f) => [f.variantId, f.flashPrice]));
+
   return products.map((p) => {
     const vs = variants.filter((v) => v.productId === p.id && v.sortOrder >= 0);
-    const priced = vs.map((v) => effectivePrice(v, now));
+    const priced = vs.map((v) => effectivePrice({ ...v, flashPrice: flashByVariant.get(v.id) ?? null }, now));
     const cheapest = priced.reduce((min, cur) => (cur.price < min.price ? cur : min), priced[0] ?? { price: 0, normalPrice: 0, source: "normal" as const, percent: 0 });
     return {
       id: p.id,
@@ -181,6 +198,7 @@ export async function getFeaturedProducts(limit = 12): Promise<ProductCardData[]
       primaryShade: vs[0]?.shadeName ?? "",
       variantCount: vs.length,
       inStock: vs.some((v) => (available.get(v.id) ?? 0) > 0),
+      isFlash: priced.some((pr) => pr.source === "flash"),
     };
   });
 }

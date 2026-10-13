@@ -1,31 +1,35 @@
 import type { Packaging } from "@/db/schema/enums";
-import { darken, lighten, mix, readableOn } from "@/lib/color";
+import { darken, lighten, luminance, mix, readableOn } from "@/lib/color";
 
-export type ProductArtView = "front" | "side";
+// "depan": packshot utama. "detail": adegan pelengkap per bentuk (aplikator, tetesan, olesan, dan sebagainya).
+export type ProductArtView = "depan" | "detail";
 
 export type ArtCtx = {
   id: string;
   view: ProductArtView;
   packaging: Packaging;
-  shade: string;
-  brand: string;
+  shade: string; // warna isi: peluru, cairan, pan, krim. Untuk skincare: warna produk dari data.
+  brand: string; // warna merek: badan kemasan, tutup, label.
   brandName: string;
-  // Warna turunan yang sering dipakai bentuk kemasan.
   shadeLight: string;
   shadeDark: string;
-  pastel: string; // shade yang dilembutkan ke arah putih, untuk kemasan plastik terang
+  shadePale: string; // isi yang diencerkan (olesan tipis, kapas basah)
   brandLight: string;
   brandDark: string;
-  ink: string; // hampir hitam hangat untuk tutup
+  brandDeep: string; // sangat gelap, untuk dasar palet dan bayangan merek
+  tubeDark: string; // mascara dan eyeliner: merek bila sudah gelap, kalau tidak hitam hangat
+  ink: string;
   gold: string;
+  cream: string; // krim putih gading untuk lotion dan sunscreen yang keluar
   textOnBrand: string;
-  textOnPastel: string;
+  textOnBrandDark: string;
   textOnShade: string;
 };
 
 export const INK = "#2B2426";
 export const GOLD = "#C9A35C";
 export const KOPI = "#2A1F1D";
+export const CREAM = "#FBF6EE";
 
 export function buildCtx(input: {
   id: string;
@@ -37,20 +41,23 @@ export function buildCtx(input: {
 }): ArtCtx {
   const shade = normalizeHex(input.shade, "#D9A98B");
   const brand = normalizeHex(input.brand, "#B8475D");
-  const pastel = mix(shade, "#FFFFFF", 0.55);
+  const brandDark = darken(brand, 0.3);
   return {
     ...input,
     shade,
     brand,
     shadeLight: lighten(shade, 0.22),
     shadeDark: darken(shade, 0.22),
-    pastel,
-    brandLight: lighten(brand, 0.2),
-    brandDark: darken(brand, 0.3),
+    shadePale: mix(shade, "#FFFFFF", 0.45),
+    brandLight: lighten(brand, 0.22),
+    brandDark,
+    brandDeep: darken(brand, 0.55),
+    tubeDark: luminance(brand) < 0.08 ? brand : INK,
     ink: INK,
     gold: GOLD,
+    cream: mix(CREAM, shade, 0.08),
     textOnBrand: readableOn(brand),
-    textOnPastel: readableOn(pastel, KOPI, "#FFFFFF"),
+    textOnBrandDark: readableOn(brandDark),
     textOnShade: readableOn(shade),
   };
 }

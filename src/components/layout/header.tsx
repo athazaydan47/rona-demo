@@ -39,11 +39,11 @@ export function Header({ categories }: { categories: CategoryNode[] }) {
       <div className="container-rona">
         <div className="flex h-16 items-center gap-3 md:h-[72px]">
           <MobileMenuTrigger className="-ml-2 md:hidden" />
-          <Link href="/" className="flex items-baseline gap-1.5 pr-2" aria-label="Rona Beauty, ke beranda">
-            <span className="font-serif text-[28px] leading-none font-medium tracking-tight text-kopi md:text-[32px]">
+          <Link href="/" className="flex items-baseline gap-2 pr-2" aria-label="Rona Beauty, ke beranda">
+            <span className="font-serif text-[30px] leading-none font-medium tracking-[-0.02em] text-kopi md:text-[38px]">
               Rona
             </span>
-            <span className="hidden text-[11px] font-semibold tracking-[0.18em] text-rona uppercase sm:inline">
+            <span className="hidden translate-y-[-1px] text-[10px] font-bold tracking-[0.26em] text-rona uppercase sm:inline md:text-[11px]">
               Beauty
             </span>
           </Link>

@@ -16,7 +16,7 @@ export const artSheetShades: ArtShade[] = [
   { label: "Dayu, Samudra", shade: "#4F6C8A", brand: "#3B3A4A", brandName: "Dayu Cosmetics" },
 ];
 
-const viewLabel: Record<ProductArtView, string> = { front: "Depan", side: "Samping" };
+const viewLabel: Record<ProductArtView, string> = { depan: "Depan", detail: "Detail" };
 
 // Grid HTML: satu baris per bentuk kemasan, kolom = shade x sudut pandang.
 export function ArtGrid({
@@ -95,7 +95,7 @@ export function renderArtSheetSvg(shades: ArtShade[] = artSheetShades) {
             </svg>
           ))}
           <svg x={shades.length * cell} y={r * cell * 1.2} width={cell} height={cell * 1.2} viewBox="0 0 200 240">
-            <ProductArt packaging={p} shade={shades[0].shade} brandColor={shades[0].brand} brandName={shades[0].brandName} view="side" />
+            <ProductArt packaging={p} shade={shades[0].shade} brandColor={shades[0].brand} brandName={shades[0].brandName} view="detail" />
           </svg>
         </g>
       ))}

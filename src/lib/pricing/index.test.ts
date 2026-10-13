@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { discountPercent, effectivePrice, roundToPromo } from "./index";
+import { discountPercent, effectivePrice, maxPurchasable, roundToPromo } from "./index";
 
 describe("discountPercent", () => {
   it("membulatkan ke bawah", () => {
@@ -59,5 +59,18 @@ describe("effectivePrice", () => {
   });
   it("mengabaikan flash atau promo yang tidak lebih murah", () => {
     expect(effectivePrice({ ...base, flashPrice: 135000 }, now).source).toBe("normal");
+  });
+});
+
+describe("maxPurchasable", () => {
+  it("dibatasi stok tersedia dan batas 10 per transaksi", () => {
+    expect(maxPurchasable({ available: 3 })).toBe(3);
+    expect(maxPurchasable({ available: 40 })).toBe(10);
+    expect(maxPurchasable({ available: 0 })).toBe(0);
+  });
+  it("saat flash sale dibatasi per pembeli dan sisa kuota", () => {
+    expect(maxPurchasable({ available: 9, isFlash: true, maxPerCustomer: 2, quotaLeft: 12 })).toBe(2);
+    expect(maxPurchasable({ available: 9, isFlash: true, maxPerCustomer: 5, quotaLeft: 1 })).toBe(1);
+    expect(maxPurchasable({ available: 9, isFlash: false, maxPerCustomer: 2, quotaLeft: 0 })).toBe(9);
   });
 });

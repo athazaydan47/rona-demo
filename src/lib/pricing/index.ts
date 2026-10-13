@@ -60,3 +60,14 @@ export function effectivePrice(v: VariantPriceInput, now = new Date()): Effectiv
     percent: discountPercent(v.normalPrice, v.salePrice),
   };
 }
+
+// Batas jumlah yang bisa dibeli: stok tersedia, dan saat flash sale juga batas per pembeli dan sisa kuota.
+export function maxPurchasable(input: { available: number; isFlash?: boolean; maxPerCustomer?: number | null; quotaLeft?: number | null; hardCap?: number }) {
+  const cap = input.hardCap ?? 10;
+  let max = Math.max(0, Math.min(cap, input.available));
+  if (input.isFlash) {
+    if (input.maxPerCustomer != null) max = Math.min(max, Math.max(0, input.maxPerCustomer));
+    if (input.quotaLeft != null) max = Math.min(max, Math.max(0, input.quotaLeft));
+  }
+  return max;
+}

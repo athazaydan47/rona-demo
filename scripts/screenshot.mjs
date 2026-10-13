@@ -2,7 +2,7 @@
 //
 // Sebagai CLI:
 //   node scripts/screenshot.mjs <url> <lebar> <keluaran.png> [aksi]
-//   aksi: full | menu | megamenu | filter | hover:<teks tombol> | click:<aria-label tombol>
+//   aksi: full | menu | megamenu | filter | shade | hover:<teks tombol> | click:<aria-label tombol>
 //
 // Sebagai modul: dipakai oleh scripts/cuplik.mjs dan scripts/cuplik-art.tsx.
 import { chromium } from "@playwright/test";
@@ -49,6 +49,7 @@ const HIDE_DEV_UI = `
 // supaya tidak menimpa konten di tengah gambar.
 const FULL_PAGE_FIX = `
   nav[aria-label="Navigasi bawah"] { position: relative !important; }
+  [data-sticky-bar] { display: none !important; }
 `;
 
 /**
@@ -81,6 +82,10 @@ export async function capturePage(browser, url, opts) {
       fullPage = false;
     } else if (action === "filter") {
       await page.getByRole("button", { name: "Buka filter" }).first().click();
+      await page.waitForTimeout(700);
+      fullPage = false;
+    } else if (action === "shade") {
+      await page.getByRole("button", { name: "Cari shade-ku" }).first().click();
       await page.waitForTimeout(700);
       fullPage = false;
     } else if (action === "megamenu") {

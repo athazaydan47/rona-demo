@@ -29,7 +29,7 @@ function Items({ pathname }: { pathname: string | null }) {
         Cari
       </Link>
       <Link href="/keranjang" className={cn(itemClass, isActive("/keranjang") && "text-rona")} aria-current={isActive("/keranjang") ? "page" : undefined}>
-        <span className="relative">
+        <span className="relative" data-cart-icon>
           <ShoppingBag className="size-5" />
           <CartBadge className="absolute -top-1.5 -right-2 grid h-4 min-w-4 place-items-center rounded-full bg-rona px-1 text-[10px] font-bold text-putih tabular-nums" />
         </span>

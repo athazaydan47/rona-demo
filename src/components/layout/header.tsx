@@ -58,7 +58,7 @@ export function Header({ categories }: { categories: CategoryNode[] }) {
             <Link href="/akun" className={`${iconLink} hidden md:grid`} aria-label="Akun">
               <User className="size-5" />
             </Link>
-            <Link href="/keranjang" className={iconLink} aria-label="Keranjang">
+            <Link href="/keranjang" className={iconLink} aria-label="Keranjang" data-cart-icon>
               <ShoppingBag className="size-5" />
               <CartBadge className="absolute top-1 right-1 grid h-4.5 min-w-4.5 place-items-center rounded-full bg-rona px-1 text-[10px] font-bold text-putih tabular-nums" />
             </Link>

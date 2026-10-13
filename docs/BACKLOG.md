@@ -19,6 +19,14 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 - Saran pencarian memakai word_similarity ambang 0,35; kata sangat pendek (2 huruf) bisa menghasilkan saran yang terlalu luas. (Fase 2)
 - Kartu produk di beranda dan katalog memuat seluruh daftar varian untuk tambah cepat; untuk cushion 10 shade payload per kartu agak besar. (Fase 2)
 
+## Halaman produk
+
+- Produk tidak ditemukan mengembalikan status HTTP 200 (bukan 404) karena notFound() dipanggil di dalam Suspense setelah shell statis terkirim (perilaku Partial Prerender). Untuk SEO, pertimbangkan generateStaticParams untuk slug yang ada atau pengecekan slug di proxy. (Fase 3)
+- Tombol "Membantu" di ulasan: belum ada kolom di skema, jumlah awal deterministik dari id ulasan dan suara tersimpan lokal. Tambahkan kolom helpful_count dan tabel suara di Fase 5. (Fase 3)
+- HTML halaman produk sekitar 850 KB karena banyak SVG ProductArt inline (galeri, 4 tampilan, produk serupa, paket). Pertimbangkan gambar PNG dari route og untuk kartu rekomendasi atau lazy render di Fase 8. (Fase 3)
+- Foto ulasan masih pengganti (ShadeSwatchArt) untuk data seed; unggah foto sungguhan hadir di Fase 5. (Fase 3)
+- Route gambar OG memakai @resvg/resvg-js dengan font sistem; di Vercel font sistem terbatas, sematkan berkas font di Fase 8. (Fase 3)
+
 ## Aturan cache
 
 - Pastikan semua modul admin (Fase 6) memanggil revalidateTag sesuai `src/lib/cache-tags.ts`; audit ulang setelah Fase 6 selesai. (Fase 2)

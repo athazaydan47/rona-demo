@@ -84,6 +84,8 @@ export function ProductView({ product, live, siteUrl }: Props) {
   }, [live.stock, variants]);
   const available = availability[selected.id] ?? 0;
   const outOfStock = available <= 0;
+  // Stok Gudang Online habis tapi masih ada di toko: tetap bisa dibeli (ambil di toko), dan bisa minta dikabari.
+  const onlineOut = !outOfStock && (live.stock[selected.id]?.["gudang-online"] ?? 0) <= 0;
   const price = live.prices[selected.id] ?? { price: selected.salePrice, normalPrice: selected.normalPrice, source: "normal" as const, percent: 0 };
   const flash = live.flash[selected.id];
   const maxQty = maxPurchasable({ available, isFlash: price.source === "flash", maxPerCustomer: flash?.maxPerCustomer, quotaLeft: flash ? flash.quota - flash.sold : null });
@@ -217,7 +219,7 @@ export function ProductView({ product, live, siteUrl }: Props) {
           ) : null}
 
           <div className="mt-6">
-            <BuyActions productId={product.id} productName={product.name} shadeName={shadeLabel} variantId={selected.id} maxQty={maxQty} outOfStock={outOfStock} flyFromRef={mainImageRef} mainButtonRef={mainButtonRef} shareUrl={shareUrl} />
+            <BuyActions productId={product.id} productName={product.name} shadeName={shadeLabel} variantId={selected.id} maxQty={maxQty} outOfStock={outOfStock} onlineOut={onlineOut} flyFromRef={mainImageRef} mainButtonRef={mainButtonRef} shareUrl={shareUrl} />
           </div>
 
           <div className="mt-6 space-y-4">

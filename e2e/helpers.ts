@@ -4,7 +4,9 @@ import { expect, type Page } from "@playwright/test";
 
 config({ path: ".env.local" });
 
-export const sql = postgres(process.env.DATABASE_URL ?? "", { max: 2, onnotice: () => {} });
+// Satu koneksi bersama untuk semua berkas uji di worker yang sama; ditutup otomatis saat menganggur
+// (jangan panggil sql.end() di afterAll, karena berkas uji berikutnya masih memakainya).
+export const sql = postgres(process.env.DATABASE_URL ?? "", { max: 2, idle_timeout: 2, onnotice: () => {} });
 
 export type Pick = { productSlug: string; shadeSlug: string; variantId: number };
 
@@ -74,4 +76,32 @@ export function orderNumberFromUrl(url: string) {
   const m = /(RONA-\d{4}-\d{6})/.exec(url);
   if (!m) throw new Error(`Nomor pesanan tidak ada di URL ${url}`);
   return m[1];
+}
+
+export const DEMO_PHONE = "080000000001";
+
+export async function demoCustomer() {
+  const [c] = await sql<{ id: number; points: number }[]>`select id, points from customers where phone = ${DEMO_PHONE}`;
+  return c;
+}
+
+// Fixture uji: Pembeli Demo belum pernah mengulas (ulasan dan bonus ulasan pertama dari putaran uji sebelumnya dihapus,
+// saldo poin dikurangi sebesar bonus yang dihapus supaya tetap sama dengan ledger, rating produk dihitung ulang).
+export async function resetDemoReviews() {
+  const c = await demoCustomer();
+  await sql.begin(async (tx) => {
+    const products = await tx<{ product_id: number }[]>`delete from reviews where customer_id = ${c.id} returning product_id`;
+    const bonus = await tx<{ amount: number }[]>`delete from points_ledger where idempotency_key = ${`bonus-ulasan-pertama:${c.id}`} returning amount`;
+    const total = bonus.reduce((s, b) => s + b.amount, 0);
+    if (total) await tx`update customers set points = points - ${total} where id = ${c.id}`;
+    for (const pid of new Set(products.map((p) => p.product_id))) {
+      await tx`update products set rating_avg = coalesce((select round(avg(rating)::numeric, 1) from reviews where product_id = ${pid} and status = 'tampil'), 0), review_count = (select count(*) from reviews where product_id = ${pid} and status = 'tampil') where id = ${pid}`;
+    }
+  });
+}
+
+export async function loginAsDemo(page: Page, kembali = "/akun") {
+  await page.goto(`/masuk?kembali=${encodeURIComponent(kembali)}`);
+  await page.getByRole("button", { name: "Masuk sebagai Pembeli Demo" }).click();
+  await page.waitForURL((url) => url.pathname === kembali.split("?")[0]);
 }

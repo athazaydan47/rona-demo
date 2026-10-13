@@ -14,6 +14,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { capturePage, formatBytes, labelWib, launchBrowser, screenshotHtmlToJpeg, stampWib } from "./screenshot.mjs";
+import { captureAccountFlow } from "./cuplik-akun.mjs";
 import { captureBuyFlow } from "./cuplik-alur-beli.mjs";
 
 const BASE_URL = (process.env.CUPLIK_URL ?? "http://localhost:3000").replace(/\/$/, "");
@@ -41,7 +42,10 @@ const ACTIONS = {
   shade: { width: 375, deviceScaleFactor: 2, label: "Shade Finder terbuka", target: "product" },
   habis: { width: 375, deviceScaleFactor: 2, label: "shade habis dipilih, Kabari aku", target: "product" },
   // Alur bertahap: tambah 2 produk lalu potret laci, keranjang, checkout, bayar, sukses, pesanan di 375 dan 1440 px.
-  "alur-beli": { flow: true, label: "alur beli" },
+  "alur-beli": { flow: true, label: "alur beli", capture: captureBuyFlow },
+  // Alur akun: masuk dengan OTP demo, halaman /akun, formulir ulasan, checkout dengan poin. Halaman /akun di --halaman
+  // tidak dipotret terpisah (tanpa sesi isinya hanya pengalihan ke /masuk).
+  akun: { flow: true, label: "alur akun", capture: captureAccountFlow, covers: ["/akun"] },
 };
 
 function parseArgs(argv) {
@@ -269,7 +273,12 @@ async function main() {
   const outputs = [];
   try {
     // Potretan biasa: per halaman, 375 px lalu 1440 px.
+    const covered = new Set(aksi.flatMap((a) => ACTIONS[a].covers ?? []));
     for (const p of halaman) {
+      if (covered.has(p)) {
+        console.log(`Halaman ${p} dipotret oleh alur aksi (dalam keadaan masuk).`);
+        continue;
+      }
       for (const v of views) {
         const url = `${BASE_URL}${p}`;
         process.stdout.write(`Memotret ${p} di ${v.width} px... `);
@@ -284,8 +293,8 @@ async function main() {
       const cfg = ACTIONS[a];
       if (cfg.flow) {
         for (const v of views) {
-          process.stdout.write(`Menjalankan alur beli di ${v.width} px... `);
-          const flowShots = await captureBuyFlow(browser, BASE_URL, { width: v.width, deviceScaleFactor: v.deviceScaleFactor, outDir: tmpDir, slug: a, mode });
+          process.stdout.write(`Menjalankan ${cfg.label} di ${v.width} px... `);
+          const flowShots = await cfg.capture(browser, BASE_URL, { width: v.width, deviceScaleFactor: v.deviceScaleFactor, outDir: tmpDir, slug: a, mode });
           shots.push(...flowShots);
           const wide = flowShots.filter((f) => f.scrollWidth > v.width);
           console.log(`${flowShots.length} potretan${wide.length ? `, PERINGATAN melebar: ${wide.map((f) => f.path).join(", ")}` : ""}`);

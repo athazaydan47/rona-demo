@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { reviewStatusEnum } from "./enums";
 import { products, variants } from "./catalog";
 import { customers } from "./customers";
@@ -29,5 +29,7 @@ export const reviews = pgTable(
   (t) => [
     index("reviews_product_idx").on(t.productId, t.status, t.createdAt),
     index("reviews_customer_idx").on(t.customerId),
+    // Satu ulasan per item pesanan (ulasan seed tanpa item pesanan bernilai null dan tidak terkena).
+    uniqueIndex("reviews_order_item_idx").on(t.orderItemId),
   ],
 );

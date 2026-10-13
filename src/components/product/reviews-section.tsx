@@ -135,7 +135,7 @@ export function ReviewsSection({ reviews, ratingAvg }: { reviews: ProductReview[
                     <span className="text-sm font-semibold text-kopi">{r.authorName}</span>
                     {r.isVerified ? (
                       <span className="inline-flex items-center gap-1 rounded-pill bg-[#DFF0E6] px-2 py-0.5 text-[11px] font-semibold text-sukses">
-                        <BadgeCheck className="size-3" aria-hidden /> Pembelian terverifikasi
+                        <BadgeCheck className="size-3" aria-hidden /> Pembeli terverifikasi
                       </span>
                     ) : null}
                     <span className="ml-auto text-xs text-abu-hangat">{formatDateWib(new Date(r.createdAt))}</span>
@@ -146,7 +146,16 @@ export function ReviewsSection({ reviews, ratingAvg }: { reviews: ProductReview[
                     {r.shadeName ? `Shade ${r.shadeName}` : ""}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-kopi/90">{r.body}</p>
-                  {r.hasPhoto ? (
+                  {r.photos.length ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {r.photos.map((src, i) => (
+                        <a key={src} href={src} target="_blank" rel="noreferrer" className="block size-24 overflow-hidden rounded-xl border border-garis">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={src} alt={`Foto ulasan ${r.authorName} ${i + 1}`} loading="lazy" className="size-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  ) : r.hasPhoto ? (
                     <div className="mt-3 w-28 overflow-hidden rounded-xl border border-garis">
                       <ShadeSwatchArt shade={r.hex ?? "#D9A98B"} texture="krim" title={`Foto ulasan ${r.authorName} (pengganti)`} />
                     </div>

@@ -288,6 +288,7 @@ export type ProductReview = {
   hex: string | null;
   createdAt: string;
   isVerified: boolean; // hanya ulasan yang terhubung ke order_items
+  photos: string[]; // foto asli dari pembeli
   hasPhoto: boolean;
   storeReply: string | null;
   helpfulCount: number;
@@ -326,8 +327,9 @@ export async function getProductReviews(productId: number): Promise<ProductRevie
     hex: r.hex,
     createdAt: r.createdAt.toISOString(),
     isVerified: r.orderItemId != null,
+    photos: r.photos,
     // Ulasan seed tidak punya foto; sekitar 4 dari 10 diberi foto pengganti (ShadeSwatchArt) secara deterministik.
-    hasPhoto: r.photos.length > 0 || r.id % 10 < 4,
+    hasPhoto: r.photos.length > 0 || (r.orderItemId == null && r.id % 10 < 4),
     storeReply: r.storeReply,
     // Belum ada kolom "membantu" di skema; angka awal deterministik dari id sampai Fase 5 menambah kolomnya.
     helpfulCount: (r.id * 7) % 13,

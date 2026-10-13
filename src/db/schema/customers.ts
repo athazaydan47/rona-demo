@@ -13,15 +13,19 @@ import {
 import { notificationChannelEnum, notificationStatusEnum } from "./enums";
 import { products, variants } from "./catalog";
 
+// Bentuk data profil kulit (customers.skin_profile). Diisi formulir di /akun (Fase 5) dan kuis kulit (Fase 7).
+// Dicatat juga di docs/BRIEF.md bagian Profil kulit.
 export type SkinProfile = {
-  skinType?: string;
-  concerns?: string[];
+  skinType?: "normal" | "kering" | "berminyak" | "kombinasi" | "sensitif";
+  concerns?: ("jerawat" | "kusam" | "pori" | "penuaan" | "dehidrasi")[];
   sensitivity?: "rendah" | "sedang" | "tinggi";
-  budget?: number;
   undertone?: "warm" | "neutral" | "cool";
-  depth?: number;
+  depth?: number; // 1 sampai 6, sama dengan Shade Finder
+  finish?: "matte" | "satin" | "glowy";
+  budget?: number; // rupiah per produk
   routine?: string;
-  updatedAt?: string;
+  source?: "formulir" | "kuis";
+  updatedAt?: string; // ISO
 };
 
 export const customers = pgTable(
@@ -52,6 +56,10 @@ export const addresses = pgTable(
     province: text().notNull(),
     city: text().notNull(),
     district: text().notNull(),
+    // Kode wilayah (dataset cahyadsn/wilayah) supaya pemilih wilayah dan zona ongkir bisa dipulihkan.
+    provinceCode: text(),
+    regencyCode: text(),
+    districtCode: text(),
     postalCode: text().notNull().default(""),
     street: text().notNull(),
     lat: doublePrecision(),
@@ -124,9 +132,11 @@ export const pointsLedger = pgTable(
     amount: integer().notNull(), // plus atau minus
     reason: text().notNull(),
     reference: text().notNull().default(""),
+    // Kunci unik per gerakan (misal "dapat:RONA-2610-000001") supaya pemberian dan penarikan poin idempoten.
+    idempotencyKey: text(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("points_ledger_customer_idx").on(t.customerId, t.createdAt)],
+  (t) => [index("points_ledger_customer_idx").on(t.customerId, t.createdAt), uniqueIndex("points_ledger_idempotency_idx").on(t.idempotencyKey)],
 );
 
 export const notifications = pgTable(
@@ -144,6 +154,44 @@ export const notifications = pgTable(
     status: notificationStatusEnum().notNull().default("antre"),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     sentAt: timestamp({ withTimezone: true }),
+    readAt: timestamp({ withTimezone: true }),
   },
   (t) => [index("notifications_customer_idx").on(t.customerId, t.createdAt), index("notifications_order_idx").on(t.orderId), index("notifications_recipient_idx").on(t.recipient, t.createdAt)],
+);
+
+// Kode OTP masuk dan ganti nomor. Kode disimpan sebagai HMAC, tidak pernah teks asli.
+// Tabel ini juga sumber rate limit (per nomor dan per IP) karena aplikasi serverless tidak punya memori bersama.
+export const otpCodes = pgTable(
+  "otp_codes",
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    phone: text().notNull(),
+    purpose: text().notNull().default("masuk"), // "masuk" atau "ganti_nomor"
+    customerId: integer().references(() => customers.id, { onDelete: "cascade" }),
+    codeHash: text().notNull(),
+    ipHash: text().notNull().default(""),
+    attempts: integer().notNull().default(0),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    consumedAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("otp_codes_phone_idx").on(t.phone, t.createdAt), index("otp_codes_ip_idx").on(t.ipHash, t.createdAt)],
+);
+
+// Sesi masuk pembeli. Token acak hanya ada di cookie; database menyimpan hash-nya sehingga sesi bisa dicabut.
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    tokenHash: text().notNull(),
+    customerId: integer()
+      .notNull()
+      .references(() => customers.id, { onDelete: "cascade" }),
+    userAgent: text().notNull().default(""),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    revokedAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [uniqueIndex("sessions_token_idx").on(t.tokenHash), index("sessions_customer_idx").on(t.customerId)],
 );

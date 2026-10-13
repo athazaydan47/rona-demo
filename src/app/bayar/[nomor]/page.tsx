@@ -18,6 +18,7 @@ import { db } from "@/db/client";
 import { ORDERS_COOKIE } from "@/lib/cart/cookie";
 import { env } from "@/lib/env";
 import { formatDateTimeWib, formatRupiah } from "@/lib/format";
+import { currentCustomer } from "@/lib/auth/current";
 import { canAccessOrder, getOrderDetail } from "@/lib/orders/queries";
 import { expireIfDue } from "@/lib/orders/service";
 import { siteUrl } from "@/lib/site";
@@ -33,7 +34,7 @@ async function PaymentContent({ params, searchParams }: Props) {
   const order = await getOrderDetail(db, nomor);
   if (!order) notFound();
   const tokens = ((await cookies()).get(ORDERS_COOKIE)?.value ?? "").split(".").filter(Boolean);
-  if (!canAccessOrder(order, sp.t, tokens)) {
+  if (!canAccessOrder(order, sp.t, tokens, (await currentCustomer())?.customerId)) {
     return (
       <div className="mx-auto max-w-md rounded-card border border-garis bg-putih p-6">
         <h1 className="font-serif text-2xl text-kopi">Buka pesanan {order.number}</h1>

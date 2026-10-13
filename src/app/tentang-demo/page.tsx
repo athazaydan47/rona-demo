@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { DemoLoginButton } from "@/components/account/demo-login-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { env } from "@/lib/env";
@@ -37,13 +38,13 @@ export default function AboutDemoPage() {
       <div className="mt-10 rounded-card border border-garis bg-putih p-6">
         <h2 className="font-serif text-xl text-kopi">Akun demo</h2>
         <p className="mt-2 text-sm text-abu-hangat">
-          Tombol masuk cepat sebagai Pembeli, Admin Online, dan Staf Cabang Dinoyo akan tersedia setelah fase akun dan panel admin selesai. Data
-          direset setiap malam supaya demo selalu bersih.
+          {env.demoMode
+            ? "Masuk sebagai Pembeli Demo tanpa OTP: akun ini sudah berisi alamat, pesanan di berbagai status, poin, wishlist, dan profil kulit. Masuk cepat sebagai Admin dan Staf Cabang menyusul bersama panel admin."
+            : "Akun demo hanya aktif di mode demo."}{" "}
+          Data direset setiap malam supaya demo selalu bersih.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <Button variant="secondary" disabled>
-            Masuk sebagai Pembeli Demo
-          </Button>
+          {env.demoMode ? <DemoLoginButton className="min-w-64" /> : null}
           <Button variant="outline" disabled>
             Masuk sebagai Admin Demo
           </Button>

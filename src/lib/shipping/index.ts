@@ -150,3 +150,25 @@ export const demoShippingAdapter: ShippingAdapter = {
     return quoteShipping(input);
   },
 };
+
+// Kurir instan hanya beroperasi Senin sampai Sabtu pukul 08.00 sampai 17.00 WIB.
+export const INSTANT_OPEN_HOUR = 8;
+export const INSTANT_CLOSE_HOUR = 17;
+
+export type InstantAvailability = { available: boolean; note: string | null };
+
+export function instantAvailability(now: Date): InstantAvailability {
+  // Waktu WIB tanpa bergantung zona waktu mesin (UTC+7, tanpa DST).
+  const w = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+  const day = w.getUTCDay(); // 0 Minggu sampai 6 Sabtu
+  const minutes = w.getUTCHours() * 60 + w.getUTCMinutes();
+  const open = INSTANT_OPEN_HOUR * 60;
+  const close = INSTANT_CLOSE_HOUR * 60;
+  const workday = day >= 1 && day <= 6;
+  if (workday && minutes >= open && minutes < close) return { available: true, note: null };
+  const at = `pukul ${String(INSTANT_OPEN_HOUR).padStart(2, "0")}.00`;
+  if (workday && minutes < open) return { available: false, note: `Tersedia lagi hari ini ${at}` };
+  // Setelah tutup: hari kerja berikutnya. Sabtu malam dan Minggu lompat ke Senin.
+  if (day === 6) return { available: false, note: `Tersedia lagi Senin ${at}` };
+  return { available: false, note: `Tersedia lagi besok ${at}` };
+}

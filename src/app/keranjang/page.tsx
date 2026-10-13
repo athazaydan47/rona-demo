@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { cookies } from "next/headers";
 import { connection } from "next/server";
 import { Breadcrumb } from "@/components/catalog/breadcrumb";
 import { CartPage } from "@/components/cart/cart-page";
 import { db } from "@/db/client";
-import { CART_COOKIE } from "@/lib/cart/cookie";
-import { findCartByToken, viewCart } from "@/lib/cart/service";
+import { currentCustomer } from "@/lib/auth/current";
+import { resolveCart } from "@/lib/cart/current";
+import { viewCart } from "@/lib/cart/service";
 import { now } from "@/lib/clock";
 import { ensureFlashSaleSlots } from "@/lib/flash/ensure";
 
@@ -14,10 +14,9 @@ export const metadata: Metadata = { title: "Keranjang" };
 
 async function CartContent() {
   await connection();
-  const token = (await cookies()).get(CART_COOKIE)?.value;
-  const cart = await findCartByToken(db, token);
+  const [cart, customer] = await Promise.all([resolveCart(false), currentCustomer()]);
   await ensureFlashSaleSlots(db);
-  const view = cart ? await viewCart(db, cart.id, { now: now() }) : null;
+  const view = cart ? await viewCart(db, cart.id, { now: now(), buyer: customer ? { customerId: customer.customerId, phone: customer.phone } : undefined }) : null;
   return <CartPage initial={view} />;
 }
 

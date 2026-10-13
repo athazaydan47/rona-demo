@@ -4,13 +4,13 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Check, CreditCard, Loader2, MapPin, QrCode, Store, Tag, Truck } from "lucide-react";
+import { AlertCircle, Check, CreditCard, Home, Loader2, MapPin, Plus, QrCode, Sparkles, Store, Tag, Truck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { HelpText, Input, Label } from "@/components/ui/input";
 import { quoteCheckoutAction, placeOrderAction, type CheckoutQuote } from "@/lib/checkout/actions";
 import { setCartCount } from "@/lib/cart/client-cart";
-import { formatRupiah } from "@/lib/format";
+import { formatNumber, formatRupiah } from "@/lib/format";
 import { normalizePhone } from "@/lib/orders/rules";
 import { districts, hasDistrictData, provinces, regencies } from "@/lib/regions";
 import { cn } from "@/lib/utils";
@@ -40,9 +40,22 @@ type Form = {
   note: string;
   paymentMethod: Pay | "";
   voucherCode: string;
+  addressId: number | null; // alamat tersimpan yang dipilih (pembeli yang masuk)
+  saveAddress: boolean;
+  addressLabel: string;
+  usePoints: boolean;
+};
+
+export type CheckoutAccount = {
+  name: string;
+  phone: string;
+  email: string | null;
+  addresses: { id: number; label: string; recipient: string; phone: string; street: string; district: string; city: string; province: string; postalCode: string; provinceCode: string | null; regencyCode: string | null; districtCode: string | null; lat: number | null; lng: number | null; isPrimary: boolean }[];
+  canSaveMore: boolean;
 };
 
 const STEPS = ["Penerima dan alamat", "Pengiriman", "Pembayaran"] as const;
+const STEPS_SHORT = ["Alamat", "Kirim", "Bayar"] as const;
 
 const PAYMENTS: { value: Pay; label: string; hint: string }[] = [
   { value: "qris", label: "QRIS", hint: "Scan dengan aplikasi bank atau dompet digital apa pun." },
@@ -68,16 +81,53 @@ function Field({ label, htmlFor, error, hint, children }: { label: string; htmlF
   );
 }
 
+// Navigasi langkah yang sama di ketiga langkah: Kembali di kiri, tombol utama di kanan, satu baris.
+function StepNav({ onBack, back, backAsLink, children }: { onBack?: () => void; back?: React.ReactNode; backAsLink?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      {backAsLink ? (
+        <Button variant="ghost" asChild className="shrink-0">
+          {back}
+        </Button>
+      ) : (
+        <Button variant="ghost" onClick={onBack} className="shrink-0">
+          Kembali
+        </Button>
+      )}
+      <div className="flex min-w-0 justify-end">{children}</div>
+    </div>
+  );
+}
+
 const selectClass = "h-11 w-full rounded-pill border border-garis bg-putih px-4 text-base text-kopi outline-none focus-visible:border-rona focus-visible:shadow-ring aria-invalid:border-bahaya disabled:opacity-60";
 
-export function CheckoutFlow({ initial, initialVoucher }: { initial: CheckoutQuote; initialVoucher: string | null }) {
+// Isian alamat dari alamat tersimpan, supaya zona ongkir dan ringkasan langkah 2 tetap bekerja.
+function fromSaved(a: CheckoutAccount["addresses"][number]): Partial<Form> {
+  const inJatim = a.provinceCode ? hasDistrictData(a.provinceCode) : false;
+  return {
+    addressId: a.id,
+    name: a.recipient,
+    phone: a.phone,
+    provinceCode: a.provinceCode ?? "",
+    regencyCode: a.regencyCode ?? "",
+    districtCode: inJatim ? (a.districtCode ?? "") : "",
+    districtText: inJatim ? "" : a.district,
+    postalCode: a.postalCode,
+    street: a.street,
+    lat: a.lat,
+    lng: a.lng,
+  };
+}
+
+export function CheckoutFlow({ initial, initialVoucher, account }: { initial: CheckoutQuote; initialVoucher: string | null; account: CheckoutAccount | null }) {
   const router = useRouter();
   const ids = useId();
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState<Form>({
-    name: "",
-    phone: "",
-    email: "",
+  const primary = account?.addresses.find((a) => a.isPrimary && a.regencyCode) ?? account?.addresses.find((a) => a.regencyCode) ?? null;
+  const [form, setForm] = useState<Form>(() => ({
+    name: account?.name ?? "",
+    phone: account?.phone ?? "",
+    email: account?.email ?? "",
     method: "kirim",
     provinceCode: "",
     regencyCode: "",
@@ -92,7 +142,12 @@ export function CheckoutFlow({ initial, initialVoucher }: { initial: CheckoutQuo
     note: "",
     paymentMethod: "",
     voucherCode: initialVoucher ?? "",
-  });
+    addressId: null,
+    saveAddress: Boolean(account?.canSaveMore),
+    addressLabel: "Rumah",
+    usePoints: false,
+    ...(primary ? fromSaved(primary) : {}),
+  }));
   const [voucherInput, setVoucherInput] = useState(initialVoucher ?? "");
   const [quote, setQuote] = useState<CheckoutQuote>(initial);
   const [loading, setLoading] = useState(false);
@@ -122,6 +177,7 @@ export function CheckoutFlow({ initial, initialVoucher }: { initial: CheckoutQuo
         courierCode: f.method === "kirim" ? f.courierCode || null : null,
         voucherCode: f.voucherCode || null,
         phone: withPhone ? f.phone : null,
+        usePoints: f.usePoints,
       });
       if (my === seq.current) setQuote(q);
     } finally {
@@ -134,7 +190,7 @@ export function CheckoutFlow({ initial, initialVoucher }: { initial: CheckoutQuo
     const t = window.setTimeout(() => void refresh(form, step >= 1), 120);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.method, form.regencyCode, form.courierCode, form.voucherCode, step, refresh]);
+  }, [form.method, form.regencyCode, form.courierCode, form.voucherCode, form.usePoints, step, refresh]);
 
   const regencyList = useMemo(() => (form.provinceCode ? regencies(form.provinceCode) : []), [form.provinceCode]);
   const districtList = useMemo(() => (form.regencyCode && hasDistrictData(form.provinceCode) ? districts(form.regencyCode) : []), [form.regencyCode, form.provinceCode]);
@@ -159,7 +215,9 @@ export function CheckoutFlow({ initial, initialVoucher }: { initial: CheckoutQuo
     if (form.name.trim().length < 2) e.name = "Isi nama penerima.";
     if (!normalizePhone(form.phone)) e.phone = "Nomor WhatsApp tidak valid. Contoh: 0812 3456 7890.";
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Email tidak valid.";
-    if (form.method === "kirim") {
+    if (form.method === "kirim" && form.addressId != null) {
+      if (!form.regencyCode) e.regencyCode = "Alamat ini perlu dilengkapi. Ubah di Akun, Alamat, atau pakai alamat baru.";
+    } else if (form.method === "kirim") {
       if (!form.provinceCode) e.provinceCode = "Pilih provinsi.";
       if (!form.regencyCode) e.regencyCode = "Pilih kota atau kabupaten.";
       if (hasDistrictData(form.provinceCode) ? !form.districtCode : form.districtText.trim().length < 3) e.district = "Isi kecamatan.";
@@ -219,6 +277,10 @@ export function CheckoutFlow({ initial, initialVoucher }: { initial: CheckoutQuo
         paymentMethod: form.paymentMethod as Pay,
         voucherCode: form.voucherCode || null,
         note: form.note,
+        addressId: form.method === "kirim" ? form.addressId : null,
+        saveAddress: Boolean(account) && form.addressId == null && form.saveAddress,
+        addressLabel: form.addressLabel,
+        usePoints: form.usePoints,
         expectedTotal: pricing.total,
       });
       if (r.ok) {
@@ -256,7 +318,10 @@ export function CheckoutFlow({ initial, initialVoucher }: { initial: CheckoutQuo
                 <span className={cn("grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold tabular-nums", i < step ? "bg-sukses text-putih" : i === step ? "bg-kopi text-putih" : "bg-garis text-abu-hangat")}>
                   {i < step ? <Check className="size-3.5" /> : i + 1}
                 </span>
-                <span className={cn("truncate text-xs font-medium sm:text-sm", i === step ? "text-kopi" : "text-abu-hangat")}>{label}</span>
+                <span className={cn("text-xs font-medium whitespace-nowrap sm:text-sm", i === step ? "text-kopi" : "text-abu-hangat")}>
+                  <span className="sm:hidden">{STEPS_SHORT[i]}</span>
+                  <span className="hidden sm:inline">{label}</span>
+                </span>
               </button>
               {i < STEPS.length - 1 ? <span className="h-px min-w-3 flex-1 bg-garis" aria-hidden /> : null}
             </li>
@@ -309,7 +374,56 @@ export function CheckoutFlow({ initial, initialVoucher }: { initial: CheckoutQuo
                 ))}
               </div>
 
-              {form.method === "kirim" ? (
+              {form.method === "kirim" && account && account.addresses.length > 0 ? (
+                <div className="mt-5">
+                  <p className="text-sm font-medium text-kopi">Kirim ke</p>
+                  <div className="mt-2 space-y-2" role="radiogroup" aria-label="Alamat tersimpan">
+                    {account.addresses.map((a) => (
+                      <button
+                        key={a.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={form.addressId === a.id}
+                        onClick={() => {
+                          setForm((f) => ({ ...f, ...fromSaved(a), courierCode: "" }));
+                          setErrors({});
+                        }}
+                        className={cn("flex w-full items-start gap-3 rounded-card border-2 p-4 text-left transition-colors", form.addressId === a.id ? "border-kopi bg-porselen" : "border-garis hover:border-kopi/30")}
+                      >
+                        <Home className="mt-0.5 size-5 shrink-0 text-rona" aria-hidden />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-kopi">
+                            {a.label}
+                            {a.isPrimary ? <Badge variant="sukses">Utama</Badge> : null}
+                          </span>
+                          <span className="block text-xs text-abu-hangat">
+                            {a.recipient}, {a.phone}
+                          </span>
+                          <span className="block text-xs text-abu-hangat">
+                            {a.street}, {a.district}, {a.city} {a.postalCode}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={form.addressId == null}
+                      onClick={() => setForm((f) => ({ ...f, addressId: null, provinceCode: "", regencyCode: "", districtCode: "", districtText: "", postalCode: "", street: "", lat: null, lng: null, courierCode: "", name: account.name, phone: account.phone }))}
+                      className={cn("flex w-full items-center gap-3 rounded-card border-2 p-4 text-left text-sm font-semibold transition-colors", form.addressId == null ? "border-kopi bg-porselen text-kopi" : "border-dashed border-garis text-rona hover:border-kopi/30")}
+                    >
+                      <Plus className="size-5 shrink-0" aria-hidden /> Alamat baru
+                    </button>
+                  </div>
+                  {errors.regencyCode && form.addressId != null ? (
+                    <HelpText tone="error" role="alert">
+                      {errors.regencyCode}
+                    </HelpText>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {form.method === "kirim" && form.addressId == null ? (
                 <div className="mt-5 grid gap-4 sm:grid-cols-2">
                   <Field label="Provinsi" htmlFor="co-prov" error={errors.provinceCode}>
                     <select
@@ -393,8 +507,19 @@ export function CheckoutFlow({ initial, initialVoucher }: { initial: CheckoutQuo
                       </button>
                     )}
                   </div>
+                  {account ? (
+                    <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+                      <label className={cn("inline-flex items-center gap-2 text-sm text-kopi", !account.canSaveMore && "opacity-60")}>
+                        <input type="checkbox" className="size-4 accent-[var(--color-rona)]" checked={form.saveAddress && account.canSaveMore} disabled={!account.canSaveMore} onChange={(e) => set("saveAddress", e.target.checked)} />
+                        {account.canSaveMore ? "Simpan alamat ini ke akunku" : "Buku alamat penuh (maksimal 10)"}
+                      </label>
+                      {form.saveAddress && account.canSaveMore ? (
+                        <Input aria-label="Nama alamat" value={form.addressLabel} onChange={(e) => set("addressLabel", e.target.value.slice(0, 30))} placeholder="Misal: Rumah, Kantor" className="h-9 max-w-44" />
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
-              ) : (
+              ) : form.method === "kirim" ? null : (
                 <div className="mt-5">
                   <p className="text-sm text-abu-hangat">Hanya cabang yang stoknya cukup untuk semua produk di keranjangmu yang bisa dipilih.</p>
                   <div className="mt-3 space-y-2" role="radiogroup" aria-label="Pilih cabang">
@@ -428,11 +553,11 @@ export function CheckoutFlow({ initial, initialVoucher }: { initial: CheckoutQuo
                 </div>
               )}
             </div>
-            <div className="flex justify-end">
+            <StepNav back={<Link href="/keranjang">Keranjang</Link>} backAsLink>
               <Button size="lg" onClick={next}>
                 Lanjut ke pengiriman
               </Button>
-            </div>
+            </StepNav>
           </section>
         ) : null}
 
@@ -458,8 +583,10 @@ export function CheckoutFlow({ initial, initialVoucher }: { initial: CheckoutQuo
                         role="radio"
                         aria-checked={form.courierCode === c.code}
                         aria-label={`${c.name} ${c.service}`}
+                        aria-disabled={c.disabledNote ? true : undefined}
+                        disabled={Boolean(c.disabledNote)}
                         onClick={() => set("courierCode", c.code as CourierCode)}
-                        className={cn("flex w-full items-center gap-3 rounded-card border-2 p-4 text-left transition-colors", form.courierCode === c.code ? "border-kopi bg-porselen" : "border-garis hover:border-kopi/30")}
+                        className={cn("flex w-full items-center gap-3 rounded-card border-2 p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-55", form.courierCode === c.code ? "border-kopi bg-porselen" : "border-garis hover:border-kopi/30")}
                       >
                         <Truck className="size-5 shrink-0 text-rona" aria-hidden />
                         <span className="min-w-0 flex-1">
@@ -467,7 +594,7 @@ export function CheckoutFlow({ initial, initialVoucher }: { initial: CheckoutQuo
                             {c.name} {c.service}
                             {c.shipsToday ? <Badge variant="sukses">Dikirim hari ini</Badge> : null}
                           </span>
-                          <span className="block text-xs text-abu-hangat">Estimasi tiba {c.etaLabel.toLowerCase()}</span>
+                          <span className="block text-xs text-abu-hangat">{c.disabledNote ? <span className="text-peringatan">Di luar jam operasional. {c.disabledNote}.</span> : `Estimasi tiba ${c.etaLabel.toLowerCase()}`}</span>
                         </span>
                         <span className="text-right text-sm whitespace-nowrap tabular-nums">
                           {c.payable < c.cost ? <s className="block text-xs text-abu-hangat">{formatRupiah(c.cost)}</s> : null}
@@ -502,14 +629,11 @@ export function CheckoutFlow({ initial, initialVoucher }: { initial: CheckoutQuo
                 </Field>
               </div>
             </div>
-            <div className="flex justify-between gap-3">
-              <Button variant="ghost" onClick={() => go(0)}>
-                Kembali
-              </Button>
+            <StepNav onBack={() => go(0)}>
               <Button size="lg" onClick={next}>
                 Lanjut ke pembayaran
               </Button>
-            </div>
+            </StepNav>
           </section>
         ) : null}
 
@@ -542,6 +666,33 @@ export function CheckoutFlow({ initial, initialVoucher }: { initial: CheckoutQuo
                 </HelpText>
               ) : null}
             </div>
+
+            {quote.points && quote.points.balance > 0 ? (
+              <div className="rounded-card border border-garis bg-putih p-5">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="size-5 shrink-0 text-emas" aria-hidden />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-kopi" id="co-poin-label">
+                      {quote.points.usable > 0 ? `Pakai ${formatNumber(form.usePoints ? pricing.points.used || quote.points.usable : quote.points.usable)} poin, hemat ${formatRupiah(form.usePoints ? pricing.points.used || quote.points.usable : quote.points.usable)}` : "Poin belum bisa dipakai"}
+                    </p>
+                    <p className="text-xs text-abu-hangat">
+                      Saldo {formatNumber(quote.points.balance)} poin. Maksimal 50% dari belanja setelah voucher.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={form.usePoints}
+                    aria-labelledby="co-poin-label"
+                    disabled={quote.points.usable <= 0}
+                    onClick={() => set("usePoints", !form.usePoints)}
+                    className={cn("relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-50", form.usePoints ? "bg-sukses" : "bg-garis")}
+                  >
+                    <span className={cn("absolute top-1 left-1 size-5 rounded-full bg-putih shadow transition-transform", form.usePoints && "translate-x-5")} />
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
             <div className="rounded-card border border-garis bg-putih p-5">
               <h3 className="font-serif text-xl text-kopi">Voucher</h3>
@@ -592,14 +743,12 @@ export function CheckoutFlow({ initial, initialVoucher }: { initial: CheckoutQuo
                 <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden /> {formError}
               </p>
             ) : null}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <Button variant="ghost" onClick={() => go(1)}>
-                Kembali
-              </Button>
+            <StepNav onBack={() => go(1)}>
               <Button size="lg" onClick={place} disabled={placing || loading || (Boolean(form.voucherCode) && pricing.voucher?.applied === false)}>
-                {placing ? <Loader2 className="animate-spin" /> : null} Buat Pesanan, {formatRupiah(pricing.total)}
+                {placing ? <Loader2 className="animate-spin" /> : null} Buat Pesanan
+                <span className="hidden sm:inline">, {formatRupiah(pricing.total)}</span>
               </Button>
-            </div>
+            </StepNav>
             <p className="text-xs text-abu-hangat">Dengan membuat pesanan, kamu setuju dengan syarat belanja dan kebijakan retur Rona. Ini toko demo: tidak ada uang yang berpindah.</p>
           </section>
         ) : null}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, LayoutGrid, Search, ShoppingBag, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAccountBadge, UnreadBadge } from "./account-link";
 import { CartBadge } from "./cart-badge";
 import { useMobileMenu } from "./mobile-menu";
 
@@ -13,6 +14,7 @@ const itemClass =
 
 function Items({ pathname }: { pathname: string | null }) {
   const { setOpen, open } = useMobileMenu();
+  const account = useAccountBadge();
   const isActive = (href: string) => (pathname ? (href === "/" ? pathname === "/" : pathname.startsWith(href)) : false);
   return (
     <div className="container-rona flex h-16 items-stretch gap-1">
@@ -35,9 +37,12 @@ function Items({ pathname }: { pathname: string | null }) {
         </span>
         Keranjang
       </Link>
-      <Link href="/akun" className={cn(itemClass, isActive("/akun") && "text-rona")} aria-current={isActive("/akun") ? "page" : undefined}>
-        <User className="size-5" />
-        Akun
+      <Link href={account.loggedIn ? "/akun" : "/masuk"} className={cn(itemClass, (isActive("/akun") || isActive("/masuk")) && "text-rona")} aria-current={isActive("/akun") ? "page" : undefined}>
+        <span className="relative">
+          <User className="size-5" />
+          <UnreadBadge count={account.unread} className="absolute -top-1.5 -right-2 grid h-4 min-w-4 place-items-center rounded-full bg-emas px-1 text-[10px] font-bold text-kopi tabular-nums" />
+        </span>
+        {account.loggedIn ? "Akun" : "Masuk"}
       </Link>
     </div>
   );

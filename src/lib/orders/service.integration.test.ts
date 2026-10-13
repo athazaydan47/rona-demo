@@ -17,6 +17,7 @@ describe.skipIf(!url)("layanan pesanan (integrasi)", () => {
   const db = drizzle(client, { schema, casing: "snake_case" });
   const createdOrders: string[] = [];
   const createdCarts: number[] = [];
+  const createdSales: number[] = [];
   const restore: { variantId: number; locationId: number; onHand: number; reserved: number }[] = [];
 
   async function variantBySlug(productSlug: string, shadeSlug?: string) {
@@ -80,6 +81,8 @@ describe.skipIf(!url)("layanan pesanan (integrasi)", () => {
         await db.delete(schema.orders).where(inArray(schema.orders.id, ids));
       }
     }
+    // Slot flash sale uji dihapus juga bila uji gagal di tengah, supaya tidak mengganggu putaran berikutnya.
+    if (createdSales.length) await db.delete(schema.flashSales).where(inArray(schema.flashSales.id, createdSales));
     for (const r of restore) await db.update(schema.inventory).set({ onHand: r.onHand, reserved: r.reserved }).where(and(eq(schema.inventory.variantId, r.variantId), eq(schema.inventory.locationId, r.locationId)));
     if (createdCarts.length) await db.delete(schema.carts).where(inArray(schema.carts.id, createdCarts));
     await client.end();
@@ -171,6 +174,7 @@ describe.skipIf(!url)("layanan pesanan (integrasi)", () => {
       .insert(schema.flashSales)
       .values({ name: "Flash Uji", startsAt: new Date(Date.now() - 10 * 60_000), endsAt: new Date(Date.now() + 60 * 60_000), isActive: true })
       .returning({ id: schema.flashSales.id });
+    createdSales.push(sale.id);
     const [item] = await db.insert(schema.flashSaleItems).values({ flashSaleId: sale.id, variantId, flashPrice: 19_000, quota: 30, sold: 5, maxPerCustomer: 2 }).returning({ id: schema.flashSaleItems.id });
     const flash = { itemId: item.id, sold: 5 };
     const [voucherBefore] = await db.select({ used: schema.vouchers.used }).from(schema.vouchers).where(eq(schema.vouchers.code, "ONGKIRRONA"));
@@ -204,7 +208,6 @@ describe.skipIf(!url)("layanan pesanan (integrasi)", () => {
     // Pembayaran yang datang setelah batal ditolak.
     const [p2] = await db.select().from(schema.payments).where(eq(schema.payments.orderId, r.orderId));
     expect(await confirmPayment(db, { idempotencyKey: p2.idempotencyKey })).toMatchObject({ ok: false });
-    await db.delete(schema.flashSales).where(eq(schema.flashSales.id, sale.id));
   });
 
   it("Bayar di Toko: staf menandai lunas dan diambil, status Dibayar lalu Selesai tercatat berurutan", async () => {

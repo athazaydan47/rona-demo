@@ -57,6 +57,14 @@ function Rows({ cart, pricing }: { cart: CartView; pricing: PricedCart }) {
             <dd className="whitespace-nowrap text-sukses tabular-nums">-{formatRupiah(s.discount)}</dd>
           </div>
         ) : null}
+        {pricing.points.used > 0 ? (
+          <div className="flex justify-between gap-3">
+            <dt className="text-abu-hangat">Poin dipakai</dt>
+            <dd className="whitespace-nowrap text-sukses tabular-nums" data-testid="poin-dipakai">
+              -{formatRupiah(pricing.points.used)}
+            </dd>
+          </div>
+        ) : null}
         <div className="flex justify-between gap-3 border-t border-garis pt-3 text-base">
           <dt className="font-semibold text-kopi">Total bayar</dt>
           <dd className="font-semibold whitespace-nowrap text-kopi tabular-nums" data-testid="total-bayar">

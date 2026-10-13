@@ -40,3 +40,27 @@ describe("quoteShipping", () => {
     expect(cheapestAndFastest([])).toEqual({ cheapest: null, fastest: null });
   });
 });
+
+import { instantAvailability } from "./index";
+import { wibDate } from "@/lib/format";
+
+describe("jam operasional kurir instan", () => {
+  // 14 Okt 2026 Rabu, 17 Okt Sabtu, 18 Okt Minggu.
+  it("tersedia Senin sampai Sabtu pukul 08.00 sampai 17.00 WIB", () => {
+    expect(instantAvailability(wibDate(2026, 10, 14, 8, 0))).toEqual({ available: true, note: null });
+    expect(instantAvailability(wibDate(2026, 10, 14, 16, 59)).available).toBe(true);
+    expect(instantAvailability(wibDate(2026, 10, 17, 12, 0)).available).toBe(true);
+  });
+  it("dini hari tidak tersedia, tersedia lagi hari ini pukul 08.00", () => {
+    expect(instantAvailability(wibDate(2026, 10, 14, 1, 18))).toEqual({ available: false, note: "Tersedia lagi hari ini pukul 08.00" });
+  });
+  it("setelah 17.00 tersedia lagi besok, Sabtu malam dan Minggu lompat ke Senin", () => {
+    expect(instantAvailability(wibDate(2026, 10, 14, 17, 0))).toEqual({ available: false, note: "Tersedia lagi besok pukul 08.00" });
+    expect(instantAvailability(wibDate(2026, 10, 17, 18, 0)).note).toBe("Tersedia lagi Senin pukul 08.00");
+    expect(instantAvailability(wibDate(2026, 10, 18, 10, 0)).note).toBe("Tersedia lagi besok pukul 08.00");
+  });
+  it("memakai WIB walau jam UTC sudah berganti hari", () => {
+    // 15 Okt 00.30 WIB = 14 Okt 17.30 UTC
+    expect(instantAvailability(new Date("2026-10-14T17:30:00.000Z")).note).toBe("Tersedia lagi hari ini pukul 08.00");
+  });
+});

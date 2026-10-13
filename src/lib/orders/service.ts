@@ -8,7 +8,8 @@ import { now as clockNow } from "@/lib/clock";
 import type { AnyDb } from "@/lib/db-types";
 import { available, commitReserved, lockInventory, release, reserve, restock, type LockedRow } from "@/lib/inventory";
 import { priceCart, type PricedCart } from "@/lib/pricing/cart";
-import type { CourierCode, Zone } from "@/lib/shipping";
+import { instantAvailability, type CourierCode, type Zone } from "@/lib/shipping";
+import { earnedPoints, movePoints, pointKeys } from "@/lib/points";
 import { orderMessage, type OrderEvent } from "./messages";
 import { buildPricingLines, loadVoucher, type Buyer } from "./pricing-loader";
 import { formatOrderNumber, isExpired, normalizePhone, orderPeriod, paymentDeadline } from "./rules";
@@ -29,6 +30,7 @@ export type PlaceOrderInput = {
   paymentMethod: PaymentMethod;
   voucherCode?: string | null;
   note?: string | null;
+  pointsRequested?: number; // hanya untuk pembeli yang masuk; batas 50% dihitung ulang di server
   expectedTotal: number;
   siteUrl?: string;
   now?: Date;
@@ -93,6 +95,10 @@ export async function placeOrder(db: AnyDb, input: PlaceOrderInput): Promise<Pla
     return { ok: false, code: "data_tidak_valid", message: "Lengkapi alamat dan pilih kurir." };
   }
   if (input.method === "ambil" && !input.pickupLocationSlug) return { ok: false, code: "data_tidak_valid", message: "Pilih cabang untuk mengambil pesanan." };
+  if (input.method === "kirim" && input.courierCode === "instan") {
+    const instant = instantAvailability(at);
+    if (!instant.available) return { ok: false, code: "data_tidak_valid", message: `Kurir instan hanya beroperasi Senin sampai Sabtu pukul 08.00 sampai 17.00 WIB. ${instant.note}.` };
+  }
   const buyer: Buyer = { customerId: input.buyer.customerId ?? null, phone };
 
   try {
@@ -120,11 +126,18 @@ export async function placeOrder(db: AnyDb, input: PlaceOrderInput): Promise<Pla
         throw fail("harga_berubah", "Ada produk di keranjang yang sudah tidak dijual. Buka keranjang untuk memperbarui.");
       }
       const voucher = await loadVoucher(tx, input.voucherCode, buyer, { lock: true });
+      // Saldo poin dibaca dengan mengunci baris customer, supaya dua pesanan bersamaan tidak memakai poin yang sama.
+      let pointsBalance = 0;
+      if (buyer.customerId && (input.pointsRequested ?? 0) > 0) {
+        const [c] = await tx.select({ points: schema.customers.points }).from(schema.customers).where(eq(schema.customers.id, buyer.customerId)).for("update");
+        pointsBalance = c?.points ?? 0;
+      }
       const pricing = priceCart({
         lines,
         now: at,
         voucherCode: input.voucherCode,
         voucher,
+        points: buyer.customerId ? { requested: input.pointsRequested ?? 0, balance: pointsBalance } : null,
         shipping: input.method === "ambil" ? { method: "ambil" } : { method: "kirim", courierCode: input.courierCode!, zone: input.zone! },
       });
       if (input.voucherCode && !pricing.voucher?.applied) throw fail("voucher", pricing.voucher?.message ?? "Voucher tidak bisa dipakai.", { pricing });
@@ -237,6 +250,10 @@ export async function placeOrder(db: AnyDb, input: PlaceOrderInput): Promise<Pla
         await tx.insert(schema.voucherRedemptions).values({ voucherId: voucher.id, customerId: buyer.customerId, guestPhone: phone, orderId: order.id, discount: pricing.voucherDiscount + (pricing.voucher.shippingDiscount ?? 0), redeemedAt: at });
       }
 
+      if (buyer.customerId && pricing.points.used > 0) {
+        await movePoints(tx, { customerId: buyer.customerId, amount: -pricing.points.used, reason: `Ditukar untuk pesanan ${number}`, reference: number, key: pointKeys.redeem(number), at });
+      }
+
       for (const pl of pricing.lines) {
         await reserve(tx, locked, { variantId: pl.variantId, locationId: location.id, quantity: pl.quantity, reference: number, actor: "sistem", note: "Dipesan pembeli" }, at);
       }
@@ -244,7 +261,7 @@ export async function placeOrder(db: AnyDb, input: PlaceOrderInput): Promise<Pla
       await tx.delete(schema.cartItems).where(and(eq(schema.cartItems.cartId, cart.id), eq(schema.cartItems.savedForLater, false)));
       await tx.update(schema.carts).set({ voucherCode: null, updatedAt: at }).where(eq(schema.carts.id, cart.id));
 
-      await queueNotifications(tx, order.id, "dibuat", input.siteUrl);
+      await queueNotifications(tx, order.id, "dibuat", input.siteUrl, at);
       return { ok: true as const, orderId: order.id, number, accessToken, total: pricing.total, paymentMethod: input.paymentMethod };
     });
   } catch (err) {
@@ -308,6 +325,9 @@ export async function applyTransition(tx: AnyDb, order: LockedOrder, to: OrderSt
     } else if (order.paymentId && order.paymentStatus === "lunas") {
       await tx.update(schema.payments).set({ status: "batal" }).where(eq(schema.payments.id, order.paymentId));
     }
+    if (order.customerId && order.pointsUsed > 0) {
+      await movePoints(tx, { customerId: order.customerId, amount: order.pointsUsed, reason: `Dikembalikan karena pesanan ${order.number} dibatalkan`, reference: order.number, key: pointKeys.refundRedeem(order.number), at });
+    }
     patch.cancelReason = opts.reason ?? "Dibatalkan";
     event = "dibatalkan";
   }
@@ -321,12 +341,29 @@ export async function applyTransition(tx: AnyDb, order: LockedOrder, to: OrderSt
   if (to === "selesai") {
     patch.completedAt = at;
     event = "selesai";
+    if (order.customerId) await awardOrderPoints(tx, order, at);
+  }
+  if (to === "diretur" && order.customerId) {
+    // Tarik kembali poin yang diberikan; saldo tidak boleh negatif.
+    const [earned] = await tx.select({ amount: schema.pointsLedger.amount }).from(schema.pointsLedger).where(eq(schema.pointsLedger.idempotencyKey, pointKeys.earn(order.number))).limit(1);
+    if (earned && earned.amount > 0) {
+      await movePoints(tx, { customerId: order.customerId, amount: -earned.amount, reason: `Ditarik karena pesanan ${order.number} diretur`, reference: order.number, key: pointKeys.clawback(order.number), at });
+    }
   }
 
   await tx.update(schema.orders).set(patch).where(eq(schema.orders.id, order.id));
   await tx.insert(schema.orderStatusHistory).values({ orderId: order.id, fromStatus: from, toStatus: to, actor: opts.actor, reason: opts.reason ?? null, createdAt: at });
   Object.assign(order, patch);
-  if (event) await queueNotifications(tx, order.id, event, opts.siteUrl);
+  if (event) await queueNotifications(tx, order.id, event, opts.siteUrl, at);
+}
+
+// Poin pesanan Selesai: 1 poin per Rp 1.000 belanja bersih. Idempoten lewat kunci "dapat:<nomor>".
+export async function awardOrderPoints(tx: AnyDb, order: { number: string; customerId: number | null; subtotal: number; voucherDiscount: number; pointsUsed: number }, at: Date) {
+  if (!order.customerId) return 0;
+  const points = earnedPoints(order);
+  if (points <= 0) return 0;
+  const r = await movePoints(tx, { customerId: order.customerId, amount: points, reason: `Poin dari pesanan ${order.number}`, reference: order.number, key: pointKeys.earn(order.number), at });
+  return r.applied;
 }
 
 export type ConfirmResult = { ok: true; alreadyProcessed: boolean; number: string; productIds: number[] } | { ok: false; code: "tidak_ditemukan" | "nominal_tidak_cocok" | "kedaluwarsa" | "status_tidak_sesuai"; message: string };
@@ -415,7 +452,76 @@ export async function transitionOrder(db: AnyDb, number: string, to: OrderStatus
   });
 }
 
-async function queueNotifications(tx: AnyDb, orderId: number, event: OrderEvent, siteUrl = "") {
+// Selesai otomatis 3 hari setelah Dikirim (dihitung dari riwayat status), lewat cron harian dan pengecekan malas.
+export const AUTO_COMPLETE_MS = 3 * 24 * 60 * 60_000;
+
+async function shippedAt(tx: AnyDb, orderId: number) {
+  const [h] = await tx
+    .select({ at: schema.orderStatusHistory.createdAt })
+    .from(schema.orderStatusHistory)
+    .where(and(eq(schema.orderStatusHistory.orderId, orderId), eq(schema.orderStatusHistory.toStatus, "dikirim")))
+    .orderBy(desc(schema.orderStatusHistory.createdAt))
+    .limit(1);
+  return h?.at ?? null;
+}
+
+export async function completeIfDue(db: AnyDb, number: string, nowInput?: Date, siteUrl?: string) {
+  const at = nowInput ?? clockNow();
+  return db.transaction(async (tx) => {
+    const order = await lockOrder(tx, { number });
+    if (!order || order.status !== "dikirim") return false;
+    const sent = await shippedAt(tx, order.id);
+    if (!sent || at.getTime() - sent.getTime() < AUTO_COMPLETE_MS) return false;
+    await applyTransition(tx, order, "selesai", { actor: "sistem", reason: "Otomatis selesai 3 hari setelah dikirim", now: at, siteUrl });
+    return true;
+  });
+}
+
+export async function completeDueOrders(db: AnyDb, nowInput?: Date, siteUrl?: string) {
+  const at = nowInput ?? clockNow();
+  const cutoff = new Date(at.getTime() - AUTO_COMPLETE_MS);
+  const due = await db
+    .selectDistinct({ id: schema.orders.id, number: schema.orders.number })
+    .from(schema.orders)
+    .innerJoin(schema.orderStatusHistory, and(eq(schema.orderStatusHistory.orderId, schema.orders.id), eq(schema.orderStatusHistory.toStatus, "dikirim")))
+    .where(and(eq(schema.orders.status, "dikirim"), lte(schema.orderStatusHistory.createdAt, cutoff)))
+    .orderBy(asc(schema.orders.id))
+    .limit(500);
+  let completed = 0;
+  for (const d of due) if (await completeIfDue(db, d.number, at, siteUrl)) completed += 1;
+  return { checked: due.length, completed };
+}
+
+export type BuyerActionResult = { ok: true; number: string; productIds: number[] } | { ok: false; message: string };
+
+// Pembeli menekan "Pesanan diterima". Hanya pemilik pesanan (dari sesi) dan hanya saat Dikirim.
+export async function confirmReceived(db: AnyDb, number: string, customerId: number, opts: { now?: Date; siteUrl?: string } = {}): Promise<BuyerActionResult> {
+  const at = opts.now ?? clockNow();
+  return db.transaction(async (tx) => {
+    const order = await lockOrder(tx, { number });
+    if (!order || order.customerId !== customerId) return { ok: false as const, message: "Pesanan tidak ditemukan." };
+    if (order.status !== "dikirim") return { ok: false as const, message: `Pesanan berstatus ${statusLabels[order.status as OrderStatus]}.` };
+    await applyTransition(tx, order, "selesai", { actor: "pembeli", reason: "Pembeli mengonfirmasi pesanan diterima", now: at, siteUrl: opts.siteUrl });
+    const products = await tx.selectDistinct({ productId: schema.variants.productId }).from(schema.orderItems).innerJoin(schema.variants, eq(schema.orderItems.variantId, schema.variants.id)).where(eq(schema.orderItems.orderId, order.id));
+    return { ok: true as const, number: order.number, productIds: products.map((p) => p.productId) };
+  });
+}
+
+// Simulasi toko (hanya DEMO_MODE, dijaga di route): Dibayar, lalu Diproses, lalu Dikirim dengan resi dummy.
+export async function simulateProcessAndShip(db: AnyDb, number: string, opts: { now?: Date; siteUrl?: string } = {}): Promise<BuyerActionResult> {
+  const at = opts.now ?? clockNow();
+  return db.transaction(async (tx) => {
+    const order = await lockOrder(tx, { number });
+    if (!order) return { ok: false as const, message: "Pesanan tidak ditemukan." };
+    if (order.method !== "kirim") return { ok: false as const, message: "Simulasi ini hanya untuk pesanan yang dikirim." };
+    if (order.status !== "dibayar") return { ok: false as const, message: `Pesanan berstatus ${statusLabels[order.status as OrderStatus]}.` };
+    await applyTransition(tx, order, "diproses", { actor: "staf demo", reason: "Simulasi toko: pesanan disiapkan", now: at, siteUrl: opts.siteUrl });
+    await applyTransition(tx, order, "dikirim", { actor: "staf demo", reason: "Simulasi toko: diserahkan ke kurir", now: new Date(at.getTime() + 1000), siteUrl: opts.siteUrl });
+    return { ok: true as const, number: order.number, productIds: [] };
+  });
+}
+
+async function queueNotifications(tx: AnyDb, orderId: number, event: OrderEvent, siteUrl = "", at?: Date) {
   const [o] = await tx
     .select({
       number: schema.orders.number,
@@ -451,8 +557,9 @@ async function queueNotifications(tx: AnyDb, orderId: number, event: OrderEvent,
     link: `${siteUrl}/pesanan/${o.number}?t=${o.accessToken}`,
   });
   const rows: (typeof schema.notifications.$inferInsert)[] = [];
-  if (o.phone) rows.push({ customerId: o.customerId, orderId, kind: event, channel: "wa", recipient: o.phone, subject: msg.subject, body: msg.wa, status: "antre" });
-  if (o.email) rows.push({ customerId: o.customerId, orderId, kind: event, channel: "email", recipient: o.email, subject: msg.subject, body: msg.email, status: "antre" });
+  const when = at ? { createdAt: at } : {};
+  if (o.phone) rows.push({ customerId: o.customerId, orderId, kind: event, channel: "wa", recipient: o.phone, subject: msg.subject, body: msg.wa, status: "antre", ...when });
+  if (o.email) rows.push({ customerId: o.customerId, orderId, kind: event, channel: "email", recipient: o.email, subject: msg.subject, body: msg.email, status: "antre", ...when });
   if (rows.length) await tx.insert(schema.notifications).values(rows);
 }
 

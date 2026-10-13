@@ -1,4 +1,8 @@
-// Proxy (Node.js): memastikan /p/[slug] yang tidak ada mengembalikan HTTP 404 sungguhan.
+// Proxy (Node.js):
+// 1. Memastikan /p/[slug] yang tidak ada mengembalikan HTTP 404 sungguhan.
+// 2. /akun tanpa cookie sesi diarahkan ke /masuk lalu kembali lagi.
+// 3. Cookie sesi diperpanjang 30 hari saat pembeli aktif (paling sering sekali sehari, lewat cookie penanda).
+//    Masa berlaku di database diperpanjang terpisah oleh readSession.
 // Dengan Cache Components, slug yang tidak diprarender langsung dikirim sebagai App Shell (status 200),
 // jadi pengecekan keberadaan produk dilakukan di sini sebelum routing, lalu direwrite ke rute 404 statis.
 import { NextResponse, type NextRequest } from "next/server";
@@ -33,16 +37,39 @@ async function productExists(slug: string) {
   }
 }
 
+const SESSION_COOKIE = "rona_sesi";
+const SESSION_FRESH_COOKIE = "rona_sesi_segar";
+const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
+
+function refreshSession(request: NextRequest, response: NextResponse) {
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
+  if (!token || request.cookies.get(SESSION_FRESH_COOKIE)) return response;
+  const opts = { httpOnly: true, sameSite: "lax" as const, secure: process.env.NODE_ENV === "production", path: "/" };
+  response.cookies.set(SESSION_COOKIE, token, { ...opts, maxAge: SESSION_MAX_AGE });
+  response.cookies.set(SESSION_FRESH_COOKIE, "1", { ...opts, maxAge: 24 * 60 * 60 });
+  return response;
+}
+
 export async function proxy(request: NextRequest) {
-  const match = request.nextUrl.pathname.match(/^\/p\/([^/]+)$/);
-  if (!match) return NextResponse.next();
-  const slug = decodeURIComponent(match[1]).toLowerCase();
-  if (!/^[a-z0-9-]{1,120}$/.test(slug) || !(await productExists(slug))) {
-    return NextResponse.rewrite(new URL("/produk-tidak-ada", request.url));
+  const { pathname, search } = request.nextUrl;
+  if (pathname === "/akun" || pathname.startsWith("/akun/")) {
+    if (!request.cookies.get(SESSION_COOKIE)) {
+      const url = new URL("/masuk", request.url);
+      url.searchParams.set("kembali", `${pathname}${search}`);
+      return NextResponse.redirect(url);
+    }
   }
-  return NextResponse.next();
+  const match = pathname.match(/^\/p\/([^/]+)$/);
+  if (match) {
+    const slug = decodeURIComponent(match[1]).toLowerCase();
+    if (!/^[a-z0-9-]{1,120}$/.test(slug) || !(await productExists(slug))) {
+      return NextResponse.rewrite(new URL("/produk-tidak-ada", request.url));
+    }
+  }
+  return refreshSession(request, NextResponse.next());
 }
 
 export const config = {
-  matcher: ["/p/:slug"],
+  // Semua halaman, kecuali aset statis dan API.
+  matcher: ["/((?!_next/|api/|images/|favicon.ico|robots.txt|.*\\.[a-z0-9]+$).*)"],
 };

@@ -50,3 +50,6 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 /blob-report/
+
+# Unggahan lokal (foto ulasan saat dev)
+/.data/

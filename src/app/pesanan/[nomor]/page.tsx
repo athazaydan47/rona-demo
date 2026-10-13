@@ -4,19 +4,23 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import { MapPin, MessageCircle, Store, Truck } from "lucide-react";
+import { CheckCircle2, MapPin, MessageCircle, PenLine, Sparkles, Store, Truck, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "@/components/catalog/breadcrumb";
+import { ConfirmReceivedButton } from "@/components/order/buyer-actions";
 import { DemoActionButton } from "@/components/order/demo-buttons";
 import { OrderCosts, OrderItems, paymentLabel, StatusBadge } from "@/components/order/order-parts";
 import { OrderTimeline } from "@/components/order/order-timeline";
 import { TrackForm } from "@/components/order/track-form";
 import { db } from "@/db/client";
+import { currentCustomer } from "@/lib/auth/current";
+import { earnedPoints } from "@/lib/points";
+import { reviewableItems } from "@/lib/reviews/service";
 import { ORDERS_COOKIE } from "@/lib/cart/cookie";
 import { env } from "@/lib/env";
 import { formatDateTimeWib } from "@/lib/format";
 import { canAccessOrder, getOrderDetail } from "@/lib/orders/queries";
-import { expireIfDue } from "@/lib/orders/service";
+import { completeIfDue, expireIfDue } from "@/lib/orders/service";
 import { siteUrl } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Detail pesanan", robots: { index: false } };
@@ -28,11 +32,14 @@ const STORE_WA = "6281200000000";
 async function OrderContent({ params, searchParams }: Props) {
   await connection();
   const [{ nomor }, sp] = await Promise.all([params, searchParams]);
+  // Pengecekan malas: kedaluwarsa bayar dan Selesai otomatis 3 hari setelah Dikirim.
   await expireIfDue(db, nomor, undefined, siteUrl());
+  await completeIfDue(db, nomor, undefined, siteUrl());
   const order = await getOrderDetail(db, nomor);
   if (!order) notFound();
   const tokens = ((await cookies()).get(ORDERS_COOKIE)?.value ?? "").split(".").filter(Boolean);
-  if (!canAccessOrder(order, sp.t, tokens)) {
+  const me = await currentCustomer();
+  if (!canAccessOrder(order, sp.t, tokens, me?.customerId)) {
     return (
       <div className="mx-auto max-w-md rounded-card border border-garis bg-putih p-6">
         <h1 className="font-serif text-2xl text-kopi">Pesanan {order.number}</h1>
@@ -45,10 +52,13 @@ async function OrderContent({ params, searchParams }: Props) {
   }
   const token = order.accessToken;
   const payAtStore = order.payment?.method === "bayar_di_toko";
+  const isOwner = me != null && order.customerId === me.customerId;
+  const reviewables = isOwner && order.status === "selesai" ? await reviewableItems(db, me.customerId, order.number) : [];
+  const pointsEarned = earnedPoints({ subtotal: order.pricing.subtotal, voucherDiscount: order.pricing.voucherDiscount, pointsUsed: order.pricing.pointsUsed });
   const waText = encodeURIComponent(`Halo Rona Beauty, saya mau tanya pesanan ${order.number}.`);
   return (
     <>
-      <Breadcrumb items={[{ label: "Lacak pesanan", href: "/lacak" }, { label: order.number }]} className="mb-3" />
+      <Breadcrumb items={isOwner ? [{ label: "Akun", href: "/akun" }, { label: "Pesanan", href: "/akun/pesanan" }, { label: order.number }] : [{ label: "Lacak pesanan", href: "/lacak" }, { label: order.number }]} className="mb-3" />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-serif text-3xl font-medium text-kopi md:text-4xl">{order.number}</h1>
@@ -82,11 +92,72 @@ async function OrderContent({ params, searchParams }: Props) {
             <h2 className="font-serif text-xl text-kopi">Produk</h2>
             <OrderItems order={order} />
           </div>
+          {reviewables.length ? (
+            <div className="rounded-card border border-garis bg-putih p-5" id="ulasan">
+              <h2 className="font-serif text-xl text-kopi">Ulas produkmu</h2>
+              <p className="mt-1 text-sm text-abu-hangat">Ulasan pertamamu dapat bonus 50 poin.</p>
+              <ul className="mt-3 divide-y divide-garis">
+                {reviewables.map((r) => (
+                  <li key={r.orderItemId} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                    <span className="min-w-0 text-sm text-kopi">
+                      {r.productName}
+                      {r.showShade ? <span className="text-abu-hangat"> · {r.shadeName}</span> : null}
+                    </span>
+                    {r.reviewId ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-sukses">
+                        <CheckCircle2 className="size-3.5" aria-hidden /> Sudah diulas
+                      </span>
+                    ) : (
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={`/akun/ulasan/${r.orderItemId}`}>
+                          <PenLine /> Tulis ulasan
+                        </Link>
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
 
         <aside className="space-y-4">
           {env.demoMode && payAtStore && order.status === "menunggu_pembayaran" ? (
             <DemoActionButton endpoint="simulasi-staf" number={order.number} token={token} label="Simulasikan staf: tandai lunas dan sudah diambil" />
+          ) : null}
+          {env.demoMode && order.method === "kirim" && order.status === "dibayar" ? (
+            <DemoActionButton endpoint="simulasi-kirim" number={order.number} token={token} label="Simulasikan toko: proses dan kirim pesanan" />
+          ) : null}
+          {order.status === "dikirim" ? (
+            <div className="rounded-card border border-garis bg-putih p-5">
+              <p className="text-sm text-kopi">Paket sudah sampai dan isinya sesuai?</p>
+              <div className="mt-3">
+                {isOwner ? (
+                  <ConfirmReceivedButton number={order.number} />
+                ) : (
+                  <Button asChild variant="outline" className="w-full">
+                    <Link href={`/masuk?kembali=${encodeURIComponent(`/pesanan/${order.number}`)}`}>Masuk untuk konfirmasi</Link>
+                  </Button>
+                )}
+              </div>
+              <p className="mt-2 text-xs text-abu-hangat">Pesanan otomatis selesai 3 hari setelah dikirim.</p>
+            </div>
+          ) : null}
+          {isOwner && order.status === "selesai" && pointsEarned > 0 ? (
+            <p className="flex items-center gap-2 rounded-card bg-[#FBF4E6] p-4 text-sm text-kopi">
+              <Sparkles className="size-4 shrink-0 text-emas" aria-hidden /> Kamu dapat {pointsEarned} poin dari pesanan ini.
+            </p>
+          ) : null}
+          {!isOwner && order.customerId == null && !me ? (
+            <div className="rounded-card bg-blush/60 p-4 text-sm">
+              <p className="flex items-center gap-2 font-semibold text-kopi">
+                <UserPlus className="size-4 text-rona" aria-hidden /> Simpan ke akunmu
+              </p>
+              <p className="mt-1 text-abu-hangat">Masuk dengan nomor WhatsApp yang sama untuk dapat poin dan menulis ulasan.</p>
+              <Link href={`/masuk?kembali=${encodeURIComponent(`/pesanan/${order.number}`)}`} className="mt-2 inline-block font-semibold text-rona hover:underline">
+                Masuk sekarang
+              </Link>
+            </div>
           ) : null}
           <div className="rounded-card border border-garis bg-putih p-5">
             {order.method === "kirim" && order.address ? (

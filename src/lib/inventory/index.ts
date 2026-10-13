@@ -51,11 +51,60 @@ function row(locked: Map<string, LockedRow>, k: InventoryKey) {
   return r;
 }
 
-async function write(tx: AnyDb, r: LockedRow, onHand: number, reserved: number) {
+async function write(tx: AnyDb, r: LockedRow, onHand: number, reserved: number, at?: Date) {
   if (onHand < 0 || reserved < 0 || reserved > onHand) throw new StockError("Perubahan stok tidak valid.", r.variantId, available(r));
+  const before = available(r);
   await tx.update(schema.inventory).set({ onHand, reserved, updatedAt: sql`now()` }).where(eq(schema.inventory.id, r.id));
   r.onHand = onHand;
   r.reserved = reserved;
+  // "Kabari aku": dipicu di sini supaya semua jalur perubahan stok ikut (batal, retur, stok masuk dari admin).
+  if (before === 0 && available(r) > 0) await notifyRestockIfOnline(tx, r, at);
+}
+
+export const ONLINE_WAREHOUSE_SLUG = "gudang-online";
+
+// Stok tersedia Gudang Online naik dari 0: buat notifikasi untuk setiap peminat varian ini, lalu tandai selesai.
+async function notifyRestockIfOnline(tx: AnyDb, r: LockedRow, at?: Date) {
+  const [loc] = await tx.select({ slug: schema.locations.slug }).from(schema.locations).where(eq(schema.locations.id, r.locationId)).limit(1);
+  if (loc?.slug !== ONLINE_WAREHOUSE_SLUG) return;
+  const waiting = await tx
+    .select({ id: schema.restockRequests.id, customerId: schema.restockRequests.customerId, contact: schema.restockRequests.contact })
+    .from(schema.restockRequests)
+    .where(and(eq(schema.restockRequests.variantId, r.variantId), eq(schema.restockRequests.status, "menunggu")))
+    .orderBy(asc(schema.restockRequests.id))
+    .for("update", { skipLocked: true });
+  if (waiting.length === 0) return;
+  const [v] = await tx
+    .select({ productName: schema.products.name, slug: schema.products.slug, shadeName: schema.variants.shadeName })
+    .from(schema.variants)
+    .innerJoin(schema.products, eq(schema.variants.productId, schema.products.id))
+    .where(eq(schema.variants.id, r.variantId));
+  const ids = waiting.map((w) => w.id);
+  const when = at ?? new Date();
+  const label = v ? `${v.productName} (${v.shadeName})` : "Produk incaranmu";
+  const customerIds = [...new Set(waiting.map((w) => w.customerId).filter((x): x is number => x != null))];
+  const names = new Map(
+    customerIds.length
+      ? (await tx.select({ id: schema.customers.id, name: schema.customers.name, phone: schema.customers.phone }).from(schema.customers).where(inArray(schema.customers.id, customerIds))).map((c) => [c.id, c])
+      : [],
+  );
+  await tx.insert(schema.notifications).values(
+    waiting.map((w) => {
+      const c = w.customerId ? names.get(w.customerId) : undefined;
+      const email = w.contact.includes("@");
+      const greet = c?.name ? `Halo ${c.name.split(" ")[0]}` : "Halo";
+      return {
+        customerId: w.customerId,
+        kind: "stok_kembali",
+        channel: email ? ("email" as const) : ("wa" as const),
+        recipient: c?.phone ?? w.contact,
+        subject: `${label} tersedia lagi`,
+        body: `${greet}, kabar baik: ${label} sudah tersedia lagi di Rona Beauty. Stoknya terbatas, jadi cek sekarang di /p/${v?.slug ?? ""}`,
+        createdAt: when,
+      };
+    }),
+  );
+  await tx.update(schema.restockRequests).set({ status: "terkirim", notifiedAt: when }).where(inArray(schema.restockRequests.id, ids));
 }
 
 async function log(tx: AnyDb, m: Move, type: "masuk" | "keluar" | "pesan" | "lepas" | "retur", quantity: number, at?: Date) {
@@ -66,7 +115,7 @@ async function log(tx: AnyDb, m: Move, type: "masuk" | "keluar" | "pesan" | "lep
 export async function reserve(tx: AnyDb, locked: Map<string, LockedRow>, m: Move, at?: Date) {
   const r = row(locked, m);
   if (available(r) < m.quantity) throw new StockError("Stok tidak cukup.", m.variantId, available(r));
-  await write(tx, r, r.onHand, r.reserved + m.quantity);
+  await write(tx, r, r.onHand, r.reserved + m.quantity, at);
   await log(tx, m, "pesan", -m.quantity, at);
 }
 
@@ -74,7 +123,7 @@ export async function reserve(tx: AnyDb, locked: Map<string, LockedRow>, m: Move
 export async function release(tx: AnyDb, locked: Map<string, LockedRow>, m: Move, at?: Date) {
   const r = row(locked, m);
   const qty = Math.min(m.quantity, r.reserved);
-  await write(tx, r, r.onHand, r.reserved - qty);
+  await write(tx, r, r.onHand, r.reserved - qty, at);
   await log(tx, m, "lepas", qty, at);
 }
 
@@ -82,14 +131,14 @@ export async function release(tx: AnyDb, locked: Map<string, LockedRow>, m: Move
 export async function commitReserved(tx: AnyDb, locked: Map<string, LockedRow>, m: Move, at?: Date) {
   const r = row(locked, m);
   if (r.reserved < m.quantity) throw new StockError("Stok dipesan tidak sesuai.", m.variantId, available(r));
-  await write(tx, r, r.onHand - m.quantity, r.reserved - m.quantity);
+  await write(tx, r, r.onHand - m.quantity, r.reserved - m.quantity, at);
   await log(tx, m, "keluar", -m.quantity, at);
 }
 
 // Barang yang sudah dipotong kembali ke stok (pesanan dibayar lalu dibatalkan).
 export async function restock(tx: AnyDb, locked: Map<string, LockedRow>, m: Move, at?: Date) {
   const r = row(locked, m);
-  await write(tx, r, r.onHand + m.quantity, r.reserved);
+  await write(tx, r, r.onHand + m.quantity, r.reserved, at);
   await log(tx, m, "masuk", m.quantity, at);
 }
 

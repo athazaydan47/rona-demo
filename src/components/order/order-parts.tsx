@@ -5,7 +5,7 @@ import { formatRupiah } from "@/lib/format";
 import type { OrderDetail } from "@/lib/orders/queries";
 import { statusLabels, type OrderStatus } from "@/lib/orders/status";
 
-const tone: Record<OrderStatus, "netral" | "sukses" | "menipis" | "habis" | "baru"> = {
+export const statusTone: Record<OrderStatus, "netral" | "sukses" | "menipis" | "habis" | "baru"> = {
   menunggu_pembayaran: "menipis",
   dibayar: "sukses",
   diproses: "baru",
@@ -18,7 +18,7 @@ const tone: Record<OrderStatus, "netral" | "sukses" | "menipis" | "habis" | "bar
 
 export function StatusBadge({ status }: { status: OrderStatus }) {
   return (
-    <Badge variant={tone[status]} data-testid="status-pesanan">
+    <Badge variant={statusTone[status]} data-testid="status-pesanan">
       {statusLabels[status]}
     </Badge>
   );

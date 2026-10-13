@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db/client";
+import { currentCustomer } from "@/lib/auth/current";
 import { ORDERS_COOKIE } from "@/lib/cart/cookie";
 import { canAccessOrder, getOrderDetail } from "./queries";
 import { normalizePhone } from "./rules";
@@ -24,7 +25,7 @@ export async function orderStatusAction(number: string, token: string | null): P
   if (typeof number !== "string" || number.length > 30) return null;
   await expireIfDue(db, number, undefined, siteUrl());
   const order = await getOrderDetail(db, number);
-  if (!order || !canAccessOrder(order, token, await cookieTokens())) return null;
+  if (!order || !canAccessOrder(order, token, await cookieTokens(), (await currentCustomer())?.customerId)) return null;
   return { status: order.status };
 }
 

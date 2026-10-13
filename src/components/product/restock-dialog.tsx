@@ -1,18 +1,23 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { Dialog } from "radix-ui";
-import { BellRing, X } from "lucide-react";
+import { BellRing, LogIn, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { HelpText, Input, Label } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
-import { requestRestock } from "@/lib/product/actions";
+import { requestRestockAction } from "@/lib/account/actions";
+import { useAccountStatus } from "@/lib/auth/client-status";
 
+// "Kabari aku": pembeli harus masuk dulu; setelah masuk kembali ke halaman produk ini.
 export function RestockDialog({ variantId, productName, shadeName, trigger }: { variantId: number; productName: string; shadeName: string; trigger: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const [contact, setContact] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [needLogin, setNeedLogin] = useState(false);
   const [pending, start] = useTransition();
+  const status = useAccountStatus();
+  const loggedOut = needLogin || status?.loggedIn === false;
+  const back = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/";
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
@@ -23,37 +28,50 @@ export function RestockDialog({ variantId, productName, shadeName, trigger }: { 
             <div>
               <Dialog.Title className="font-serif text-2xl text-kopi">Kabari aku saat tersedia</Dialog.Title>
               <Dialog.Description className="mt-1 text-sm text-abu-hangat">
-                {productName}, {shadeName}. Kami kirim satu pesan saat stoknya masuk lagi. Di demo, pesan hanya masuk ke Kotak Notifikasi.
+                {productName}, {shadeName}. Kami kirim satu pesan WhatsApp saat stok online masuk lagi. Di demo, pesannya masuk ke Kotak Notifikasi.
               </Dialog.Description>
             </div>
             <Dialog.Close className="grid size-9 shrink-0 place-items-center rounded-full text-abu-hangat hover:bg-porselen" aria-label="Tutup">
               <X className="size-5" />
             </Dialog.Close>
           </div>
-          <form
-            className="mt-5"
-            onSubmit={(e) => {
-              e.preventDefault();
-              setError(null);
-              start(async () => {
-                const r = await requestRestock({ variantId, contact });
-                if (!r.ok) {
-                  setError(r.message);
-                  return;
+          {loggedOut ? (
+            <div className="mt-5">
+              <p className="text-sm text-kopi">Masuk dulu dengan nomor WhatsApp supaya kami tahu ke mana harus mengabari.</p>
+              <Button asChild className="mt-4 w-full">
+                <Link href={`/masuk?kembali=${encodeURIComponent(back)}`}>
+                  <LogIn /> Masuk untuk dikabari
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-5">
+              {error ? (
+                <p className="mb-3 text-sm text-bahaya" role="alert">
+                  {error}
+                </p>
+              ) : null}
+              <Button
+                className="w-full"
+                disabled={pending || !status}
+                onClick={() =>
+                  start(async () => {
+                    setError(null);
+                    const r = await requestRestockAction(variantId);
+                    if (!r.ok) {
+                      if (r.needLogin) setNeedLogin(true);
+                      else setError(r.message);
+                      return;
+                    }
+                    toast({ title: r.duplicate ? "Kamu sudah terdaftar" : "Siap, kami kabari", description: r.duplicate ? "Permintaan untuk shade ini sudah tercatat." : `Begitu ${shadeName} tersedia lagi. Lihat daftarnya di Akun, Kabari aku.`, tone: r.duplicate ? "info" : "sukses" });
+                    setOpen(false);
+                  })
                 }
-                toast({ title: r.duplicate ? "Kamu sudah terdaftar" : "Siap, kami kabari", description: r.duplicate ? "Permintaan untuk shade ini sudah tercatat sebelumnya." : `Begitu ${shadeName} tersedia lagi.`, tone: r.duplicate ? "info" : "sukses" });
-                setOpen(false);
-                setContact("");
-              });
-            }}
-          >
-            <Label htmlFor="restock-contact">Nomor WhatsApp atau email</Label>
-            <Input id="restock-contact" value={contact} onChange={(e) => setContact(e.target.value)} placeholder="08xx atau nama@email.com" autoComplete="tel" aria-invalid={error ? true : undefined} />
-            {error ? <HelpText tone="error">{error}</HelpText> : <HelpText>Satu permintaan per kontak untuk tiap shade.</HelpText>}
-            <Button type="submit" className="mt-4 w-full" disabled={pending}>
-              <BellRing /> {pending ? "Menyimpan..." : "Kabari aku"}
-            </Button>
-          </form>
+              >
+                <BellRing /> {pending ? "Menyimpan..." : "Kabari aku"}
+              </Button>
+            </div>
+          )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

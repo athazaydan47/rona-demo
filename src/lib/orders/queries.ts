@@ -10,6 +10,7 @@ export type OrderDetail = {
   number: string;
   status: (typeof schema.orderStatusEnum.enumValues)[number];
   method: "kirim" | "ambil";
+  customerId: number | null;
   name: string;
   phone: string;
   email: string | null;
@@ -25,7 +26,7 @@ export type OrderDetail = {
   address: schema.OrderAddressSnapshot | null;
   pricing: schema.OrderPricingSnapshot;
   location: { name: string; slug: string; address: string; district: string; hoursLabel: string; phone: string };
-  items: { id: number; productName: string; shadeName: string; brandName: string; brandColor: string; productSlug: string; shadeSlug: string; packaging: Packaging; hex: string; showShade: boolean; unitPrice: number; normalPrice: number; quantity: number; priceSource: string }[];
+  items: { id: number; variantId: number; productId: number; productName: string; shadeName: string; brandName: string; brandColor: string; productSlug: string; shadeSlug: string; packaging: Packaging; hex: string; showShade: boolean; unitPrice: number; normalPrice: number; quantity: number; priceSource: string }[];
   payment: { method: string; status: string; amount: number; vaNumber: string | null; qrPayload: string | null; expiresAt: Date | null; paidAt: Date | null; idempotencyKey: string } | null;
   history: { fromStatus: string | null; toStatus: string; actor: string; reason: string | null; at: Date }[];
   shipment: { courier: string; trackingNumber: string | null; status: string } | null;
@@ -43,6 +44,7 @@ export async function getOrderDetail(db: AnyDb, number: string): Promise<OrderDe
     db
       .select({
         id: schema.orderItems.id,
+        variantId: schema.orderItems.variantId,
         productName: schema.orderItems.productName,
         shadeName: schema.orderItems.shadeName,
         brandName: schema.orderItems.brandName,
@@ -76,6 +78,7 @@ export async function getOrderDetail(db: AnyDb, number: string): Promise<OrderDe
     number: order.number,
     status: order.status,
     method: order.method,
+    customerId: order.customerId,
     name: order.guestName ?? "",
     phone: order.guestPhone ?? "",
     email: order.guestEmail,
@@ -103,8 +106,10 @@ function safeEqual(a: string, b: string) {
   return timingSafeEqual(Buffer.from(a), Buffer.from(b));
 }
 
-// Tamu membuka pesanan lewat tautan bertoken, atau token tersimpan di cookie perangkat yang membuat pesanan.
-export function canAccessOrder(order: { accessToken: string }, token: string | null | undefined, cookieTokens: string[]) {
+// Pemilik yang sedang masuk selalu bisa membuka pesanannya. Tamu membuka lewat tautan bertoken,
+// atau token tersimpan di cookie perangkat yang membuat pesanan.
+export function canAccessOrder(order: { accessToken: string; customerId?: number | null }, token: string | null | undefined, cookieTokens: string[], viewerCustomerId?: number | null) {
+  if (viewerCustomerId != null && order.customerId === viewerCustomerId) return true;
   if (token && safeEqual(token, order.accessToken)) return true;
   return cookieTokens.some((t) => safeEqual(t, order.accessToken));
 }

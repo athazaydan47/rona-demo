@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Heart, Search, ShoppingBag, User } from "lucide-react";
+import { Heart, Search, ShoppingBag } from "lucide-react";
 import type { Packaging } from "@/db/schema/enums";
 import type { CategoryNode } from "@/lib/catalog/queries";
 import { ProductArt } from "@/components/product-art";
+import { AccountIconLink } from "./account-link";
 import { CartBadge } from "./cart-badge";
 import { MegaMenu } from "./mega-menu";
 import { MobileMenuTrigger } from "./mobile-menu";
@@ -55,9 +56,10 @@ export function Header({ categories }: { categories: CategoryNode[] }) {
             <Link href="/akun/wishlist" className={`${iconLink} hidden sm:grid`} aria-label="Wishlist">
               <Heart className="size-5" />
             </Link>
-            <Link href="/akun" className={`${iconLink} hidden md:grid`} aria-label="Akun">
-              <User className="size-5" />
-            </Link>
+            <AccountIconLink
+              className={`${iconLink} hidden md:grid`}
+              badgeClassName="absolute top-1 right-1 grid h-4.5 min-w-4.5 place-items-center rounded-full bg-emas px-1 text-[10px] font-bold text-kopi tabular-nums"
+            />
             <Link href="/keranjang" className={iconLink} aria-label="Keranjang" data-cart-icon>
               <ShoppingBag className="size-5" />
               <CartBadge className="absolute top-1 right-1 grid h-4.5 min-w-4.5 place-items-center rounded-full bg-rona px-1 text-[10px] font-bold text-putih tabular-nums" />

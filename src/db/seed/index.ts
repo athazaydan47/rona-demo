@@ -18,6 +18,8 @@ import { slugify } from "../../lib/utils";
 import { roundToPromo } from "../../lib/pricing";
 import { toWibParts, wibDate } from "../../lib/format";
 import { assertResetAllowed, directUrl } from "../connection";
+import type { AnyDb } from "../../lib/db-types";
+import { seedDemoBuyer } from "./demo-buyer";
 
 const SEED = 20261013;
 const DEMO_STAFF_PASSWORD = process.env.DEMO_STAFF_PASSWORD ?? "demo1234";
@@ -369,49 +371,11 @@ export async function runSeed(url = directUrl()) {
       bannerSeed.map((b) => ({ ...b, position: "hero", isActive: true })),
     );
 
-    // 11. Pembeli demo
-    const [customer] = await db
-      .insert(schema.customers)
-      .values({
-        name: "Pembeli Demo",
-        phone: "081234567890",
-        email: "pembeli@rona.demo",
-        points: 120,
-        skinProfile: {
-          skinType: "kombinasi",
-          concerns: ["kusam", "pori"],
-          sensitivity: "rendah",
-          undertone: "warm",
-          depth: 4,
-          budget: 150000,
-          updatedAt: now.toISOString(),
-        },
-        registeredAt: daysAgo(60),
-      })
-      .returning({ id: schema.customers.id });
-    await db.insert(schema.addresses).values({
-      customerId: customer.id,
-      label: "Kos",
-      recipient: "Pembeli Demo",
-      phone: "081234567890",
-      province: "Jawa Timur",
-      city: "Kota Malang",
-      district: "Lowokwaru",
-      postalCode: "65145",
-      street: "Jl. Sumbersari Gg. 4 No. 12 (fiktif)",
-      lat: -7.956,
-      lng: 112.613,
-      isPrimary: true,
-    });
-    await db.insert(schema.pointsLedger).values({
-      customerId: customer.id,
-      amount: 120,
-      reason: "Poin awal akun demo",
-      reference: "SEED",
-    });
+    // 11. Pembeli demo: alamat, pesanan di berbagai status, poin, wishlist, profil kulit, dan notifikasi.
+    const demo = await seedDemoBuyer(db as unknown as AnyDb, now);
 
     console.log(
-      `Seed selesai: ${brandRows.length} merek, ${parentRows.length + childRows.length} kategori, ${locationRows.length} lokasi, ${productIds.length} produk, ${variantRows.length} varian, ${inventoryValues.length} baris stok, ${reviewValues.length} ulasan, 8 slot flash sale, ${voucherSeed.length} voucher, ${articleSeed.length} artikel.`,
+      `Seed selesai: ${brandRows.length} merek, ${parentRows.length + childRows.length} kategori, ${locationRows.length} lokasi, ${productIds.length} produk, ${variantRows.length} varian, ${inventoryValues.length} baris stok, ${reviewValues.length} ulasan, 8 slot flash sale, ${voucherSeed.length} voucher, ${articleSeed.length} artikel, pembeli demo dengan ${demo.orders.length + 1} pesanan.`,
     );
   } finally {
     await client.end();

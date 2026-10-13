@@ -18,12 +18,13 @@ type Props = {
   variantId: number;
   maxQty: number;
   outOfStock: boolean;
+  onlineOut?: boolean;
   flyFromRef: React.RefObject<HTMLDivElement | null>;
   mainButtonRef: React.RefObject<HTMLDivElement | null>;
   shareUrl: string;
 };
 
-export function BuyActions({ productId, productName, shadeName, variantId, maxQty, outOfStock, flyFromRef, mainButtonRef, shareUrl }: Props) {
+export function BuyActions({ productId, productName, shadeName, variantId, maxQty, outOfStock, onlineOut = false, flyFromRef, mainButtonRef, shareUrl }: Props) {
   const [qty, setQty] = useState(1);
   const router = useRouter();
   const wishlist = useWishlist();
@@ -102,9 +103,10 @@ export function BuyActions({ productId, productName, shadeName, variantId, maxQt
           aria-pressed={wished}
           aria-label={wished ? "Hapus dari wishlist" : "Simpan ke wishlist"}
           className={cn(wished && "border-rona text-rona")}
-          onClick={() => {
-            const now = toggleWishlist(productId);
-            toast({ title: now ? "Disimpan ke wishlist" : "Dihapus dari wishlist", description: now ? "Tersimpan di perangkat ini sampai kamu masuk." : undefined, tone: "info" });
+          onClick={async () => {
+            const r = await toggleWishlist(productId);
+            if (r.message) toast({ title: r.message, tone: "info" });
+            else toast({ title: r.wished ? "Disimpan ke wishlist" : "Dihapus dari wishlist", description: r.wished ? (r.mode === "akun" ? "Tersimpan di akunmu." : "Tersimpan di perangkat ini sampai kamu masuk.") : undefined, tone: "info" });
           }}
         >
           <Heart className={cn(wished && "fill-current")} />
@@ -115,6 +117,21 @@ export function BuyActions({ productId, productName, shadeName, variantId, maxQt
           </a>
         </Button>
       </div>
+      {onlineOut ? (
+        <p className="mt-3 flex flex-wrap items-center gap-x-2 text-xs text-abu-hangat">
+          Stok untuk dikirim sedang habis, masih ada di toko.
+          <RestockDialog
+            variantId={variantId}
+            productName={productName}
+            shadeName={shadeName || "Standar"}
+            trigger={
+              <button type="button" className="inline-flex items-center gap-1 font-semibold text-rona hover:underline">
+                <BellRing className="size-3.5" /> Kabari aku saat bisa dikirim
+              </button>
+            }
+          />
+        </p>
+      ) : null}
     </div>
   );
 }

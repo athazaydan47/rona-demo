@@ -8,6 +8,12 @@ export function formatRupiah(amount: number) {
   return `${amount < 0 ? "-" : ""}Rp${NBSP}${grouped}`;
 }
 
+// Angka biasa dengan titik ribuan: 1.250
+export function formatNumber(n: number) {
+  const abs = Math.abs(Math.round(n));
+  return `${n < 0 ? "-" : ""}${abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
+}
+
 const MONTHS_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 const DAYS_ID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 

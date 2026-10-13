@@ -1,5 +1,5 @@
 // Tag cache terpusat. Semua pemanggilan cacheTag dan revalidateTag memakai helper ini.
-import { revalidateTag } from "next/cache";
+import { revalidateTag, updateTag } from "next/cache";
 
 export const cacheTags = {
   categories: () => "categories",
@@ -18,6 +18,11 @@ export const cacheTags = {
 // Dipakai modul yang mengubah data: panggil sekali dengan daftar tag yang terdampak.
 export function revalidateCatalog(tags: string[]) {
   for (const tag of new Set(tags)) revalidateTag(tag, "max");
+}
+
+// Khusus server action: langsung kedaluwarsa supaya pembeli melihat perubahannya sendiri (misal rating setelah ulasan).
+export function updateCatalogNow(tags: string[]) {
+  for (const tag of new Set(tags)) updateTag(tag);
 }
 
 // Tag yang terdampak bila sebuah produk berubah (nama, deskripsi, atribut, varian).

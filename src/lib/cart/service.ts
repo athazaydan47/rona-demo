@@ -58,6 +58,19 @@ export async function createCart(db: AnyDb) {
   return { id: cart.id, token };
 }
 
+// Keranjang akun: satu per pembeli, tanpa token tamu.
+export async function findCartByCustomer(db: AnyDb, customerId: number) {
+  const [cart] = await db.select({ id: schema.carts.id, voucherCode: schema.carts.voucherCode }).from(schema.carts).where(eq(schema.carts.customerId, customerId)).orderBy(asc(schema.carts.id)).limit(1);
+  return cart ?? null;
+}
+
+export async function ensureCustomerCart(db: AnyDb, customerId: number) {
+  const found = await findCartByCustomer(db, customerId);
+  if (found) return found;
+  const [cart] = await db.insert(schema.carts).values({ customerId }).returning({ id: schema.carts.id, voucherCode: schema.carts.voucherCode });
+  return cart;
+}
+
 export async function cartCount(db: AnyDb, cartId: number) {
   const [row] = await db
     .select({ n: sql<number>`coalesce(sum(${schema.cartItems.quantity}), 0)::int` })

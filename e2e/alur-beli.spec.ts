@@ -1,10 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { addToCart, fillMalangAddress, fillRecipient, orderNumberFromUrl, orderRow, pickVariants, sql, stockOf, uniquePhone } from "./helpers";
 
-test.afterAll(async () => {
-  await sql.end();
-});
-
 test("tamu membeli 2 produk berbeda shade dengan voucher, kirim ke Kota Malang, bayar QRIS simulasi", async ({ page }) => {
   const picks = await pickVariants("gudang-online", ["lumi-velvet-matte-lipstick", "pualam-velvet-matte-cushion-spf-50"], 3, 2);
   const before = await Promise.all(picks.map((p) => stockOf(p.variantId, "gudang-online")));

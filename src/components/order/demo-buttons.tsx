@@ -6,7 +6,7 @@ import { FlaskConical, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Tombol simulasi khusus DEMO_MODE. Route-nya sendiri juga menolak bila DEMO_MODE tidak aktif.
-export function DemoActionButton({ endpoint, number, token, label, next }: { endpoint: "simulasi-bayar" | "simulasi-staf"; number: string; token: string; label: string; next?: string }) {
+export function DemoActionButton({ endpoint, number, token, label, next }: { endpoint: "simulasi-bayar" | "simulasi-staf" | "simulasi-kirim"; number: string; token: string; label: string; next?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

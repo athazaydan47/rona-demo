@@ -259,6 +259,31 @@ Aturan emas: **semua angka uang dan stok dihitung ulang di server**, tidak perna
 - Gratis ongkir otomatis: bila subtotal setelah diskon voucher minimal Rp 150.000, ongkir dipotong sampai Rp 20.000. Tidak berlaku untuk kurir instan dan tidak relevan untuk Ambil di Toko.
 - Nomor pesanan berurutan per bulan: RONA-YYMM-000001 (bulan dalam WIB), dibuat dari penghitung per bulan di database dengan penguncian baris sehingga aman dari tabrakan saat ada pesanan bersamaan.
 
+### Tambahan aturan (Fase 5)
+
+- Rumus pemberian poin: 1 poin per Rp 1.000 dari nilai belanja bersih, yaitu subtotal setelah diskon produk dan voucher, dikurangi poin yang dipakai, tanpa ongkir. Dibulatkan ke bawah dan diberikan saat pesanan menjadi Selesai. Contoh: subtotal Rp 248.000, voucher Rp 20.000, poin dipakai 1.250, maka nilai bersih Rp 226.750 dan poin yang didapat 226.
+- Setiap gerakan poin punya kunci unik di buku poin (`dapat:<nomor>`, `tukar:<nomor>`, `kembali-tukar:<nomor>`, `tarik:<nomor>`, `bonus-ulasan-pertama:<id pembeli>`), sehingga satu pesanan hanya sekali memberi poin dan bonus ulasan pertama hanya sekali per pembeli.
+- Poin yang ditukar dikurangi di transaksi yang sama dengan pembuatan pesanan (baris pembeli dikunci) dan dikembalikan bila pesanan dibatalkan atau kedaluwarsa. Pesanan Diretur menarik kembali poin yang diberikan; bila saldo tidak cukup, yang ditarik hanya sebanyak saldo dan alasannya dicatat. Saldo di tabel pembeli selalu sama dengan jumlah buku poin.
+- Pesanan tamu yang sudah Selesai lalu diklaim ke akun (masuk dengan nomor WA yang sama) langsung mendapat poinnya saat diklaim.
+- Pesanan Dikirim otomatis menjadi Selesai 3 hari setelah status Dikirim, lewat cron harian dan pengecekan saat pesanan dibuka.
+
+### Profil kulit (bentuk data, Fase 5)
+
+Disimpan di `customers.skin_profile` (JSON). Formulir di /akun/profil-kulit mengisi sebagian; kuis kulit Fase 7 boleh mengisi semuanya. Semua kolom opsional:
+
+| Kolom | Nilai |
+|---|---|
+| skinType | normal, kering, berminyak, kombinasi, sensitif |
+| concerns | daftar dari: jerawat, kusam, pori, penuaan, dehidrasi |
+| sensitivity | rendah, sedang, tinggi |
+| undertone | warm, neutral, cool |
+| depth | 1 sampai 6, skala yang sama dengan Shade Finder |
+| finish | matte, satin, glowy |
+| budget | rupiah per produk (bilangan bulat) |
+| routine | teks bebas rutinitas sekarang, maksimal 300 karakter |
+| source | formulir atau kuis |
+| updatedAt | waktu ISO UTC terakhir diubah |
+
 ### Pembayaran
 
 - QRIS dan Virtual Account disimulasikan: nomor dan QR dibuat sistem, masa berlaku 15 menit.

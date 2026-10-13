@@ -1,27 +1,16 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { db } from "@/db/client";
+import { currentCustomer } from "@/lib/auth/current";
 import { now } from "@/lib/clock";
 import { ensureFlashSaleSlots } from "@/lib/flash/ensure";
-import { addItems, cartCount, createCart, findCartByToken, importItems, removeItem, setCartVoucher, setItemQuantity, setItemSaved, viewCart, type CartView } from "./service";
-
-import { CART_COOKIE } from "./cookie";
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 180;
-
-async function currentCart(create: boolean) {
-  const jar = await cookies();
-  const token = jar.get(CART_COOKIE)?.value;
-  const found = await findCartByToken(db, token);
-  if (found || !create) return found;
-  const cart = await createCart(db);
-  jar.set(CART_COOKIE, cart.token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: COOKIE_MAX_AGE });
-  return { id: cart.id, voucherCode: null };
-}
+import { resolveCart as currentCart } from "./current";
+import { addItems, cartCount, importItems, removeItem, setCartVoucher, setItemQuantity, setItemSaved, viewCart, type CartView } from "./service";
 
 async function freshView(cartId: number): Promise<CartView> {
   await ensureFlashSaleSlots(db);
-  return viewCart(db, cartId, { now: now() });
+  const customer = await currentCustomer();
+  return viewCart(db, cartId, { now: now(), buyer: customer ? { customerId: customer.customerId, phone: customer.phone } : undefined });
 }
 
 export type AddToCartResponse = { ok: boolean; count: number; message?: string };

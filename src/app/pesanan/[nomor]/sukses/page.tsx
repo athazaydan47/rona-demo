@@ -8,6 +8,7 @@ import { CheckCircle2, MessageCircle, PackageCheck, Store, UserPlus } from "luci
 import { Button } from "@/components/ui/button";
 import { OrderCosts, OrderItems, StatusBadge } from "@/components/order/order-parts";
 import { db } from "@/db/client";
+import { currentCustomer } from "@/lib/auth/current";
 import { ORDERS_COOKIE } from "@/lib/cart/cookie";
 import { formatDateTimeWib } from "@/lib/format";
 import { canAccessOrder, getOrderDetail } from "@/lib/orders/queries";
@@ -25,7 +26,8 @@ async function SuccessContent({ params, searchParams }: Props) {
   const order = await getOrderDetail(db, nomor);
   if (!order) notFound();
   const tokens = ((await cookies()).get(ORDERS_COOKIE)?.value ?? "").split(".").filter(Boolean);
-  if (!canAccessOrder(order, sp.t, tokens)) redirect(`/pesanan/${order.number}`);
+  const me = await currentCustomer();
+  if (!canAccessOrder(order, sp.t, tokens, me?.customerId)) redirect(`/pesanan/${order.number}`);
   const token = order.accessToken;
   const payAtStore = order.payment?.method === "bayar_di_toko";
   if (order.status === "menunggu_pembayaran" && !payAtStore) redirect(`/bayar/${order.number}?t=${token}`);
@@ -80,15 +82,24 @@ async function SuccessContent({ params, searchParams }: Props) {
           <div className="rounded-card border border-garis bg-putih p-5">
             <OrderCosts order={order} />
           </div>
-          <div className="rounded-card bg-blush/60 p-5">
-            <p className="flex items-center gap-2 font-semibold text-kopi">
-              <UserPlus className="size-4 text-rona" aria-hidden /> Simpan pesanan ini ke akunmu
-            </p>
-            <p className="mt-1 text-sm text-abu-hangat">Masuk dengan nomor WhatsApp supaya riwayat pesanan, poin, dan ulasan tersimpan.</p>
-            <Button asChild variant="outline" size="sm" className="mt-3">
-              <Link href="/akun">Buat akun</Link>
-            </Button>
-          </div>
+          {order.customerId == null ? (
+            <div className="rounded-card bg-blush/60 p-5">
+              <p className="flex items-center gap-2 font-semibold text-kopi">
+                <UserPlus className="size-4 text-rona" aria-hidden /> Simpan pesanan ini ke akunmu
+              </p>
+              <p className="mt-1 text-sm text-abu-hangat">Masuk dengan nomor WhatsApp yang sama supaya riwayat pesanan, poin, dan ulasan tersimpan.</p>
+              <Button asChild variant="outline" size="sm" className="mt-3">
+                <Link href={`/masuk?kembali=${encodeURIComponent(`/pesanan/${order.number}`)}`}>Simpan ke akun</Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-card bg-blush/60 p-5 text-sm text-kopi">
+              Pesanan ini tersimpan di akunmu. Poin masuk saat pesanan selesai.{" "}
+              <Link href="/akun/pesanan" className="font-semibold text-rona hover:underline">
+                Lihat pesananku
+              </Link>
+            </div>
+          )}
         </div>
       </div>
       <div className="mt-6 flex flex-wrap justify-center gap-3">

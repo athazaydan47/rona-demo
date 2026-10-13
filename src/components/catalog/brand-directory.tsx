@@ -50,11 +50,12 @@ export function BrandDirectory({ brands }: { brands: BrandSummary[] }) {
         </ul>
       </nav>
       {groups.length === 0 ? <p className="mt-8 text-sm text-abu-hangat">Tidak ada merek yang cocok dengan &ldquo;{q}&rdquo;.</p> : null}
-      <div className="mt-6 space-y-8">
+      {/* HP: satu kolom berurutan. Desktop: 3 kolom CSS yang memenuhi lebar, kelompok huruf tetap berurutan dari atas ke bawah lalu ke kolom berikutnya. */}
+      <div className="mt-6 md:columns-2 md:gap-6 lg:columns-3">
         {groups.map(([letter, list]) => (
-          <section key={letter} id={`merek-${letter}`} className="scroll-mt-32">
+          <section key={letter} id={`merek-${letter}`} className="mb-8 scroll-mt-32 break-inside-avoid">
             <h2 className="mb-3 font-serif text-2xl text-rona">{letter}</h2>
-            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="grid gap-3">
               {list.map((b) => (
                 <li key={b.id} className="min-w-0">
                   <Link href={`/merek/${b.slug}`} className={cn("group flex min-w-0 items-center gap-4 overflow-hidden rounded-card border border-garis bg-putih p-4 shadow-soft transition-[transform,box-shadow] duration-250 ease-soft hover:-translate-y-0.5 hover:shadow-lift")}>

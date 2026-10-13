@@ -14,10 +14,11 @@ import { formatDateWib, formatTimeWib } from "@/lib/format";
 import { pickFlashSlot } from "@/lib/flash";
 import { readableOn } from "@/lib/color";
 import { SkinTypeTabs } from "./skin-type-tabs";
+import { ScrollRow } from "@/components/ui/scroll-row";
 
 export function SectionHeading({ title, subtitle, href, hrefLabel = "Lihat semua" }: { title: string; subtitle?: string; href?: string; hrefLabel?: string }) {
   return (
-    <div className="mb-5 flex items-end justify-between gap-4">
+    <div className="mb-4 flex items-end justify-between gap-4 md:mb-5">
       <div className="min-w-0">
         <h2 className="font-serif text-2xl font-medium text-kopi md:text-3xl">{title}</h2>
         {subtitle ? <p className="mt-1 text-sm text-abu-hangat">{subtitle}</p> : null}
@@ -46,7 +47,7 @@ const categoryArt: Record<string, { packaging: Packaging; shade: string; brand: 
 
 export function CategoryCircles({ categories }: { categories: CategoryNode[] }) {
   return (
-    <section className="container-rona py-10 md:py-14" aria-labelledby="kategori-heading">
+    <section className="container-rona py-7 md:py-14" aria-labelledby="kategori-heading">
       <h2 id="kategori-heading" className="sr-only">
         Kategori
       </h2>
@@ -56,7 +57,7 @@ export function CategoryCircles({ categories }: { categories: CategoryNode[] }) 
           return (
             <li key={c.id} className="w-24 shrink-0 sm:w-auto">
               <Link href={`/c/${c.slug}`} className="group flex flex-col items-center gap-2 text-center">
-                <span className="grid size-24 place-items-center overflow-hidden rounded-full border border-garis bg-putih shadow-soft transition-[transform,box-shadow] duration-250 ease-soft group-hover:-translate-y-0.5 group-hover:shadow-lift md:size-28">
+                <span className="grid size-20 place-items-center overflow-hidden rounded-full border border-garis bg-putih shadow-soft transition-[transform,box-shadow] duration-250 ease-soft group-hover:-translate-y-0.5 group-hover:shadow-lift md:size-28">
                   <span className="w-[82%] translate-y-1">
                     <ProductArt packaging={art.packaging} shade={art.shade} brandColor={art.brand} brandName={art.brandName} background="none" title={`Ilustrasi ${c.name}`} />
                   </span>
@@ -83,7 +84,7 @@ export async function FlashSaleSection() {
   const items = slot.items.slice(0, 6);
   return (
     <section className="bg-kopi text-putih" aria-labelledby="flash-heading">
-      <div className="container-rona py-10 md:py-14">
+      <div className="container-rona py-7 md:py-14">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="inline-flex items-center gap-1.5 rounded-pill bg-emas/15 px-3 py-1 text-xs font-semibold tracking-wide text-emas uppercase">
@@ -106,7 +107,7 @@ export async function FlashSaleSection() {
             </Button>
           </div>
         </div>
-        <ul className="-mx-4 mt-8 flex snap-x gap-3 overflow-x-auto px-4 pb-2 scrollbar-none sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0 lg:grid-cols-6">
+        <ul className="-mx-4 mt-6 flex snap-x gap-3 overflow-x-auto px-4 pb-2 scrollbar-none sm:mx-0 sm:grid sm:grid-cols-3 sm:px-0 md:mt-8 lg:grid-cols-6">
           {items.map((it) => (
             <li key={it.variantId} className="w-44 shrink-0 snap-start sm:w-auto">
               <Link href={`/p/${it.productSlug}?shade=${encodeURIComponent(it.shadeName)}`} className="group flex h-full flex-col rounded-card bg-putih p-2 text-kopi shadow-soft transition-transform duration-250 ease-soft hover:-translate-y-0.5">
@@ -131,9 +132,10 @@ export async function FlashSaleSection() {
 
 export function AdvisorCta() {
   return (
-    <section className="container-rona py-10 md:py-14">
-      <div className="grid gap-4 md:grid-cols-2">
-        <Link href="/kuis-kulit" className="group relative overflow-hidden rounded-card border border-garis bg-[linear-gradient(135deg,#FFFFFF,#F4DCDF)] p-6 shadow-soft transition-[transform,box-shadow] duration-250 ease-soft hover:-translate-y-0.5 hover:shadow-lift md:p-8">
+    <section className="container-rona py-7 md:py-14">
+      <ScrollRow ariaLabel="Bantuan memilih produk" desktop="md:grid-cols-2" gap="gap-3 md:gap-4" itemWidth="w-[84vw]">
+        <li className="min-w-0">
+        <Link href="/kuis-kulit" className="group relative flex h-full flex-col overflow-hidden rounded-card border border-garis bg-[linear-gradient(135deg,#FFFFFF,#F4DCDF)] p-5 shadow-soft transition-[transform,box-shadow] duration-250 ease-soft hover:-translate-y-0.5 hover:shadow-lift md:p-8">
           <p className="text-xs font-semibold tracking-wide text-rona uppercase">Belum tahu cocok yang mana?</p>
           <h3 className="mt-2 font-serif text-2xl text-kopi md:text-3xl">Kuis Kulit 2 menit</h3>
           <p className="mt-2 max-w-sm text-sm text-abu-hangat">Enam pertanyaan bergambar untuk tahu jenis kulit, undertone, dan rutinitas yang pas untukmu.</p>
@@ -144,7 +146,9 @@ export function AdvisorCta() {
             <ProductArt packaging="sheet_mask" shade="#BFD8EE" brandColor="#5B8DB8" brandName="Embun" background="none" view="detail" title="" />
           </div>
         </Link>
-        <Link href="/advisor" className="group relative overflow-hidden rounded-card bg-kopi p-6 text-putih shadow-soft transition-[transform,box-shadow] duration-250 ease-soft hover:-translate-y-0.5 hover:shadow-lift md:p-8">
+        </li>
+        <li className="min-w-0">
+        <Link href="/advisor" className="group relative flex h-full flex-col overflow-hidden rounded-card bg-kopi p-5 text-putih shadow-soft transition-[transform,box-shadow] duration-250 ease-soft hover:-translate-y-0.5 hover:shadow-lift md:p-8">
           <p className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide text-emas uppercase">
             <MessageCircleHeart className="size-3.5" /> Rona Advisor
           </p>
@@ -157,7 +161,8 @@ export function AdvisorCta() {
             <ProductArt packaging="serum_dropper" shade="#D9EBE7" brandColor="#2F5D62" brandName="Kirana Lab" background="none" view="detail" title="" />
           </div>
         </Link>
-      </div>
+        </li>
+      </ScrollRow>
     </section>
   );
 }
@@ -165,30 +170,30 @@ export function AdvisorCta() {
 export async function ProductRow({ title, subtitle, href, sort, limit = 8, hideBadges }: { title: string; subtitle?: string; href: string; sort: "terlaris" | "terbaru"; limit?: number; hideBadges?: CardBadge[] }) {
   const products = await getProductCards({ kind: "all" }, sort, limit);
   return (
-    <section className="container-rona py-10 md:py-14">
+    <section className="container-rona py-7 md:py-14">
       <SectionHeading title={title} subtitle={subtitle} href={href} />
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+      <ScrollRow ariaLabel={title} desktop="md:grid-cols-3 lg:grid-cols-4">
         {products.map((p) => (
           <li key={p.id} className="min-w-0">
             <ProductCard product={p} hideBadges={hideBadges} />
           </li>
         ))}
-      </ul>
+      </ScrollRow>
     </section>
   );
 }
 
 export function ProductRowSkeleton({ title, count = 8 }: { title: string; count?: number }) {
   return (
-    <section className="container-rona py-10 md:py-14" aria-busy>
+    <section className="container-rona py-7 md:py-14" aria-busy>
       <SectionHeading title={title} />
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+      <ScrollRow ariaLabel={title} desktop="md:grid-cols-3 lg:grid-cols-4">
         {Array.from({ length: count }).map((_, i) => (
           <li key={i}>
             <ProductCardSkeleton />
           </li>
         ))}
-      </ul>
+      </ScrollRow>
     </section>
   );
 }
@@ -196,7 +201,7 @@ export function ProductRowSkeleton({ title, count = 8 }: { title: string; count?
 export async function SkinTypeSection() {
   const data = await getProductCardsForSkinTypes(4);
   return (
-    <section className="container-rona py-10 md:py-14">
+    <section className="container-rona py-7 md:py-14">
       <SectionHeading title="Pilihan per jenis kulit" subtitle="Produk terlaris yang cocok untuk jenis kulitmu." />
       <SkinTypeTabs data={data} />
     </section>
@@ -205,31 +210,46 @@ export async function SkinTypeSection() {
 
 export function BrandShowcase({ brands }: { brands: BrandSummary[] }) {
   return (
-    <section className="container-rona py-10 md:py-14">
+    <section className="container-rona py-7 md:py-14">
       <SectionHeading title="Etalase merek" subtitle="Dua belas merek fiktif, masing-masing punya karakter sendiri." href="/merek" hrefLabel="Semua merek" />
-      <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+      <ScrollRow ariaLabel="Etalase merek" desktop="md:grid-cols-4 lg:grid-cols-6" itemWidth="w-[40vw]">
         {brands.map((b) => (
-          <li key={b.id}>
-            <Link href={`/merek/${b.slug}`} className="group flex h-24 flex-col items-center justify-center gap-1 rounded-card border border-garis bg-putih px-2 text-center shadow-soft transition-[transform,box-shadow,background-color] duration-250 ease-soft hover:-translate-y-0.5 hover:shadow-lift" style={{ ["--brand" as string]: b.color }}>
-              <span className="font-serif text-lg leading-tight text-kopi transition-colors group-hover:text-[var(--brand)] md:text-xl">{b.name}</span>
-              <span className="text-[11px] text-abu-hangat tabular-nums">{b.productCount} produk</span>
+          <li key={b.id} className="min-w-0">
+            <Link
+              href={`/merek/${b.slug}`}
+              className="group flex h-full flex-col rounded-card border border-garis bg-putih p-3 shadow-soft transition-[transform,box-shadow] duration-250 ease-soft hover:-translate-y-0.5 hover:shadow-lift"
+              style={{ ["--brand" as string]: b.color }}
+            >
+              <div className="relative flex h-20 items-end justify-center overflow-hidden rounded-[12px] md:h-24" style={{ background: `linear-gradient(160deg, ${b.color}22, ${b.color}08)` }}>
+                <span className="absolute top-2 left-2 grid size-8 place-items-center rounded-full font-serif text-sm text-putih shadow-soft" style={{ backgroundColor: b.color, color: brandTextColor(b.color) }} aria-hidden>
+                  {b.name[0]}
+                </span>
+                {b.topProduct ? (
+                  <div className="w-[62%] translate-y-2">
+                    <ProductArt packaging={b.topProduct.packaging} shade={b.topProduct.hex} brandColor={b.color} brandName={b.name} background="none" title={`${b.topProduct.name}, produk terlaris ${b.name}`} />
+                  </div>
+                ) : null}
+              </div>
+              <span className="mt-3 font-serif text-lg leading-tight text-kopi transition-colors group-hover:text-[var(--brand)]">{b.name}</span>
+              <span className="mt-0.5 truncate text-[11px] text-abu-hangat">{b.tagline}</span>
+              <span className="mt-1 text-xs font-semibold text-abu-hangat tabular-nums">{b.productCount} produk</span>
             </Link>
           </li>
         ))}
-      </ul>
+      </ScrollRow>
     </section>
   );
 }
 
 export function JournalSection({ articles }: { articles: ArticleSummary[] }) {
   return (
-    <section className="container-rona py-10 md:py-14">
+    <section className="container-rona py-7 md:py-14">
       <SectionHeading title="Jurnal Rona" subtitle="Tips singkat dari tim kami." href="/jurnal" hrefLabel="Semua artikel" />
-      <ul className="grid gap-4 md:grid-cols-3">
+      <ScrollRow ariaLabel="Jurnal Rona" desktop="md:grid-cols-3" gap="gap-3 md:gap-4" itemWidth="w-[76vw]">
         {articles.slice(0, 3).map((a, i) => (
-          <li key={a.id}>
+          <li key={a.id} className="min-w-0">
             <Link href={`/jurnal/${a.slug}`} className="group flex h-full flex-col rounded-card border border-garis bg-putih shadow-soft transition-[transform,box-shadow] duration-250 ease-soft hover:-translate-y-0.5 hover:shadow-lift">
-              <div className={`flex h-36 items-end justify-center overflow-hidden rounded-t-card ${["bg-[linear-gradient(135deg,#F4DCDF,#FAF7F5)]", "bg-[linear-gradient(135deg,#E3EEDF,#FAF7F5)]", "bg-[linear-gradient(135deg,#FBE7B8,#FAF7F5)]"][i % 3]}`}>
+              <div className={`flex h-28 items-end justify-center overflow-hidden rounded-t-card md:h-36 ${["bg-[linear-gradient(135deg,#F4DCDF,#FAF7F5)]", "bg-[linear-gradient(135deg,#E3EEDF,#FAF7F5)]", "bg-[linear-gradient(135deg,#FBE7B8,#FAF7F5)]"][i % 3]}`}>
                 <div className="w-24 translate-y-3">
                   <ProductArt packaging={(["cushion", "sunscreen_tube", "lip_tint"] as const)[i % 3]} shade={["#DAB085", "#FBE7B8", "#E2654A"][i % 3]} brandColor={["#B98A6A", "#E0A227", "#C2416B"][i % 3]} brandName={["Pualam", "Surya Shield", "Lumi"][i % 3]} background="none" title="" />
                 </div>
@@ -242,7 +262,7 @@ export function JournalSection({ articles }: { articles: ArticleSummary[] }) {
             </Link>
           </li>
         ))}
-      </ul>
+      </ScrollRow>
     </section>
   );
 }
@@ -250,12 +270,12 @@ export function JournalSection({ articles }: { articles: ArticleSummary[] }) {
 export function StoresSection({ locations }: { locations: StoreLocation[] }) {
   const stores = locations.filter((l) => l.type === "toko");
   return (
-    <section className="container-rona pt-10 md:pt-14">
-      <div className="rounded-card bg-blush/60 p-6 md:p-8">
+    <section className="container-rona pt-8 md:pt-14">
+      <div className="rounded-card bg-blush/60 p-5 md:p-8">
         <SectionHeading title="Ambil hari ini di toko terdekat" subtitle="Pesan sebelum 16.00 WIB, ambil di cabang yang stoknya ada." href="/toko" hrefLabel="Lihat peta" />
-        <ul className="grid gap-3 sm:grid-cols-3">
+        <ScrollRow ariaLabel="Cabang Rona" desktop="md:grid-cols-3" gap="gap-3" itemWidth="w-[70vw]">
           {stores.map((s) => (
-            <li key={s.id} className="rounded-card border border-garis bg-putih p-4">
+            <li key={s.id} className="min-w-0 rounded-card border border-garis bg-putih p-4">
               <p className="font-serif text-lg text-kopi">{s.name}</p>
               <p className="mt-1 flex items-start gap-1.5 text-sm text-abu-hangat">
                 <MapPin className="mt-0.5 size-3.5 shrink-0" aria-hidden /> {s.address}, {s.district}
@@ -265,7 +285,7 @@ export function StoresSection({ locations }: { locations: StoreLocation[] }) {
               </p>
             </li>
           ))}
-        </ul>
+        </ScrollRow>
       </div>
     </section>
   );

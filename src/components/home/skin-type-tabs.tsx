@@ -5,6 +5,7 @@ import { ProductCard } from "@/components/product-card";
 import type { ProductCardData } from "@/lib/catalog/catalog-queries";
 import { skinTypeLabels } from "@/lib/catalog/filters";
 import { cn } from "@/lib/utils";
+import { ScrollRow } from "@/components/ui/scroll-row";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -40,13 +41,13 @@ export function SkinTypeTabs({ data }: { data: Record<string, ProductCardData[]>
         ))}
       </div>
       <div id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-tab-${active}`} className="mt-4">
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        <ScrollRow ariaLabel={`Produk untuk kulit ${skinTypeLabels[active] ?? active}`} desktop="md:grid-cols-4">
           {products.map((p) => (
             <li key={p.id} className="min-w-0">
               <ProductCard product={p} />
             </li>
           ))}
-        </ul>
+        </ScrollRow>
         <Link href={`/c/semua?kulit=${active}`} className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-rona hover:underline">
           Semua produk untuk kulit {(skinTypeLabels[active] ?? active).toLowerCase()} <ArrowRight className="size-4" />
         </Link>

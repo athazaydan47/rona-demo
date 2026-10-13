@@ -6,6 +6,7 @@ import { connection } from "next/server";
 import { and, asc, eq, gt, inArray, lte, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db/client";
 import { effectivePrice } from "@/lib/pricing";
+import { ensureFlashSaleSlots } from "@/lib/flash/ensure";
 import { computeFacets, type CatalogFacets } from "./facets";
 import { buildScopeCondition, parent, relevanceExpr, type CatalogScope } from "./scope";
 
@@ -28,6 +29,7 @@ import {
 export const fetchCatalogItems = cache(async function fetchCatalogItems(scope: CatalogScope): Promise<CatalogItem[]> {
   // Harga efektif bergantung pada waktu sekarang: tunda ke saat request, jangan ikut prerender.
   await connection();
+  await ensureFlashSaleSlots(db);
   const q = scope.kind === "search" ? scope.q.trim() : "";
   const rows = await db
     .select({
@@ -310,6 +312,7 @@ export type FlashSlotData = {
 export async function getFlashSlots(nowInput?: Date): Promise<FlashSlotData[]> {
   await connection();
   const now = nowInput ?? new Date();
+  await ensureFlashSaleSlots(db, { now });
   const horizon = new Date(now.getTime() + 4 * 86400000);
   const slots = await db
     .select({ id: schema.flashSales.id, name: schema.flashSales.name, startsAt: schema.flashSales.startsAt, endsAt: schema.flashSales.endsAt })

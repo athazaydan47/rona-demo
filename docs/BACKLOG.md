@@ -14,7 +14,7 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 
 ## Katalog dan pencarian
 
-- Facet dan paginasi dihitung di memori dari seluruh produk dalam cakupan (katalog 79 produk). Bila katalog tumbuh ke ribuan produk, pindahkan ke agregasi SQL. (Fase 2)
+- WAJIB sebelum dipakai toko sungguhan dengan ribuan produk: filter, facet, urutan, dan paginasi katalog saat ini dihitung di memori dari seluruh produk dalam cakupan (`src/lib/catalog/catalog-queries.ts`, `buildCatalogResult`). Pindahkan ke SQL (kondisi WHERE per filter, agregasi facet dengan GROUP BY, LIMIT dan OFFSET) sambil mempertahankan uji di `filters.test.ts` dan `facets.test.ts` sebagai spesifikasi perilaku. (Fase 2, ditegaskan Fase 2.1)
 - Infinite scroll berhenti otomatis setelah 3 kali muat, lalu memakai tombol; cek apakah angka ini terasa pas saat katalog lebih panjang. (Fase 2)
 - Saran pencarian memakai word_similarity ambang 0,35; kata sangat pendek (2 huruf) bisa menghasilkan saran yang terlalu luas. (Fase 2)
 - Kartu produk di beranda dan katalog memuat seluruh daftar varian untuk tambah cepat; untuk cushion 10 shade payload per kartu agak besar. (Fase 2)
@@ -22,3 +22,10 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 ## Aturan cache
 
 - Pastikan semua modul admin (Fase 6) memanggil revalidateTag sesuai `src/lib/cache-tags.ts`; audit ulang setelah Fase 6 selesai. (Fase 2)
+- `getBrands` di-cache dengan tag brands dan products karena memuat jumlah produk dan produk terlaris per merek; perubahan status produk di admin harus merevalidasi tag products. (Fase 2.1)
+
+## Selesai
+
+- Jumlah produk per merek selalu 0: subquery berkorelasi di dalam sql`` merender kolom tanpa nama tabel. Diganti agregasi GROUP BY dan ditutup uji integrasi. (Fase 2.1)
+- Beranda HP terlalu panjang: Terlaris, Baru datang, jenis kulit, jurnal, etalase merek, cabang, dan ajakan jadi baris geser. (Fase 2.1)
+- Flash sale bisa hilang 3 hari setelah reset: `ensureFlashSaleSlots` menambah slot otomatis saat DEMO_MODE. (Fase 2.1)

@@ -1,7 +1,8 @@
 import { cacheLife, cacheTag } from "next/cache";
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { db, schema } from "@/db/client";
 import { cacheTags } from "@/lib/cache-tags";
+import { countActiveProductsByBrand, topProductByBrand, type BrandTopProduct } from "./brand-counts";
 
 export type CategoryChild = { id: number; name: string; slug: string };
 export type CategoryNode = {
@@ -92,28 +93,33 @@ export type BrandSummary = {
   priceMin: number;
   priceMax: number;
   productCount: number;
+  topProduct: BrandTopProduct | null;
 };
 
-// Daftar merek beserta jumlah produk aktif. Deskriptif, jarang berubah.
+// Daftar merek beserta jumlah produk aktif dan produk terlarisnya. Deskriptif, jarang berubah.
 export async function getBrands(): Promise<BrandSummary[]> {
   "use cache";
   cacheLife("hours");
   cacheTag(cacheTags.brands());
-  const rows = await db
-    .select({
-      id: schema.brands.id,
-      name: schema.brands.name,
-      slug: schema.brands.slug,
-      color: schema.brands.color,
-      tagline: schema.brands.tagline,
-      description: schema.brands.description,
-      priceMin: schema.brands.priceMin,
-      priceMax: schema.brands.priceMax,
-      productCount: sql<number>`(select count(*) from products p where p.brand_id = ${schema.brands.id} and p.status = 'aktif')`,
-    })
-    .from(schema.brands)
-    .orderBy(asc(schema.brands.name));
-  return rows.map((r) => ({ ...r, productCount: Number(r.productCount) }));
+  cacheTag(cacheTags.products());
+  const [rows, counts, tops] = await Promise.all([
+    db
+      .select({
+        id: schema.brands.id,
+        name: schema.brands.name,
+        slug: schema.brands.slug,
+        color: schema.brands.color,
+        tagline: schema.brands.tagline,
+        description: schema.brands.description,
+        priceMin: schema.brands.priceMin,
+        priceMax: schema.brands.priceMax,
+      })
+      .from(schema.brands)
+      .orderBy(asc(schema.brands.name)),
+    countActiveProductsByBrand(db),
+    topProductByBrand(db),
+  ]);
+  return rows.map((r) => ({ ...r, productCount: counts.get(r.id) ?? 0, topProduct: tops.get(r.id) ?? null }));
 }
 
 export async function getBrand(slug: string): Promise<BrandSummary | null> {

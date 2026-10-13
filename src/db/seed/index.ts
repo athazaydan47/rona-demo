@@ -17,6 +17,7 @@ import { detailTemplate, kindText } from "./text";
 import { slugify } from "../../lib/utils";
 import { roundToPromo } from "../../lib/pricing";
 import { toWibParts, wibDate } from "../../lib/format";
+import { assertResetAllowed, directUrl } from "../connection";
 
 const SEED = 20261013;
 const DEMO_STAFF_PASSWORD = process.env.DEMO_STAFF_PASSWORD ?? "demo1234";
@@ -41,7 +42,7 @@ function brandCode(slug: string) {
     .slice(0, 4);
 }
 
-export async function runSeed(url = process.env.DATABASE_URL) {
+export async function runSeed(url = directUrl()) {
   if (!url) throw new Error("DATABASE_URL belum diisi.");
   const client = postgres(url, { max: 1, onnotice: () => {} });
   const db = drizzle(client, { schema, casing: "snake_case" });
@@ -419,10 +420,13 @@ export async function runSeed(url = process.env.DATABASE_URL) {
 
 const isMain = process.argv[1]?.endsWith("seed/index.ts") || process.argv[1]?.endsWith("seed");
 if (isMain) {
-  runSeed()
+  // db:seed langsung ke host jauh juga butuh konfirmasi, sama seperti db:reset.
+  Promise.resolve()
+    .then(() => assertResetAllowed(directUrl(), process.env, "db:seed"))
+    .then(() => runSeed())
     .then(() => process.exit(0))
     .catch((err) => {
-      console.error(err);
+      console.error(err instanceof Error ? err.message : err);
       process.exit(1);
     });
 }

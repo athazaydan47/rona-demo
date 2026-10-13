@@ -4,10 +4,11 @@ config({ path: ".env.local" });
 import postgres from "postgres";
 import { runMigrations } from "./migrate";
 import { runSeed } from "./seed";
+import { assertResetAllowed, directUrl } from "./connection";
 
 async function main() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL belum diisi.");
+  const url = directUrl();
+  assertResetAllowed(url);
   if (process.env.NODE_ENV === "production" && process.env.DEMO_MODE !== "true") {
     throw new Error("db:reset hanya boleh dijalankan saat DEMO_MODE=true.");
   }
@@ -25,6 +26,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err);
+  console.error(err instanceof Error ? err.message : err);
   process.exit(1);
 });

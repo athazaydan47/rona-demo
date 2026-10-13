@@ -12,7 +12,8 @@ function client() {
   if (!sql) {
     const url = process.env.DATABASE_URL;
     if (!url) return null;
-    sql = postgres(url, { max: 2, prepare: false, onnotice: () => {} });
+    // Proxy cukup satu koneksi (pooled), hanya untuk cek keberadaan slug.
+    sql = postgres(url, { max: 1, prepare: false, onnotice: () => {} });
   }
   return sql;
 }

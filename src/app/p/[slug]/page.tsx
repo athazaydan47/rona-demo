@@ -14,6 +14,7 @@ import { ReviewsSection } from "@/components/product/reviews-section";
 import { concernLabels, skinTypeLabels } from "@/lib/catalog/filters";
 import { getActiveProductSlugs, getProductDetail, getProductLive, getProductReviews, getRelatedProducts, type ProductDetail } from "@/lib/product/queries";
 import { formatRupiah } from "@/lib/format";
+import { siteUrl } from "@/lib/site";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ shade?: string }> };
 
@@ -24,9 +25,6 @@ export async function generateStaticParams() {
   return slugs.map((slug) => ({ slug }));
 }
 
-function siteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000").replace(/\/$/, "");
-}
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const [{ slug }, sp] = await Promise.all([params, searchParams]);

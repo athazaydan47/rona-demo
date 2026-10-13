@@ -3,6 +3,7 @@
 // Sebagai CLI:
 //   node scripts/screenshot.mjs <url> <lebar> <keluaran.png> [aksi]
 //   aksi: full | menu | megamenu | filter | shade | habis | hover:<teks tombol> | click:<aria-label tombol>
+//   Tambahkan --penuh sebagai argumen kelima untuk potretan tanpa batas tinggi dan dengan footer.
 //
 // Sebagai modul: dipakai oleh scripts/cuplik.mjs dan scripts/cuplik-art.tsx.
 import { chromium } from "@playwright/test";
@@ -43,6 +44,7 @@ export function labelWib(date = new Date()) {
 
 const HIDE_DEV_UI = `
   nextjs-portal { display: none !important; }
+  html { scroll-behavior: auto !important; }
 `;
 
 // Untuk potretan satu halaman penuh: elemen fixed di bawah layar diletakkan di posisi alaminya
@@ -53,6 +55,18 @@ const FULL_PAGE_FIX = `
   [data-fixed-summary] { position: relative !important; bottom: auto !important; }
 `;
 
+// Mode ringkas (bawaan cuplik): sembunyikan elemen yang sama di setiap halaman supaya lembar padat.
+// Hanya disuntikkan saat memotret, aplikasi tidak diubah.
+const COMPACT_HIDE = `
+  body > footer,
+  nav[aria-label="Navigasi bawah"],
+  body > div[role="note"][aria-label="Pemberitahuan toko demo"],
+  body > div.bg-blush.text-rona-gelap { display: none !important; }
+`;
+
+// Batas tinggi potretan dalam px CSS untuk mode ringkas.
+export const COMPACT_MAX_HEIGHT = { 375: 2400, 1440: 1800 };
+
 /**
  * Potret satu halaman.
  * @param {import("@playwright/test").Browser} browser
@@ -62,7 +76,7 @@ const FULL_PAGE_FIX = `
  * @returns {Promise<{ files: { path: string, cssTop: number, cssHeight: number }[], cssWidth: number, cssHeight: number, scrollWidth: number }>}
  */
 export async function capturePage(browser, url, opts) {
-  const { width, deviceScaleFactor = 1, out, action = "full" } = opts;
+  const { width, deviceScaleFactor = 1, out, action = "full", mode = "ringkas" } = opts;
   const height = opts.height ?? (width < 768 ? 812 : 900);
   const context = await browser.newContext({
     viewport: { width, height },
@@ -113,7 +127,7 @@ export async function capturePage(browser, url, opts) {
       throw new Error(`Aksi tidak dikenal: ${action}`);
     }
 
-    return await shootPage(page, out, { width, height, deviceScaleFactor, fullPage });
+    return await shootPage(page, out, { width, height, deviceScaleFactor, fullPage, mode });
   } finally {
     await context.close();
   }
@@ -121,43 +135,63 @@ export async function capturePage(browser, url, opts) {
 
 /**
  * Potret halaman yang sudah terbuka (dipakai capturePage dan alur cuplik bertahap).
+ * mode "ringkas": sembunyikan footer, BottomNav, DemoRibbon, PromoBar, dan batasi tinggi (COMPACT_MAX_HEIGHT).
+ * mode "penuh": perilaku lama, tanpa batas tinggi.
  * @param {import("@playwright/test").Page} page
  */
-export async function shootPage(page, out, { width, height, deviceScaleFactor = 1, fullPage = true }) {
-  if (fullPage) {
-    await page.addStyleTag({ content: FULL_PAGE_FIX });
-    await page.waitForTimeout(150);
-  }
+export async function shootPage(page, out, { width, height, deviceScaleFactor = 1, fullPage = true, mode = "ringkas", maxCssHeight }) {
+  await page.addStyleTag({ content: HIDE_DEV_UI + (mode === "ringkas" ? COMPACT_HIDE : "") + (fullPage ? FULL_PAGE_FIX : "") });
+  if (fullPage) await scrollToTopAndSettle(page);
+  else await page.waitForTimeout(150);
 
   const dims = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     scrollHeight: document.documentElement.scrollHeight,
   }));
-  const cssHeight = fullPage ? dims.scrollHeight : height;
+  const fullHeight = fullPage ? dims.scrollHeight : height;
+  const cap = mode === "ringkas" && fullPage ? (maxCssHeight ?? COMPACT_MAX_HEIGHT[width] ?? 2400) : Number.POSITIVE_INFINITY;
+  const cssHeight = Math.min(fullHeight, cap);
   const chunkCss = Math.floor(MAX_CAPTURE_PX / deviceScaleFactor);
   const files = [];
 
   if (!fullPage) {
     await page.screenshot({ path: out, animations: "disabled" });
     files.push({ path: out, cssTop: 0, cssHeight });
-  } else if (cssHeight <= chunkCss) {
-    await page.screenshot({ path: out, fullPage: true, animations: "disabled" });
-    files.push({ path: out, cssTop: 0, cssHeight });
   } else {
     const base = out.replace(/\.png$/, "");
+    const single = cssHeight <= chunkCss;
     for (let top = 0, i = 1; top < cssHeight; top += chunkCss, i++) {
       const h = Math.min(chunkCss, cssHeight - top);
-      const path = `${base}-${i}.png`;
-      await page.screenshot({
-        path,
-        fullPage: true,
-        clip: { x: 0, y: top, width, height: h },
-        animations: "disabled",
-      });
+      const path = single ? out : `${base}-${i}.png`;
+      await page.screenshot({ path, fullPage: true, clip: { x: 0, y: top, width, height: h }, animations: "disabled" });
       files.push({ path, cssTop: top, cssHeight: h });
     }
   }
-  return { files, cssWidth: width, cssHeight, scrollWidth: dims.scrollWidth };
+  return { files, cssWidth: width, cssHeight, originalHeight: fullHeight, truncated: cssHeight < fullHeight, scrollWidth: dims.scrollWidth };
+}
+
+// Gulir ke paling atas dan tunggu sampai header sticky kembali ke posisi awalnya. Tanpa ini, halaman yang sudah
+// tergulir (misal setelah Playwright mengisi formulir) menggambar header di tengah potretan satu halaman penuh.
+export async function scrollToTopAndSettle(page) {
+  await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: "instant" }));
+  await page
+    .waitForFunction(
+      () =>
+        new Promise((resolve) => {
+          const header = document.querySelector("header");
+          const read = () => (header ? Math.round(header.getBoundingClientRect().top) : 0);
+          const first = read();
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              const natural = header ? Math.round(header.offsetTop) : 0;
+              resolve(window.scrollY === 0 && read() === first && first === natural);
+            }),
+          );
+        }),
+      null,
+      { timeout: 5_000, polling: 100 },
+    )
+    .catch(() => {});
 }
 
 /**
@@ -188,7 +222,7 @@ export function formatBytes(bytes) {
 }
 
 async function main() {
-  const [url, widthArg, out, action = "full"] = process.argv.slice(2);
+  const [url, widthArg, out, action = "full", modeArg] = process.argv.slice(2);
   if (!url || !out) {
     console.log("Pakai: node scripts/screenshot.mjs <url> <lebar> <keluaran.png> [full|menu|megamenu|hover:<teks>|click:<aria-label>]");
     process.exit(1);
@@ -196,8 +230,8 @@ async function main() {
   const width = Number(widthArg || 1440);
   const browser = await launchBrowser();
   try {
-    const shot = await capturePage(browser, url, { width, out, action });
-    console.log("scrollWidth", shot.scrollWidth, "viewport", width);
+    const shot = await capturePage(browser, url, { width, out, action, mode: modeArg === "--penuh" ? "penuh" : "ringkas" });
+    console.log("scrollWidth", shot.scrollWidth, "viewport", width, shot.truncated ? `(dipotong dari ${shot.originalHeight} px)` : "");
     for (const f of shot.files) console.log("ditulis", f.path);
   } finally {
     await browser.close();

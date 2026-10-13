@@ -36,16 +36,15 @@ async function pickTwoVariants() {
  * @param {import("@playwright/test").Browser} browser
  * @returns {Promise<Array<object>>} potretan dengan label untuk lembar kontak
  */
-export async function captureBuyFlow(browser, baseUrl, { width, deviceScaleFactor, outDir, slug }) {
+export async function captureBuyFlow(browser, baseUrl, { width, deviceScaleFactor, outDir, slug, mode = "ringkas" }) {
   const height = width < 768 ? 812 : 900;
   const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor, reducedMotion: "reduce", baseURL: baseUrl });
   const page = await context.newPage();
   const shots = [];
   const snap = async (label, fullPage = true) => {
-    await page.addStyleTag({ content: "nextjs-portal{display:none!important}" });
     await page.evaluate(() => document.fonts.ready);
     const out = path.join(outDir, `${slug}-${width}-${shots.length + 1}.png`);
-    const shot = await shootPage(page, out, { width, height, deviceScaleFactor, fullPage });
+    const shot = await shootPage(page, out, { width, height, deviceScaleFactor, fullPage, mode });
     shots.push({ ...shot, path: label, width });
   };
   const settle = async () => {

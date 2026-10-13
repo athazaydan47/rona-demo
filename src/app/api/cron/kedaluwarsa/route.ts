@@ -1,16 +1,14 @@
-import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/db/client";
+import { isAuthorizedCron } from "@/lib/cron-auth";
 import { expireDueOrders } from "@/lib/orders/service";
 import { siteUrl } from "@/lib/site";
 
-// Dipanggil cron (Vercel Cron atau penjadwal lain) dengan header Authorization: Bearer <CRON_SECRET>.
+// Membatalkan pesanan tak dibayar yang lewat batas waktu. Dipanggil Vercel Cron (GET dengan header
+// Authorization: Bearer <CRON_SECRET>, lihat vercel.json) atau penjadwal lain lewat GET atau POST dengan header yang sama.
 async function handle(request: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return NextResponse.json({ ok: false, message: "CRON_SECRET belum diisi." }, { status: 503 });
-  const given = request.headers.get("authorization") ?? "";
-  const expected = `Bearer ${secret}`;
-  if (given.length !== expected.length || !timingSafeEqual(Buffer.from(given), Buffer.from(expected))) {
+  if (!process.env.CRON_SECRET) return NextResponse.json({ ok: false, message: "CRON_SECRET belum diisi." }, { status: 503 });
+  if (!isAuthorizedCron(request.headers.get("authorization"), process.env.CRON_SECRET)) {
     return NextResponse.json({ ok: false, message: "Tidak diizinkan." }, { status: 401 });
   }
   const r = await expireDueOrders(db, undefined, siteUrl());

@@ -5,8 +5,10 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { sql } from "drizzle-orm";
 import postgres from "postgres";
+import { directUrl } from "./connection";
 
-export async function runMigrations(url = process.env.DATABASE_URL) {
+// Dipakai db:deploy, db:migrate, dan db:reset. Memakai koneksi langsung (DATABASE_URL_UNPOOLED) bila ada.
+export async function runMigrations(url = directUrl()) {
   if (!url) throw new Error("DATABASE_URL belum diisi.");
   const client = postgres(url, { max: 1, onnotice: () => {} });
   const db = drizzle(client, { casing: "snake_case" });
@@ -20,6 +22,7 @@ if (isMain) {
   runMigrations()
     .then(() => {
       console.log("Migrasi selesai.");
+      process.exit(0);
     })
     .catch((err) => {
       console.error(err);

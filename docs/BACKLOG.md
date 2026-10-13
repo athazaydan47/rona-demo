@@ -30,11 +30,16 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 
 - Data wilayah dari cahyadsn/wilayah (MIT, lihat `src/data/wilayah.LICENSE.txt`): kecamatan hanya Jawa Timur, provinsi lain kecamatan diisi bebas; kode pos diketik pembeli tanpa validasi silang ke kecamatan. Lengkapi bila toko sungguhan mengirim ke luar Jawa Timur. (Fase 4)
 - Peta alamat memakai ubin tile.openstreetmap.org langsung dari browser; untuk produksi dengan trafik nyata, pakai penyedia ubin dengan kunci atau server ubin sendiri sesuai kebijakan OSM. (Fase 4)
-- Route cron `/api/cron/kedaluwarsa` belum dijadwalkan; tambahkan jadwal Vercel Cron saat deploy (paket gratis terbatas, pengecekan malas tetap jalan saat halaman bayar atau pesanan dibuka). (Fase 4)
 - Keranjang membatasi jumlah per item dengan stok terbanyak di satu lokasi; pesanan kirim tetap butuh stok Gudang Online. Fitur Transfer Stok dari cabang ke gudang hadir di panel admin Fase 6. (Fase 4)
 - Notifikasi pesanan baru ditulis ke outbox (tabel notifications) tanpa dikirim; Kotak Notifikasi untuk membacanya hadir di Fase 5. (Fase 4)
 - Next 16 dengan Cache Components menyimpan halaman sebelumnya di DOM (React Activity, tersembunyi). Uji Playwright harus memilih elemen yang terlihat (`filter({ visible: true })`). (Fase 4)
 - Uji E2E memakai build produksi di port 3210 dengan satu worker karena uji kedaluwarsa memajukan jam server lewat `/api/demo/jam` (hanya hidup saat DEMO_MODE=true dan ALLOW_CLOCK_OVERRIDE=true). (Fase 4)
+
+## Deploy
+
+- Build membaca database (slug dan detail produk, kategori, cabang, PromoBar, merek, artikel) karena data katalog di-cache dan diprarender; build gagal bila Neon tidak terjangkau. Bila ini mengganggu, pertimbangkan prarender sebagian produk saja atau fallback saat build. (Fase 4.1)
+- Header keamanan baru dasar: belum ada Content-Security-Policy lengkap (script-src, img-src) karena peta memakai ubin OSM dan gambar inline; susun CSP penuh di Fase 8. (Fase 4.1)
+- Pool koneksi aplikasi 5 per instance di Vercel; pantau batas koneksi Neon paket gratis saat demo ramai. (Fase 4.1)
 
 ## Aturan cache
 
@@ -46,4 +51,6 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 - Jumlah produk per merek selalu 0: subquery berkorelasi di dalam sql`` merender kolom tanpa nama tabel. Diganti agregasi GROUP BY dan ditutup uji integrasi. (Fase 2.1)
 - Beranda HP terlalu panjang: Terlaris, Baru datang, jenis kulit, jurnal, etalase merek, cabang, dan ajakan jadi baris geser. (Fase 2.1)
 - Flash sale bisa hilang 3 hari setelah reset: `ensureFlashSaleSlots` menambah slot otomatis saat DEMO_MODE. (Fase 2.1)
+- Route cron kedaluwarsa dijadwalkan harian lewat `vercel.json` (03.00 WIB) dan menerima header Authorization: Bearer CRON_SECRET dari Vercel Cron. (Fase 4.1)
+- Header situs tampak di tengah formulir checkout pada lembar cuplik: artefak skrip (potretan satu halaman penuh diambil saat halaman sudah tergulir), bukan bug header. Skrip kini menggulir ke atas dan menunggu header kembali sebelum memotret. (Fase 4.1)
 - Produk tidak ditemukan kini mengembalikan HTTP 404 sungguhan: `generateStaticParams` plus pengecekan produk di luar Suspense; dicek lewat `npm run cek:404`. (Fase 3.1)

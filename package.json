@@ -16,7 +16,8 @@
     "cuplik": "node scripts/cuplik.mjs",
     "cuplik:art": "tsx scripts/cuplik-art.tsx",
     "cek:404": "node scripts/cek-404.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "db:deploy": "tsx src/db/migrate.ts"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",

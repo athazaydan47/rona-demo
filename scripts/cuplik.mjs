@@ -1,6 +1,11 @@
 // Lembar review visual: potret halaman di 375 px dan 1440 px lalu gabungkan jadi 1 sampai beberapa JPEG.
 //
 //   npm run cuplik -- --nama=fase1 --halaman=/,/design --aksi=menu
+//   --lebar=375 atau --lebar=1440   potret satu lebar saja
+//   --penuh                         perilaku lama: dengan footer, ribbon, promo bar, dan tanpa batas tinggi
+//
+// Bawaan mode ringkas: footer, BottomNav, DemoRibbon, PromoBar disembunyikan, tinggi dibatasi
+// 2400 px (375) dan 1800 px (1440), dan lembar disusun beberapa baris supaya sesedikit mungkin.
 //
 // Server harus sudah jalan di http://localhost:3000 (ubah lewat env CUPLIK_URL).
 // Hasil: _review/cuplik-<nama>-<YYYYMMDD-HHmm>-<nomor>.jpg
@@ -19,7 +24,9 @@ const PAD = 24;
 const GAP = 16;
 const CAPTION_H = 30;
 const HEADER_H = 56;
-const MAX_SEGMENT_H = 3600; // tinggi maksimal satu potongan di lembar (px tampilan)
+const MAX_SEGMENT_H = 3600; // tinggi maksimal satu potongan di lembar (px tampilan), mode penuh
+const MAX_SHEET_H = 6200; // tinggi maksimal satu lembar (px), beberapa baris per lembar
+const ROW_GAP = 20;
 const DISPLAY_WIDTH = { 375: 375, 1440: 960 }; // lebar tampil di lembar
 
 const VIEWS = [
@@ -123,22 +130,55 @@ function buildSegments(shots) {
   return segments;
 }
 
+// Tumpuk potretan berurutan yang lebarnya sama dan pendek (biasanya desktop yang dibatasi 1800 px)
+// menjadi satu kolom, selama tingginya tidak melebihi potretan tertinggi di sekitarnya.
+function buildBlocks(segments) {
+  const tallest = Math.max(...segments.map((s) => s.height));
+  const blocks = [];
+  for (const seg of segments) {
+    const last = blocks[blocks.length - 1];
+    const h = seg.height + CAPTION_H;
+    if (last && last.width === seg.width && last.height + GAP + h <= tallest + CAPTION_H) {
+      last.items.push(seg);
+      last.height += GAP + h;
+    } else {
+      blocks.push({ width: seg.width, height: h, items: [seg] });
+    }
+  }
+  return blocks;
+}
+
+// Susun blok ke baris (lebar maksimal lembar), lalu baris ke lembar (tinggi maksimal MAX_SHEET_H).
 function packSheets(segments) {
   const inner = SHEET_WIDTH - PAD * 2;
+  const rows = [];
+  let row = { blocks: [], width: 0, height: 0 };
+  for (const block of buildBlocks(segments)) {
+    const need = (row.blocks.length ? GAP : 0) + block.width;
+    if (row.blocks.length && row.width + need > inner) {
+      rows.push(row);
+      row = { blocks: [], width: 0, height: 0 };
+    }
+    row.width += (row.blocks.length ? GAP : 0) + block.width;
+    row.height = Math.max(row.height, block.height);
+    row.blocks.push(block);
+  }
+  if (row.blocks.length) rows.push(row);
+
   const sheets = [];
-  let current = [];
+  let sheet = [];
   let used = 0;
-  for (const seg of segments) {
-    const need = (current.length ? GAP : 0) + seg.width;
-    if (current.length && used + need > inner) {
-      sheets.push(current);
-      current = [];
+  for (const r of rows) {
+    const need = (sheet.length ? ROW_GAP : 0) + r.height;
+    if (sheet.length && used + need > MAX_SHEET_H) {
+      sheets.push(sheet);
+      sheet = [];
       used = 0;
     }
-    used += (current.length ? GAP : 0) + seg.width;
-    current.push(seg);
+    used += (sheet.length ? ROW_GAP : 0) + r.height;
+    sheet.push(r);
   }
-  if (current.length) sheets.push(current);
+  if (sheet.length) sheets.push(sheet);
   return sheets;
 }
 
@@ -149,6 +189,7 @@ function segmentHtml(seg) {
     `${shot.width} px`,
     shot.label ? escapeHtml(shot.label) : "",
     seg.parts > 1 ? `bagian ${seg.part} dari ${seg.parts}` : "",
+    shot.truncated ? `<span class="cut">dipotong, tinggi asli ${shot.originalHeight} px</span>` : "",
   ]
     .filter(Boolean)
     .join(", ");
@@ -164,7 +205,7 @@ function segmentHtml(seg) {
   return `<figure style="width:${seg.width}px"><figcaption>${caption}${warn}</figcaption><div class="crop" style="height:${seg.height}px">${imgs}</div></figure>`;
 }
 
-function sheetHtml({ title, meta, segments }) {
+function sheetHtml({ title, meta, rows }) {
   return `<!doctype html>
 <html lang="id"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
 <style>
@@ -175,7 +216,9 @@ function sheetHtml({ title, meta, segments }) {
   header { height: ${HEADER_H - 16}px; margin-bottom: 16px; display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
   h1 { margin: 0; font: 600 24px/1.2 Georgia, "Times New Roman", serif; }
   .meta { font-size: 15px; color: #6E615D; }
-  .row { display: flex; gap: ${GAP}px; align-items: flex-start; }
+  .row { display: flex; gap: ${GAP}px; align-items: flex-start; margin-bottom: ${ROW_GAP}px; }
+  .block { display: flex; flex-direction: column; gap: ${GAP}px; flex: none; }
+  .cut { color: #C77D1A; font-weight: 600; }
   figure { margin: 0; background: #fff; border: 1px solid #DCD2CD; border-radius: 10px; overflow: hidden; flex: none; }
   figcaption { height: ${CAPTION_H}px; padding: 0 10px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #6E615D; border-bottom: 1px solid #EAE2DE; white-space: nowrap; overflow: hidden; }
   figcaption b { color: #2A1F1D; }
@@ -185,7 +228,7 @@ function sheetHtml({ title, meta, segments }) {
 </style></head>
 <body><div class="sheet">
   <header><h1>${escapeHtml(title)}</h1><div class="meta">${escapeHtml(meta)}</div></header>
-  <div class="row">${segments.map(segmentHtml).join("")}</div>
+  ${rows.map((r) => `<div class="row">${r.blocks.map((b) => `<div class="block">${b.items.map(segmentHtml).join("")}</div>`).join("")}</div>`).join("")}
 </div></body></html>`;
 }
 
@@ -194,6 +237,13 @@ async function main() {
   const nama = safeName(args.nama ?? "review");
   const halaman = list(args.halaman, "/,/design");
   const aksi = list(args.aksi, "");
+  const mode = args.penuh ? "penuh" : "ringkas";
+  const lebar = args.lebar ? Number(args.lebar) : null;
+  if (lebar != null && !VIEWS.some((v) => v.width === lebar)) {
+    console.error(`--lebar hanya bisa ${VIEWS.map((v) => v.width).join(" atau ")}.`);
+    process.exit(1);
+  }
+  const views = lebar ? VIEWS.filter((v) => v.width === lebar) : VIEWS;
   for (const p of halaman) {
     if (!p.startsWith("/")) {
       console.error(`Halaman harus diawali "/": ${p}`);
@@ -220,24 +270,25 @@ async function main() {
   try {
     // Potretan biasa: per halaman, 375 px lalu 1440 px.
     for (const p of halaman) {
-      for (const v of VIEWS) {
+      for (const v of views) {
         const url = `${BASE_URL}${p}`;
         process.stdout.write(`Memotret ${p} di ${v.width} px... `);
         const out = path.join(tmpDir, `${pageSlug(p)}-${v.width}.png`);
-        const shot = await capturePage(browser, url, { width: v.width, deviceScaleFactor: v.deviceScaleFactor, out });
+        const shot = await capturePage(browser, url, { width: v.width, deviceScaleFactor: v.deviceScaleFactor, out, mode });
         shots.push({ ...shot, path: p, width: v.width });
-        console.log(`tinggi ${shot.cssHeight} px${shot.scrollWidth > v.width ? `, PERINGATAN: melebar ke ${shot.scrollWidth} px` : ""}`);
+        console.log(`tinggi ${shot.originalHeight} px${shot.truncated ? ` (dipotong ke ${shot.cssHeight})` : ""}${shot.scrollWidth > v.width ? `, PERINGATAN: melebar ke ${shot.scrollWidth} px` : ""}`);
       }
     }
     // Keadaan khusus: pada halaman pertama, atau halaman katalog pertama untuk aksi filter.
     for (const a of aksi) {
       const cfg = ACTIONS[a];
       if (cfg.flow) {
-        for (const v of VIEWS) {
+        for (const v of views) {
           process.stdout.write(`Menjalankan alur beli di ${v.width} px... `);
-          const flowShots = await captureBuyFlow(browser, BASE_URL, { width: v.width, deviceScaleFactor: v.deviceScaleFactor, outDir: tmpDir, slug: a });
+          const flowShots = await captureBuyFlow(browser, BASE_URL, { width: v.width, deviceScaleFactor: v.deviceScaleFactor, outDir: tmpDir, slug: a, mode });
           shots.push(...flowShots);
-          console.log(`${flowShots.length} potretan`);
+          const wide = flowShots.filter((f) => f.scrollWidth > v.width);
+          console.log(`${flowShots.length} potretan${wide.length ? `, PERINGATAN melebar: ${wide.map((f) => f.path).join(", ")}` : ""}`);
         }
         continue;
       }
@@ -254,6 +305,7 @@ async function main() {
         deviceScaleFactor: cfg.deviceScaleFactor,
         out,
         action: a,
+        mode,
       });
       shots.push({ ...shot, path: p, width: cfg.width, label: cfg.label });
       console.log("selesai");
@@ -261,12 +313,12 @@ async function main() {
 
     const sheets = packSheets(buildSegments(shots));
     const hash = gitShortHash();
-    for (const [i, segments] of sheets.entries()) {
+    for (const [i, rows] of sheets.entries()) {
       const no = i + 1;
       const title = `Rona Beauty, cuplik ${nama}`;
-      const meta = [`lembar ${no} dari ${sheets.length}`, labelWib(now), hash ? `commit ${hash}` : ""].filter(Boolean).join("  ·  ");
+      const meta = [`lembar ${no} dari ${sheets.length}`, mode === "ringkas" ? "mode ringkas" : "mode penuh", labelWib(now), hash ? `commit ${hash}` : ""].filter(Boolean).join("  ·  ");
       const htmlPath = path.join(tmpDir, `lembar-${no}.html`);
-      writeFileSync(htmlPath, sheetHtml({ title, meta, segments }));
+      writeFileSync(htmlPath, sheetHtml({ title, meta, rows }));
       const out = path.join(OUT_DIR, `cuplik-${nama}-${stamp}-${no}.jpg`);
       const { bytes, quality } = await screenshotHtmlToJpeg(browser, htmlPath, out, { width: SHEET_WIDTH });
       outputs.push({ out, bytes, quality });

@@ -13,9 +13,23 @@ Fase ini membangun "Asisten Admin", asisten untuk owner dan staf di panel admin.
 
 Aturan produksi tetap berlaku: migrasi hanya menambah, env baru didokumentasikan, commit tanpa push.
 
-## 0. Perbaikan dari review fase sebelumnya
+## 0. Perbaikan dari review Fase 7C
 
-Bila bagian ini tidak berisi butir, lewati.
+1. **Tombol "Tanya Rona" di HP terlalu lebar.** Di 375 px, tombol berbentuk pil dengan teks menutupi sebagian kartu produk di /cari-dari-video.
+   - Di HP, ubah menjadi tombol bulat ikon saja (sekitar 48 px). Label teks hanya tampil di desktop, atau sekali saat kunjungan pertama lalu menyusut.
+   - Saat pengguna menggulir ke bawah, tombol menyembunyikan diri dengan halus. Saat menggulir ke atas, tombol muncul lagi.
+   - Uji tumpang tindih dari 7C tetap lulus.
+2. **Panel "Kesehatan AI" untuk Owner** (di Laporan atau Pengaturan), dibaca dari `ai_logs`:
+   - Jumlah permintaan per fitur hari ini dan 30 hari.
+   - Tingkat gagal.
+   - Latensi median dan p95. Ini juga menjawab pertanyaan latensi dari Vercel yang di 7C baru diukur dari laptop.
+   - Token.
+   - Perkiraan biaya dalam rupiah.
+   - Pemakaian terhadap `AI_DAILY_CAP`.
+3. **Tarif dan kurs di konfigurasi.**
+   - Tarif per model (masuk dan keluar per 1 juta token) disimpan di satu tempat konfigurasi beserta tanggal berlakunya, karena tarif Gemini naik mulai 1 Januari 2027. Kurs rupiah juga ada di konfigurasi.
+   - Panel di atas dan perhitungan biaya di eval memakai sumber yang sama.
+   - Angka ini nanti dipakai untuk RAB klien.
 
 ## Pelajaran dari Pawon Ayu yang wajib diterapkan
 
@@ -88,13 +102,35 @@ Semua membungkus fungsi yang sudah ada, tanpa kueri baru yang menduplikasi logik
    - Skor deterministik: laju jual rendah, stok online tinggi, rating baik, dan belum ikut flash sale 30 hari terakhir.
    - Daftar kandidat dengan usulan harga flash (persen diskon dalam batas yang diatur) dan kuota.
    - Tombol "Tambahkan ke slot" membuka formulir slot terisi.
-3. **Penulis deskripsi dan SEO** di formulir produk.
-   - Admin mengisi poin-poin. AI menyusun deskripsi per tab (manfaat, kandungan, cara pakai), judul meta, dan deskripsi meta dalam gaya bahasa toko.
-   - **Pemeriksa klaim:** bahan yang disebut harus ada di daftar bahan aktif produk, dan tidak boleh ada klaim medis atau klaim yang tidak ada di poin-poin (daftar kata terlarang di kode). Bila melanggar, tandai kalimatnya.
-   - Hasil tampil sebagai usulan berdampingan dengan isi lama. Admin menerima per kolom.
-4. **Draf balasan ulasan** di dialog balas moderasi.
-   - Balasan sopan yang menanggapi isi keluhan, tanpa menjanjikan uang kembali atau kompensasi di luar kebijakan retur.
-   - Admin bisa mengubah sebelum mengirim.
+3. **Panduan gaya bahasa toko** di Pengaturan, sebagai acuan untuk semua tulisan AI:
+   - Nada dan sapaan (bawaan: hangat, singkat, "kamu").
+   - Kata yang dipakai dan yang dihindari.
+   - Panjang ideal per tab.
+   - 2 sampai 3 contoh deskripsi terbaik, dipilih admin dari produk yang ada.
+   - Nilai bawaan diisi dari gaya Rona sekarang. Bisa diubah per klien, dan ini bagian dari kesiapan reskin.
+4. **Penulis deskripsi dan SEO** di formulir produk.
+   - **Acuan yang bisa diisi admin:**
+     - Poin-poin.
+     - Teks dari pemasok atau kemasan (tempel), opsional.
+     - Data produk yang sudah ada (bahan aktif, cocok kulit, finish, SPF, netto, BPOM).
+   - AI menyusun deskripsi per tab (manfaat, kandungan, cara pakai), judul meta, dan deskripsi meta, mengikuti panduan gaya bahasa toko dan contoh-contohnya.
+   - **Pemeriksa klaim:**
+     - Bahan yang disebut harus ada di daftar bahan aktif produk.
+     - Klaim angka (persen, jam tahan lama, SPF) harus ada di acuan.
+     - Tidak boleh ada klaim medis atau klaim yang tidak ada di acuan (daftar kata terlarang di kode).
+     - Kalimat yang melanggar ditandai beserta alasannya.
+   - Hasil tampil sebagai usulan berdampingan dengan isi lama. Admin menerima per kolom, dan bisa meminta "Buat ulang lebih singkat" atau "lebih santai".
+   - Penulisan massal: dari daftar produk, pilih beberapa produk berdeskripsi kosong atau pendek, lalu buat usulan untuk semuanya. Admin tetap meninjau per produk sebelum menyimpan.
+5. **Draf balasan ulasan** di dialog balas moderasi.
+   - Acuannya isi ulasan, data pesanan (produk, shade, status), kebijakan retur dari halaman bantuan, dan panduan gaya bahasa toko.
+   - **Balasan sesuai situasi:**
+     - Pujian: terima kasih yang personal, bukan templat.
+     - Keluhan produk: empati, lalu saran pemakaian bila relevan.
+     - Keluhan pengiriman atau kemasan: minta maaf dan arahkan ke kebijakan retur.
+     - Salah shade: tawarkan padanan shade dengan tautan ke fitur 7A.
+   - Tanpa menjanjikan uang kembali atau kompensasi di luar kebijakan retur. Tanpa menyalahkan pembeli. Tanpa klaim medis.
+   - Admin bisa mengubah sebelum mengirim. Balasan yang dikirim tercatat sebagai buatan staf (dengan penanda "dibantu AI" di log, bukan di tampilan publik).
+   - Saran cepat di daftar ulasan: tombol "Buat draf untuk semua yang belum dibalas" menghasilkan draf yang ditinjau satu per satu.
 
 ## 3. Kabar Harian
 

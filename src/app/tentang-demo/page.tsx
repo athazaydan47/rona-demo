@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ContohTanya } from "@/components/tanya/contoh-tanya";
 import { Bot, LayoutDashboard, MessageCircle, ShoppingBag } from "lucide-react";
 import { DemoLoginButton } from "@/components/account/demo-login-button";
 import { DemoStaffButtons } from "@/components/admin/login-form";
@@ -88,6 +89,16 @@ export default function AboutDemoPage() {
           ) : null}
         </div>
       </section>
+
+      {fiturAktif("aiPembeli") ? (
+        <section className="mt-14 max-w-3xl rounded-card border border-garis bg-putih p-5" aria-labelledby="coba-tanya">
+          <h2 id="coba-tanya" className="font-serif text-2xl text-kopi">
+            Coba {MEREK.asisten.nama}
+          </h2>
+          <p className="mt-1 text-sm text-abu-hangat">Satu chat untuk rekomendasi, kuis kulit, rutinitas, padanan shade, link TikTok atau screenshot, lacak pesanan, ongkir, dan info cabang. Tekan salah satu kalimat ini:</p>
+          <ContohTanya className="mt-3" />
+        </section>
+      ) : null}
 
       {GROUPS.map((g) => ({ ...g, items: g.items.filter((f) => !f.fitur || fiturAktif(f.fitur)) }))
         .filter((g) => g.items.length)

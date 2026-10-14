@@ -153,6 +153,7 @@ export async function saveVoucher(db: AnyDb, staff: StaffPrincipal, input: Vouch
     scope: { ...(input.brandIds?.length ? { brandIds: input.brandIds } : {}), ...(input.categoryIds?.length ? { categoryIds: input.categoryIds } : {}) },
     stackWithFlash: input.stackWithFlash,
     isActive: input.isActive,
+    isPublic: Boolean(input.isPublic),
   };
   if (id) {
     const [old] = await db.select().from(schema.vouchers).where(eq(schema.vouchers.id, id)).limit(1);
@@ -160,7 +161,7 @@ export async function saveVoucher(db: AnyDb, staff: StaffPrincipal, input: Vouch
     if (old.used > 0 && old.code !== code) return { ok: false, message: "Kode voucher yang sudah dipakai tidak bisa diganti. Buat voucher baru saja." };
     if (values.quota != null && values.quota < old.used) return { ok: false, message: `Kuota tidak boleh di bawah pemakaian (${old.used}).` };
     await db.update(schema.vouchers).set(values).where(eq(schema.vouchers.id, id));
-    await writeAudit(db, { staff, action: "promo.voucher", objectType: "promo", objectId: code, summary: `Ubah voucher ${code}`, before: { nilai: old.value, minimal: old.minSpend, kuota: old.quota, aktif: old.isActive, selesai: old.endsAt.toISOString() }, after: { nilai: values.value, minimal: values.minSpend, kuota: values.quota, aktif: values.isActive, selesai: values.endsAt.toISOString() }, at });
+    await writeAudit(db, { staff, action: "promo.voucher", objectType: "promo", objectId: code, summary: `Ubah voucher ${code}`, before: { nilai: old.value, minimal: old.minSpend, kuota: old.quota, aktif: old.isActive, publik: old.isPublic, selesai: old.endsAt.toISOString() }, after: { nilai: values.value, minimal: values.minSpend, kuota: values.quota, aktif: values.isActive, publik: values.isPublic, selesai: values.endsAt.toISOString() }, at });
     return { ok: true, id, tags: [] };
   }
   const [row] = await db.insert(schema.vouchers).values({ ...values, used: 0, createdAt: at }).returning({ id: schema.vouchers.id });

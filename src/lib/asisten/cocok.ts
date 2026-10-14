@@ -6,41 +6,20 @@ import { and, asc, eq, ilike, or, sql } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import type { AnyDb } from "@/lib/db-types";
 import { MEREK } from "@/config/merek";
+import { normalizeName, trigramSimilarity } from "@/lib/teks/mirip";
+
+export { normalizeName, trigramSimilarity };
 
 export type Candidate<T = unknown> = { id: number; name: string; aliases?: string[]; data?: T };
 export type MatchResult<T = unknown> = { status: "cocok"; item: Candidate<T> } | { status: "ambigu"; kandidat: Candidate<T>[] } | { status: "tidak_ditemukan" };
 
 const FILLER = new Set(["shade", "warna", "varian", "yang", "ukuran", "produk", "merek", "brand", "cabang", "toko", MEREK.kunci, "di", "the"]);
 
-export function normalizeName(s: string) {
-  return s
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 const tokens = (s: string) => normalizeName(s).split(" ").filter((t) => t && !FILLER.has(t));
 
-function trigrams(s: string) {
-  const out = new Set<string>();
-  for (const w of normalizeName(s).split(" ").filter(Boolean)) {
-    const p = `  ${w} `;
-    for (let i = 0; i < p.length - 2; i++) out.add(p.slice(i, i + 3));
-  }
-  return out;
-}
 
 // Kemiripan trigram ala pg_trgm: irisan dibagi gabungan.
-export function trigramSimilarity(a: string, b: string) {
-  const x = trigrams(a);
-  const y = trigrams(b);
-  if (!x.size || !y.size) return 0;
-  let inter = 0;
-  for (const t of x) if (y.has(t)) inter++;
-  return inter / (x.size + y.size - inter);
-}
 
 export const MAX_CANDIDATES = 5;
 

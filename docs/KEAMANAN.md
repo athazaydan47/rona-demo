@@ -71,6 +71,9 @@ Browser memperkecil foto sebelum mengirim, tetapi server memeriksa ulang semuany
 | Unggah foto ulasan | 20 per pembeli per jam | Postgres |
 | Unggah foto admin | 60 per staf per jam | Postgres |
 | Advisor dan chat AI pembeli | 5 per menit, 20 per hari per pengunjung saat demo | Postgres (`ai_logs`) |
+| Semua AI pembeli bersama (chat, link dan screenshot, foto kuis, tafsir shade) | 30 per pengunjung per hari; setelah itu kemampuan berbasis aturan tetap jalan | Postgres (`ai_logs`) |
+| Semua permintaan Tanya Rona (termasuk aksi tanpa AI) | 60 per IP per menit | Memori per instance |
+| Pemeriksaan TikTok `/api/sehat/tiktok` | 6 per IP per menit, hanya link contoh tetap | Memori per instance |
 | Foto kuis kulit, cari dupe | 5 dan 10 per pengunjung per hari | Postgres |
 | Tafsiran shade AI | 20 per pengunjung per hari | Postgres |
 | Asisten Admin, masukan suara | 80 dan 40 per staf per hari | Postgres |
@@ -81,6 +84,14 @@ Browser memperkecil foto sebelum mengirim, tetapi server memeriksa ulang semuany
 | Cron harian | `Authorization: Bearer <CRON_SECRET>` wajib | Rahasia `CRON_SECRET` |
 
 Kunci batas laju tidak menyimpan IP atau nomor mentah. Semuanya di-HMAC dengan `SESSION_SECRET`. Jendela lama dihapus cron harian.
+
+### Link video dari pembeli (SSRF)
+
+Server tidak pernah mengambil URL dari pembeli apa adanya. Link diklasifikasikan dulu: hanya https, tanpa port dan userinfo, host persis di daftar TikTok atau YouTube. Server hanya menghubungi `www.tiktok.com`, `vt.tiktok.com`, `vm.tiktok.com`, `m.tiktok.com`, dan `www.youtube.com`, dengan batas waktu dan ukuran. Setiap langkah redirect tautan pendek (maksimal 5) diperiksa ulang terhadap daftar itu. Halaman video kanonis dibangun dari id video, bukan dari URL pembeli. Tantangan bot TikTok tidak pernah dicoba diakali. Uji `src/lib/ai/link-video.test.ts` dan `src/lib/ai/visual.test.ts` mencakup alamat lokal, IP privat, domain tiruan, dan redirect ke host asing.
+
+### Tanya Rona dan data pesanan
+
+Lacak pesanan di chat memakai `lacakPesanan` yang sama dengan /lacak: nomor pesanan dan nomor WA harus cocok di server, dengan batas tebakan yang sama. Nomor pesanan dan nomor WA dikenali aturan sebelum model, jadi model tidak pernah menerima data pesanan. Kartu status tidak memuat nama, nomor WA, email, atau alamat. Nomor WA tidak ditampilkan di gelembung obrolan dan tidak ikut riwayat yang dikirim ke model.
 
 ### Header dan Content Security Policy
 

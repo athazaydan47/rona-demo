@@ -47,6 +47,7 @@ Fitur AI butuh `AI_GATEWAY_URL` dan `GEMINI_API_KEY`. Tanpa itu, toko tetap jala
 | `npm run db:reset` | Migrasi ulang dan seed. Ke host selain lokal butuh `CONFIRM_RESET=rona-demo`. |
 | `npm run cek:data` | Periksa konsistensi buku stok, poin, kuota, voucher, dan tidak ada data uji. |
 | `npm run cek:404`, `npm run cek:rahasia` | Periksa 404 sungguhan, dan pindai riwayat git untuk rahasia. |
+| `npm run cek:tiktok -- <url>` | Diagnosis membaca link TikTok atau YouTube per tahap, tanpa AI. |
 | `npm run impor:katalog -- --berkas=<csv> [--kering]` | Impor katalog klien dari CSV. |
 | `npm run eval:ai`, `eval:asisten`, `eval:deskripsi` | Evaluasi AI dengan model sungguhan (atau `-- --mock`). |
 | `npm run cuplik`, `npm run aset:portofolio` | Lembar tangkapan layar untuk review, dan gambar portofolio di `_portofolio/`. |

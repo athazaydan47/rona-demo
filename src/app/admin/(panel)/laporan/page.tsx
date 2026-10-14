@@ -67,6 +67,22 @@ async function AiHealthPanel() {
           { header: "Biaya", align: "right", money: true, cell: (x) => (x.costIdr == null ? "tanpa tarif" : rp(x.costIdr)) },
         ]}
       />
+      {h.linkGagal.length ? (
+        <ReportTable
+          title="Link video yang gagal dibaca, per tahap"
+          finance={false}
+          testId="tabel-link-gagal"
+          note={`Dari ${MEREK.asisten.tombol} dan Cari dari video, 30 hari. Tahap oembed status 503 atau 429 berarti TikTok menolak permintaan dari server; tantangan bot di tahap halaman berarti IP server sedang ditandai TikTok. Pembeli selalu ditawari kirim screenshot.`}
+          rows={h.linkGagal}
+          cols={[
+            { header: "Tahap", cell: (x) => x.tahap.replace(/_/g, " ") },
+            { header: "Status HTTP", cell: (x) => x.status },
+            { header: "Jenis", cell: (x) => x.kode.replace(/_/g, " ") },
+            { header: "Jumlah", align: "right", cell: (x) => num(x.jumlah) },
+            { header: "Terakhir", cell: (x) => formatDateTimeWib(x.terakhir) },
+          ]}
+        />
+      ) : null}
     </section>
   );
 }

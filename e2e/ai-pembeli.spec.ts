@@ -100,13 +100,13 @@ test("padanan shade menampilkan 3 hasil, juga dari dialog di halaman produk", as
   await expect(dialog.getByTestId("hasil-padanan").locator("li")).toHaveCount(3);
 });
 
-test("tanpa env AI: tombol Advisor dan chip tafsiran tidak tampil, kuis, rutinitas, dan pencarian biasa tetap jalan", async ({ page }) => {
+test("tanpa env AI: Tanya Rona tetap ada tanpa AI (Fase 8C), chip tafsiran tidak tampil, kuis, rutinitas, dan pencarian biasa tetap jalan", async ({ page }) => {
   await page.goto(`${NO_AI}/`);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  await page.waitForTimeout(800);
-  await expect(page.getByTestId("tombol-advisor")).toHaveCount(0);
+  await expect(page.getByTestId("tombol-advisor")).toBeVisible();
   const status = await page.request.get(`${NO_AI}/api/ai/advisor`);
-  expect(status.status()).toBe(404);
+  expect(status.status()).toBe(200);
+  expect(await status.json()).toMatchObject({ tersedia: true, ai: false, aiFoto: false });
 
   await page.goto(`${NO_AI}/cari?q=${encodeURIComponent("lipstik yang ga bikin bibir kering buat kondangan")}`);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Hasil untuk");

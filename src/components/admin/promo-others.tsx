@@ -1,5 +1,7 @@
 "use client";
 
+import { MEREK } from "@/config/merek";
+
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog } from "radix-ui";
@@ -179,8 +181,8 @@ export function VariantPromoManager({ rows }: { rows: VariantPromoRow[] }) {
 
 // ---------- Voucher ----------
 
-export type VoucherRow = { id: number; code: string; title: string; description: string; type: "nominal" | "persen" | "ongkir"; value: number; maxDiscount: number | null; minSpend: number; startsAt: string; endsAt: string; quota: number | null; quotaPerCustomer: number; used: number; scope: { brandIds?: number[]; categoryIds?: number[] }; stackWithFlash: boolean; isActive: boolean; redeemed: number; totalDiscount: number; remaining: number | null };
-type VoucherDraft = { id: number | null; used: number; code: string; title: string; description: string; type: "nominal" | "persen" | "ongkir"; value: string; maxDiscount: string; minSpend: string; start: string; end: string; quota: string; quotaPerCustomer: string; brandIds: number[]; categoryIds: number[]; stackWithFlash: boolean; isActive: boolean };
+export type VoucherRow = { id: number; code: string; title: string; description: string; type: "nominal" | "persen" | "ongkir"; value: number; maxDiscount: number | null; minSpend: number; startsAt: string; endsAt: string; quota: number | null; quotaPerCustomer: number; used: number; scope: { brandIds?: number[]; categoryIds?: number[] }; stackWithFlash: boolean; isActive: boolean; isPublic: boolean; redeemed: number; totalDiscount: number; remaining: number | null };
+type VoucherDraft = { id: number | null; used: number; code: string; title: string; description: string; type: "nominal" | "persen" | "ongkir"; value: string; maxDiscount: string; minSpend: string; start: string; end: string; quota: string; quotaPerCustomer: string; brandIds: number[]; categoryIds: number[]; stackWithFlash: boolean; isActive: boolean; isPublic: boolean };
 
 const TYPE_LABEL = { nominal: "Potongan rupiah", persen: "Potongan persen", ongkir: "Gratis ongkir" } as const;
 const voucherValue = (v: { type: string; value: number; maxDiscount: number | null }) => (v.type === "persen" ? `${v.value}%${v.maxDiscount ? `, maks ${formatRupiah(v.maxDiscount)}` : ""}` : v.type === "ongkir" ? `Ongkir s.d. ${formatRupiah(v.value)}` : formatRupiah(v.value));
@@ -192,9 +194,9 @@ export function VoucherManager({ vouchers, brands, categories, nowIso }: { vouch
   const [notice, setNotice] = useState<Notice>(null);
   const [pending, run] = useTransition();
   const now = new Date(nowIso).getTime();
-  const blank = (): VoucherDraft => ({ id: null, used: 0, code: "", title: "", description: "", type: "nominal", value: "", maxDiscount: "", minSpend: "0", start: toWibInput(new Date(nowIso)), end: toWibInput(new Date(now + 30 * 86_400_000)), quota: "", quotaPerCustomer: "1", brandIds: [], categoryIds: [], stackWithFlash: false, isActive: true });
-  const fromRow = (v: VoucherRow): VoucherDraft => ({ id: v.id, used: v.used, code: v.code, title: v.title, description: v.description, type: v.type, value: String(v.value), maxDiscount: v.maxDiscount == null ? "" : String(v.maxDiscount), minSpend: String(v.minSpend), start: toWibInput(new Date(v.startsAt)), end: toWibInput(new Date(v.endsAt)), quota: v.quota == null ? "" : String(v.quota), quotaPerCustomer: String(v.quotaPerCustomer), brandIds: v.scope.brandIds ?? [], categoryIds: v.scope.categoryIds ?? [], stackWithFlash: v.stackWithFlash, isActive: v.isActive });
-  const toForm = (d: VoucherDraft) => ({ code: d.code.trim().toUpperCase(), title: d.title, description: d.description, type: d.type, value: Number(d.value), maxDiscount: d.maxDiscount ? Number(d.maxDiscount) : null, minSpend: Number(d.minSpend || 0), quota: d.quota ? Number(d.quota) : null, quotaPerCustomer: Number(d.quotaPerCustomer || 1), brandIds: d.brandIds, categoryIds: d.categoryIds, stackWithFlash: d.stackWithFlash, isActive: d.isActive });
+  const blank = (): VoucherDraft => ({ id: null, used: 0, code: "", title: "", description: "", type: "nominal", value: "", maxDiscount: "", minSpend: "0", start: toWibInput(new Date(nowIso)), end: toWibInput(new Date(now + 30 * 86_400_000)), quota: "", quotaPerCustomer: "1", brandIds: [], categoryIds: [], stackWithFlash: false, isActive: true, isPublic: false });
+  const fromRow = (v: VoucherRow): VoucherDraft => ({ id: v.id, used: v.used, code: v.code, title: v.title, description: v.description, type: v.type, value: String(v.value), maxDiscount: v.maxDiscount == null ? "" : String(v.maxDiscount), minSpend: String(v.minSpend), start: toWibInput(new Date(v.startsAt)), end: toWibInput(new Date(v.endsAt)), quota: v.quota == null ? "" : String(v.quota), quotaPerCustomer: String(v.quotaPerCustomer), brandIds: v.scope.brandIds ?? [], categoryIds: v.scope.categoryIds ?? [], stackWithFlash: v.stackWithFlash, isActive: v.isActive, isPublic: v.isPublic });
+  const toForm = (d: VoucherDraft) => ({ code: d.code.trim().toUpperCase(), title: d.title, description: d.description, type: d.type, value: Number(d.value), maxDiscount: d.maxDiscount ? Number(d.maxDiscount) : null, minSpend: Number(d.minSpend || 0), quota: d.quota ? Number(d.quota) : null, quotaPerCustomer: Number(d.quotaPerCustomer || 1), brandIds: d.brandIds, categoryIds: d.categoryIds, stackWithFlash: d.stackWithFlash, isActive: d.isActive, isPublic: d.isPublic });
   const save = () =>
     run(async () => {
       if (!draft) return;
@@ -358,6 +360,13 @@ export function VoucherManager({ vouchers, brands, categories, nowIso }: { vouch
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={draft.isActive} onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })} className="size-4 accent-aksen" /> Aktif
+            </label>
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" checked={draft.isPublic} onChange={(e) => setDraft({ ...draft, isPublic: e.target.checked })} className="mt-0.5 size-4 accent-aksen" data-testid="voucher-publik" />
+              <span>
+                Tawarkan ke semua pembeli
+                <span className="block text-xs text-abu-hangat">Kodenya boleh disebut {MEREK.asisten.tombol} saat pembeli bertanya soal promo. Biarkan kosong untuk voucher yang hanya dibagikan langsung.</span>
+              </span>
             </label>
             {error ? (
               <p className="text-sm text-bahaya sm:col-span-2" role="alert">

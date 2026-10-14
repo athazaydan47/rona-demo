@@ -70,6 +70,8 @@ export const vouchers = pgTable(
     scope: jsonb().$type<VoucherScope>().notNull().default({}),
     stackWithFlash: boolean().notNull().default(false),
     isActive: boolean().notNull().default(true),
+    // Fase 8C: voucher yang boleh ditawarkan ke semua pembeli (Tanya Rona). Voucher lain hanya dibagikan langsung.
+    isPublic: boolean().notNull().default(false),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("vouchers_code_idx").on(t.code)],

@@ -20,6 +20,7 @@ export const EMPTY_NAMES: AuditNames = { locations: new Map(), variants: new Map
 
 // Label kunci data sebelum dan sesudah. Kunci pengaturan memakai nama baris di tabel settings.
 export const AUDIT_KEY_LABELS: Record<string, string> = {
+  publik: "Ditawarkan ke pembeli",
   baris: "Barang",
   lokasiId: "Lokasi",
   lokasi: "Lokasi",

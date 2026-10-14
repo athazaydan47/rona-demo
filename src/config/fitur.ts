@@ -9,7 +9,7 @@ export const DAFTAR_FITUR = ["aiPembeli", "aiFotoLink", "asistenAdmin", "flashSa
 export type Fitur = (typeof DAFTAR_FITUR)[number];
 
 export const LABEL_FITUR: Record<Fitur, string> = {
-  aiPembeli: "AI untuk pembeli (Advisor, tafsiran pencarian, ringkasan ulasan, rutinitas)",
+  aiPembeli: "Tanya Rona untuk pembeli (tanpa kunci AI tetap jalan berbasis aturan: kuis, rutinitas, padanan shade, lacak, ongkir) dan AI pembeli lain (tafsiran pencarian, ringkasan ulasan)",
   aiFotoLink: "AI dari foto dan link (kuis dari foto, cari dari video)",
   asistenAdmin: "AI untuk admin (Asisten Admin, Kabar Harian, penulis deskripsi, draf balasan)",
   flashSale: "Flash sale",

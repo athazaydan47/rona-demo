@@ -334,6 +334,7 @@ export async function seedAll(db: AnyDb, now: Date): Promise<SeedSummary> {
           used: 0,
           scope,
           stackWithFlash: v.stackWithFlash,
+          isPublic: v.isPublic,
           isActive: true,
         };
       }),

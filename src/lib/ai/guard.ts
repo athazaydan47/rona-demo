@@ -77,10 +77,14 @@ export function splitSentences(text: string) {
 
 export type SentenceRules = { catalogNames: string[]; allowedNames: Set<string>; allowedPrices: Set<number> };
 
+// Fase 8C: link TikTok dan YouTube dibaca sistem, jadi model tidak boleh menulis bahwa ia tidak bisa membuka link.
+export const LINK_REFUSAL = /\b(tidak|belum|gak|ga|nggak|enggak)\s+(bisa|dapat|mampu)\s+(membuka|mengakses|melihat|menonton|memutar|membaca)\s+(link|tautan|video|url|situs)/i;
+
 // Alasan kalimat ditolak, atau null bila aman. Dipakai saat streaming (per kalimat) dan saat validasi akhir.
 export function sentenceProblem(sentence: string, rules: SentenceRules): string | null {
   const lower = sentence.toLowerCase();
   if (medicalClaims(sentence).length) return "klaim medis";
+  if (LINK_REFUSAL.test(sentence)) return "menolak link";
   const names = rules.catalogNames.filter((n) => n.length >= 6 && lower.includes(n.toLowerCase()));
   const allowedLower = new Set([...rules.allowedNames].map((n) => n.toLowerCase()));
   if (names.some((n) => !allowedLower.has(n.toLowerCase()))) return "produk di luar hasil tool";

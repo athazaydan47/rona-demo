@@ -76,3 +76,22 @@ test("header keamanan dan security.txt", async ({ request }) => {
 test("route cron menolak tanpa rahasia", async ({ request }) => {
   expect([401, 503]).toContain((await request.get("/api/cron/kedaluwarsa")).status());
 });
+
+test("server produksi bisa membaca link TikTok publik (TikTok tidak memblokir IP server)", async ({ request }, info) => {
+  // Cukup sekali per putaran: link contoh tetap, tanpa AI dan tanpa menulis data selain catatan kesehatan.
+  test.skip(info.project.name !== "hp", "cukup satu proyek");
+  const res = await request.get("/api/sehat/tiktok", { timeout: 30_000 });
+  expect(res.status()).toBe(200);
+  const d = await res.json();
+  expect(d, `gagal di tahap ${d.gagal?.tahap} status ${d.gagal?.status} (${d.gagal?.kode}); jejak ${JSON.stringify(d.jejak)}`).toMatchObject({ ok: true, adaCaption: true });
+});
+
+test("Tanya Rona: aksi berbasis aturan menjawab tanpa AI (ongkir, hanya-baca)", async ({ request, baseURL }, info) => {
+  test.skip(info.project.name !== "hp", "cukup satu proyek");
+  const res = await request.post("/api/ai/advisor", { headers: { origin: baseURL!, "content-type": "application/json" }, data: { pesan: [], aksi: { jenis: "ongkir", kota: "Bandung" } } });
+  expect(res.status()).toBe(200);
+  const lines = (await res.text()).trim().split("\n").map((l) => JSON.parse(l));
+  const done = lines.at(-1);
+  expect(done).toMatchObject({ type: "done", ok: true });
+  expect(done.kartu[0]).toMatchObject({ jenis: "ongkir", data: { kota: "Kota Bandung" } });
+});

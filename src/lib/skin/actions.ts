@@ -1,8 +1,7 @@
 "use server";
 
 // Server action Fase 7A: simpan profil kulit (kuis dan Shade Finder), padanan shade, dan tafsir kalimat padanan.
-import { and, asc, eq, inArray } from "drizzle-orm";
-import { db, schema } from "@/db/client";
+import { db } from "@/db/client";
 import { aiConfig, aiModel } from "@/lib/ai";
 import { globalCapReached, logAi } from "@/lib/ai/usage";
 import { currentVisitorHash } from "@/lib/ai/visitor";
@@ -10,7 +9,7 @@ import { padananShade, type ShadeMatch } from "@/lib/catalog/tools";
 import { now } from "@/lib/clock";
 import { currentSkinProfile, storeSkinProfile } from "./current";
 import { quizToProfile, withShade, type QuizAnswers } from "./profile";
-import { SHADE_GROUPS } from "./shade";
+import { resolveShadeText, shadeSources, tafsirShadeDenganAi, type ShadeSourceProduct } from "./tafsir-shade";
 import { MEREK } from "@/config/merek";
 import { BATAS, clientIp, hashKey, rateLimit } from "@/lib/security/rate-limit";
 import { headers } from "next/headers";
@@ -31,28 +30,11 @@ export async function saveShadeProfileAction(raw: { depth: number; undertone: st
   return { ok: true };
 }
 
-export type ShadeSourceProduct = { id: number; name: string; brandName: string; categorySlug: string; variants: { id: number; shadeName: string; hex: string }[] };
+export type { ShadeSourceProduct };
 
 // Produk berkategori shade untuk dipilih sebagai "shade yang biasa kamu pakai".
 export async function shadeSourcesAction(group?: string | null): Promise<ShadeSourceProduct[]> {
-  const cats = Object.entries(SHADE_GROUPS)
-    .filter(([, g]) => !group || g === group)
-    .map(([slug]) => slug);
-  const rows = await db
-    .select({ id: schema.products.id, name: schema.products.name, brandName: schema.brands.name, categorySlug: schema.categories.slug, variantId: schema.variants.id, shadeName: schema.variants.shadeName, hex: schema.variants.hex })
-    .from(schema.products)
-    .innerJoin(schema.brands, eq(schema.products.brandId, schema.brands.id))
-    .innerJoin(schema.categories, eq(schema.products.categoryId, schema.categories.id))
-    .innerJoin(schema.variants, eq(schema.variants.productId, schema.products.id))
-    .where(and(eq(schema.products.status, "aktif"), eq(schema.variants.isActive, true), inArray(schema.categories.slug, cats)))
-    .orderBy(asc(schema.products.name), asc(schema.variants.sortOrder));
-  const map = new Map<number, ShadeSourceProduct>();
-  for (const r of rows) {
-    const p = map.get(r.id) ?? { id: r.id, name: r.name, brandName: r.brandName, categorySlug: r.categorySlug, variants: [] };
-    p.variants.push({ id: r.variantId, shadeName: r.shadeName, hex: r.hex });
-    map.set(r.id, p);
-  }
-  return [...map.values()];
+  return shadeSources(db, group ?? null);
 }
 
 export async function shadeMatchAction(variantId: number, targetProductId?: number | null): Promise<{ sumber: { produk: string; shade: string; hex: string } | null; hasil: ShadeMatch[] }> {
@@ -74,23 +56,15 @@ export async function interpretShadeTextAction(text: string): Promise<{ ok: true
   const rl = await rateLimit(db, `tafsir-shade:${hashKey(clientIp(await headers()))}`, batas.limit, batas.windowMs, at);
   if (!rl.ok) return { ok: false, message: "Batas tafsiran hari ini sudah tercapai. Pilih produk dan shade dari daftar, ya." };
   if (await globalCapReached(db, cfg, at).catch(() => true)) return { ok: false, message: "Sedang istirahat, coba lagi besok. Kamu tetap bisa memilih dari daftar." };
-  const sources = await shadeSourcesAction();
-  const options = sources.flatMap((p) => p.variants.map((v) => ({ id: v.id, label: `${p.brandName} ${p.name}, shade ${v.shadeName}` })));
+  const sources = await shadeSources(db);
+  // Aturan dulu (merek, nama produk, kode shade); AI hanya bila aturan tidak menemukan satu varian pun.
+  const rule = resolveShadeText(q, sources);
+  if (rule.status === "cocok") return { ok: true, varianId: rule.pilih.varianId, label: rule.pilih.label };
   const t0 = Date.now();
   try {
-    const res = await model.generate(
-      {
-        contents: [{ role: "user", parts: [{ text: ["TUGAS: padanan_teks. Pilih satu varian yang dimaksud pembeli dari daftar. Jawab varianId 0 bila tidak ada yang cocok.", `Kalimat: ${q}`, "Daftar:", ...options.map((o) => `- ${o.id}: ${o.label}`)].join("\n") }] }],
-        jsonSchema: { type: "OBJECT", properties: { varianId: { type: "INTEGER" } }, required: ["varianId"] },
-        temperature: 0,
-        maxOutputTokens: 60,
-      },
-      { timeoutMs: 6000 },
-    );
-    const id = Number((JSON.parse(res.text || "{}") as { varianId?: unknown }).varianId);
-    const hit = options.find((o) => o.id === id);
-    await logAi(db, { feature: "padanan_shade", model: res.model, inputTokens: res.usage.input, outputTokens: res.usage.output, latencyMs: Date.now() - t0, ok: Boolean(hit), visitorHash: await currentVisitorHash(), at });
-    return hit ? { ok: true, varianId: hit.id, label: hit.label } : { ok: false, message: `Produk itu belum kami temukan di katalog ${MEREK.nama}. Coba pilih dari daftar, ya.` };
+    const r = await tafsirShadeDenganAi(model, q, sources);
+    await logAi(db, { feature: "padanan_shade", model: r.model, inputTokens: r.usage.input, outputTokens: r.usage.output, latencyMs: Date.now() - t0, ok: Boolean(r.pilih), visitorHash: await currentVisitorHash(), at });
+    return r.pilih ? { ok: true, varianId: r.pilih.varianId, label: r.pilih.label } : { ok: false, message: `Produk itu belum kami temukan di katalog ${MEREK.nama}. Coba pilih dari daftar, ya.` };
   } catch (e) {
     await logAi(db, { feature: "padanan_shade", model: model.name, latencyMs: Date.now() - t0, ok: false, error: e instanceof Error ? e.message : String(e), visitorHash: await currentVisitorHash(), at }).catch(() => {});
     return { ok: false, message: "AI sedang tidak bisa dihubungi. Pilih produk dan shade dari daftar, ya." };

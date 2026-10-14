@@ -47,6 +47,8 @@ export type VoucherForm = {
   categoryIds?: number[];
   stackWithFlash: boolean;
   isActive: boolean;
+  // Fase 8C: boleh ditawarkan ke semua pembeli (chat asisten). Bawaan tidak.
+  isPublic?: boolean;
 };
 
 export function validateVoucher(v: VoucherForm): string | null {

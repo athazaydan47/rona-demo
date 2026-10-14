@@ -12,7 +12,7 @@ const SEMUA_LANGKAH: Langkah[] = [
   { id: "flash", judul: "Lihat flash sale di beranda", detail: "Hitung mundur dan kuota berjalan dari server, bukan dari browser.", href: "/flash-sale", fitur: "flashSale" },
   { id: "cari", judul: 'Ketik "cusion" (sengaja salah) lalu filter kulit berminyak', detail: "Hasilnya tetap cushion. Filter dihitung dari atribut produk.", href: "/cari?q=cusion" },
   { id: "shade", judul: 'Buka satu cushion, ganti shade, klik "Cari shade-ku"', detail: "Swatch, stok per shade, dan stok per cabang berganti tanpa muat ulang.", href: "/p/pualam-velvet-matte-cushion-spf-50" },
-  { id: "advisor", judul: `Tanya ${MEREK.asisten.nama}`, detail: '"Sunscreen buat kulit berminyak di bawah 100 ribu?" Jawabannya hanya produk yang benar-benar ada.', href: "/advisor", fitur: "aiPembeli" },
+  { id: "advisor", judul: `Tanya ${MEREK.asisten.nama}`, detail: "Satu chat untuk rekomendasi, padanan shade, link TikTok, ongkir, dan lacak pesanan. Tekan salah satu contoh:", href: "/advisor", fitur: "aiPembeli" },
   { id: "checkout", judul: "Checkout dengan Ambil di Toko", detail: "Pilih cabang, bayar QRIS, lalu buat pesanan.", href: "/keranjang" },
   { id: "bayar", judul: "Tekan simulasi bayar", detail: "Di halaman bayar ada tombol simulasi (hanya di mode demo). Stok cabang langsung berkurang." },
   { id: "admin", judul: "Buka panel admin di laptop", detail: "Pesanan baru muncul di dashboard dalam 30 detik, stok ikut berubah.", href: "/admin/masuk" },

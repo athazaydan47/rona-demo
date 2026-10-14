@@ -33,16 +33,18 @@ export type KartuAi = {
 type Props = {
   p: KartuAi;
   // Atribusi penjualan item yang ditambahkan dari kartu ini.
-  sumber: "advisor" | "cari_video";
+  sumber: "advisor" | "cari_video" | "padanan_shade";
   testId: string;
   alasanTestId: string;
   labelTambah: string;
   ringkas?: boolean;
   // Baris kecil di bawah alasan, misal stok online atau cabang yang punya stok.
   catatan?: string;
+  // Dipanggil setelah berhasil masuk keranjang (chat asisten menampilkan ringkasan keranjang).
+  onTambah?: () => void;
 };
 
-export function KartuProdukAi({ p, sumber, testId, alasanTestId, labelTambah, ringkas, catatan }: Props) {
+export function KartuProdukAi({ p, sumber, testId, alasanTestId, labelTambah, ringkas, catatan, onTambah }: Props) {
   const [variantId, setVariantId] = useState(p.varianPilihan ?? p.variants.find((v) => v.inStock)?.id ?? p.variants[0]?.id);
   const [state, setState] = useState<"idle" | "busy" | "ok" | "fail">("idle");
   const [msg, setMsg] = useState<string | null>(null);
@@ -89,6 +91,7 @@ export function KartuProdukAi({ p, sumber, testId, alasanTestId, labelTambah, ri
               const r = await addToCart(v.id, 1, { source: sumber, openDrawer: false });
               setState(r.ok ? "ok" : "fail");
               setMsg(r.ok ? "Masuk keranjang" : (r.message ?? "Gagal"));
+              if (r.ok) onTambah?.();
             }}
           >
             {state === "busy" ? <Loader2 className="animate-spin" /> : null} {v?.inStock ? labelTambah : "Habis"}

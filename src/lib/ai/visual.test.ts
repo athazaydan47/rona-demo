@@ -86,7 +86,7 @@ describe("gambar dari pembeli", () => {
 
 describe("link video: daftar izin dan SSRF", () => {
   it("TikTok dan YouTube dikenali dan dinormalkan", () => {
-    expect(classifyLink("https://www.tiktok.com/@kreator/video/7301234567890123456?is_from_webapp=1")).toEqual({ kind: "tiktok", url: "https://www.tiktok.com/@kreator/video/7301234567890123456", short: false });
+    expect(classifyLink("https://www.tiktok.com/@kreator/video/7301234567890123456?is_from_webapp=1")).toEqual({ kind: "tiktok", url: "https://www.tiktok.com/@kreator/video/7301234567890123456", short: false, videoId: "7301234567890123456" });
     expect(classifyLink("vt.tiktok.com/ZSabc123/")).toMatchObject({ kind: "tiktok", short: true });
     expect(classifyLink("https://youtu.be/dQw4w9WgXcQ?t=10")).toEqual({ kind: "youtube", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", videoId: "dQw4w9WgXcQ" });
     expect(classifyLink("https://www.youtube.com/shorts/abcDEF12345")).toMatchObject({ kind: "youtube", videoId: "abcDEF12345" });
@@ -154,14 +154,14 @@ describe("link video: daftar izin dan SSRF", () => {
       if (url.startsWith("https://vt.tiktok.com/")) return new Response(null, { status: 301, headers: { location: "https://www.tiktok.com/@kreator/video/7301234567890123456?_r=1" } });
       return new Response(JSON.stringify({ title: "Review lipstik <b>nude</b>", author_name: "kreator", author_url: "https://www.tiktok.com/@kreator", thumbnail_url: "https://p16-sign.tiktokcdn.com/obj/abc.jpeg" }), { status: 200 });
     };
-    const info = await fetchOembed({ kind: "tiktok", url: "https://vt.tiktok.com/ZSabc123/", short: true }, f);
+    const info = await fetchOembed({ kind: "tiktok", url: "https://vt.tiktok.com/ZSabc123/", short: true, videoId: null }, f);
     expect(calls[0]).toEqual({ url: "https://vt.tiktok.com/ZSabc123/", method: "HEAD" });
     expect(calls[1].url).toBe(`https://www.tiktok.com/oembed?url=${encodeURIComponent("https://www.tiktok.com/@kreator/video/7301234567890123456")}`);
     expect(info).toMatchObject({ platform: "tiktok", author: "kreator", thumbnailUrl: "https://p16-sign.tiktokcdn.com/obj/abc.jpeg" });
     const evilThumb: FetchLike = async () => new Response(JSON.stringify({ title: "x", thumbnail_url: "http://127.0.0.1/a.jpg", author_url: "https://evil.com/" }), { status: 200 });
     expect(await fetchOembed({ kind: "youtube", url: "https://www.youtube.com/watch?v=abcDEF12345", videoId: "abcDEF12345" }, evilThumb)).toMatchObject({ thumbnailUrl: null, authorUrl: null });
     const shortToEvil: FetchLike = async () => new Response(null, { status: 301, headers: { location: "https://evil.com/x" } });
-    await expect(fetchOembed({ kind: "tiktok", url: "https://vt.tiktok.com/ZSabc123/", short: true }, shortToEvil)).rejects.toThrow();
+    await expect(fetchOembed({ kind: "tiktok", url: "https://vt.tiktok.com/ZSabc123/", short: true, videoId: null }, shortToEvil)).rejects.toThrow();
   });
 });
 

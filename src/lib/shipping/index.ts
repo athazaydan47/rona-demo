@@ -117,21 +117,27 @@ export function findCity(slug: string | null | undefined) {
   return quickCities.find((c) => c.slug === slug) ?? null;
 }
 
-// Semua opsi kurir yang melayani kota tujuan, diurutkan dari termurah. Ambil di toko tidak ikut.
-export function quoteShipping(input: { totalGram: number; citySlug: string; includePickup?: boolean; rates?: Partial<Record<CourierCode, Record<Zone, number | null>>> | null; active?: CourierCode[] | null }): ShippingQuote[] {
-  const city = findCity(input.citySlug);
-  if (!city) return [];
+// Semua opsi kurir yang melayani zona tujuan, diurutkan dari termurah. Ambil di toko tidak ikut kecuali diminta.
+// Dipakai halaman cek ongkir (lewat quoteShipping), estimasi di halaman produk, dan chat asisten (Fase 8C).
+export function quoteShippingForZone(input: { totalGram: number; zone: Zone; includePickup?: boolean; rates?: Partial<Record<CourierCode, Record<Zone, number | null>>> | null; active?: CourierCode[] | null }): ShippingQuote[] {
   const kg = billableKg(input.totalGram);
   const quotes: ShippingQuote[] = [];
   for (const c of couriers) {
     if (c.code === "ambil_di_toko" && !input.includePickup) continue;
     if (input.active && !input.active.includes(c.code)) continue;
-    const rate = c.code === "ambil_di_toko" ? 0 : input.rates?.[c.code] ? input.rates[c.code]![city.zone] : c.ratePerKg[city.zone];
-    const eta = c.eta[city.zone];
+    const rate = c.code === "ambil_di_toko" ? 0 : input.rates?.[c.code] ? input.rates[c.code]![input.zone] : c.ratePerKg[input.zone];
+    const eta = c.eta[input.zone];
     if (rate == null || eta == null) continue;
     quotes.push({ code: c.code, name: c.name, service: c.service, cost: rate * kg, etaMin: eta[0], etaMax: eta[1], etaLabel: etaLabel(eta[0], eta[1]) });
   }
   return quotes.sort((a, b) => a.cost - b.cost || a.etaMax - b.etaMax);
+}
+
+// Kota dari daftar ringkas (slug) ke zona, lalu dihitung oleh quoteShippingForZone.
+export function quoteShipping(input: { totalGram: number; citySlug: string; includePickup?: boolean; rates?: Partial<Record<CourierCode, Record<Zone, number | null>>> | null; active?: CourierCode[] | null }): ShippingQuote[] {
+  const city = findCity(input.citySlug);
+  if (!city) return [];
+  return quoteShippingForZone({ ...input, zone: city.zone });
 }
 
 export function cheapestAndFastest(quotes: ShippingQuote[]) {

@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-export type AiStatus = { tersedia: boolean; istirahat: boolean; pesanIstirahat?: string; profil: boolean };
-const OFF: AiStatus = { tersedia: false, istirahat: false, profil: false };
+// tersedia: chat asisten ada (fitur aktif, juga tanpa kunci AI). ai: Advisor AI ada. aiFoto: baca link video dan screenshot ada.
+export type AiStatus = { tersedia: boolean; ai: boolean; aiFoto: boolean; istirahat: boolean; pesanIstirahat?: string; profil: boolean; masuk: boolean };
+const OFF: AiStatus = { tersedia: false, ai: false, aiFoto: false, istirahat: false, profil: false, masuk: false };
 
 // Status AI dibaca sekali per muat halaman dan dibagi ke semua komponen (tombol Advisor, ikon video di kolom cari,
 // tombol tanya di halaman produk). Dicek saat jalan, bukan saat build, supaya env AI kosong langsung menyembunyikan UI.

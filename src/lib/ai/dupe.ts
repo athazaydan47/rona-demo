@@ -10,7 +10,7 @@ import { ONLINE_WAREHOUSE_SLUG } from "@/lib/inventory";
 import { deltaE, hexToLab, SHADE_GROUPS } from "@/lib/skin/shade";
 import type { AiModel, Part, Schema } from "./client";
 import type { ImageInput } from "./images";
-import { classifyLink, fetchOembed, type FetchLike, type OembedInfo } from "./oembed";
+import { ambilInfoVideo, classifyLink, pesanGagalLink, ringkasGagal, type FetchLike, type LinkFailure, type OembedInfo, type TiktokLink, type VideoInfoResult, type YoutubeLink } from "./oembed";
 import { CONFIDENCE, type Confidence } from "./skin-photo";
 import { cacheGet, cacheSet, logAi, shortHash } from "./usage";
 import { MEREK } from "@/config/merek";
@@ -210,9 +210,22 @@ export function matchDupe(items: CatalogItem[], ex: DupeExtraction): DupeMatch {
 // ---------- Alur lengkap ----------
 
 // skipCache dan useVideo hanya untuk evaluasi (tanpa cache, dan tanpa video YouTube supaya tidak bergantung internet).
-export type DupeDeps = { db: AnyDb; model: AiModel; now: Date; visitorHash: string; fetchImpl?: FetchLike; timeoutMs?: number; skipCache?: boolean; useVideo?: boolean };
+export type DupeDeps = { db: AnyDb; model: AiModel; now: Date; visitorHash: string; fetchImpl?: FetchLike; sleep?: (ms: number) => Promise<void>; timeoutMs?: number; skipCache?: boolean; useVideo?: boolean; onStatus?: (text: string) => void };
 export type DupeSourceInfo = Omit<OembedInfo, "url"> & { url: string };
-export type DupeOutcome = { ok: true; source: DupeSourceInfo | null; extraction: DupeExtraction; match: DupeMatch; cached: boolean } | { ok: false; message: string; suggestScreenshot?: boolean };
+export type DupeOutcome = { ok: true; source: DupeSourceInfo | null; extraction: DupeExtraction; match: DupeMatch; cached: boolean } | { ok: false; message: string; suggestScreenshot?: boolean; gagal?: LinkFailure };
+
+// Hasil membaca link video dicatat di ai_logs (fitur link_video, tanpa URL dan tanpa isi apa pun): sumber yang berhasil
+// (oembed atau halaman), atau tahap dan status HTTP yang gagal. Terlihat di Laporan, Kesehatan AI.
+export async function logLinkVideo(deps: Pick<DupeDeps, "db" | "visitorHash" | "now">, r: VideoInfoResult, ms: number) {
+  await logAi(deps.db, { feature: "link_video", model: r.ok ? r.sumber : "gagal", latencyMs: ms, ok: r.ok, error: r.ok ? null : ringkasGagal(r.gagal, r.jejak), visitorHash: deps.visitorHash, at: deps.now }).catch(() => {});
+}
+
+export async function bacaLinkVideo(deps: DupeDeps, link: TiktokLink | YoutubeLink): Promise<VideoInfoResult> {
+  const t0 = Date.now();
+  const r = await ambilInfoVideo(link, { fetchImpl: deps.fetchImpl, sleep: deps.sleep });
+  await logLinkVideo(deps, r, Date.now() - t0);
+  return r;
+}
 
 async function catalogContext(db: AnyDb, now: Date) {
   const items = await loadCatalogItems(db, { kind: "all" }, now);
@@ -247,12 +260,11 @@ export async function dupeFromLink(deps: DupeDeps, input: string): Promise<DupeO
     const ig = /instagram\.com$|instagr\.am$/.test(link.host);
     return { ok: false, suggestScreenshot: true, message: `${ig ? "Link Instagram" : `Link dari ${link.host}`} belum bisa kami buka. Kirim screenshot produknya saja, ya, hasilnya sama bagusnya.` };
   }
-  let info: OembedInfo;
-  try {
-    info = await fetchOembed(link, deps.fetchImpl);
-  } catch {
-    return { ok: false, suggestScreenshot: true, message: "Videonya tidak bisa dibuka. Pastikan videonya publik, atau kirim screenshot produknya." };
-  }
+  deps.onStatus?.("Aku lihat videonya dulu ya");
+  const read = await bacaLinkVideo(deps, link);
+  if (!read.ok) return { ok: false, suggestScreenshot: true, message: pesanGagalLink(read.gagal), gagal: read.gagal };
+  const info: OembedInfo = read.info;
+  deps.onStatus?.("Mengenali produk di video");
   const { items, categories, brands } = await catalogContext(deps.db, deps.now);
   const key = `dupe:${shortHash(info.url)}`;
   const cached = deps.skipCache ? null : await cacheGet<unknown>(deps.db, key, deps.now).catch(() => null);
@@ -266,14 +278,16 @@ export async function dupeFromLink(deps: DupeDeps, input: string): Promise<DupeO
       ex = await extract(deps, [{ fileData: { fileUri: info.url }, videoMetadata: { startOffset: "0s", ...YOUTUBE_CLIP } }, { text: dupePrompt("video", brands, caption) }], categories, "dupe");
     }
     ex ??= await extract(deps, [{ text: dupePrompt("teks", brands, caption) }], categories, "dupe");
-    if (!ex) return { ok: false, message: "Produk di video belum bisa kami kenali. Coba kirim screenshot yang lebih jelas, ya." };
+    if (!ex) return { ok: false, suggestScreenshot: true, message: "Produk di video belum bisa kami kenali. Coba kirim screenshot yang lebih jelas, ya." };
     await cacheSet(deps.db, key, "dupe", ex, DUPE_CACHE_DAYS, deps.now).catch(() => {});
   }
+  deps.onStatus?.("Mencocokkan dengan katalog");
   return { ok: true, source: info, extraction: ex, match: matchDupe(items, ex), cached: Boolean(cached) };
 }
 
 // Screenshot diproses di memori lalu dibuang: tidak di-cache dan tidak disimpan di mana pun.
 export async function dupeFromScreenshots(deps: DupeDeps, images: ImageInput[]): Promise<DupeOutcome> {
+  deps.onStatus?.("Membaca screenshot-mu");
   const { items, categories, brands } = await catalogContext(deps.db, deps.now);
   const ex = await extract(deps, [...images.slice(0, MAX_SCREENSHOTS).map((img) => ({ inlineData: img })), { text: dupePrompt("gambar", brands) }], categories, "dupe");
   if (!ex) return { ok: false, message: "Screenshot belum bisa kami baca. Coba screenshot yang lebih jelas, ya." };

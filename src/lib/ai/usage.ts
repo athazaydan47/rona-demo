@@ -10,7 +10,9 @@ import { MEREK, namaCookie } from "@/config/merek";
 import { logEvent } from "@/lib/log";
 
 export const VISITOR_COOKIE = namaCookie("pengunjung");
-export const LIMITS = { chatPerDayDemo: 20, chatPerMinute: 5, photoPerDay: 5, dupePerDay: 10, adminPerDay: 80, transcribePerDay: 40 } as const;
+export const LIMITS = { chatPerDayDemo: 20, chatPerMinute: 5, photoPerDay: 5, dupePerDay: 10, adminPerDay: 80, transcribePerDay: 40, pembeliPerDay: 30 } as const;
+// Fitur AI pembeli yang berbagi satu batas harian per pengunjung (Fase 8C), di samping batas per fitur dan batas global.
+export const BUYER_AI_FEATURES = ["advisor", "dupe", "foto_kulit", "padanan_shade"] as const;
 
 export function visitorHash(visitorId: string, secret = process.env.SESSION_SECRET ?? `${MEREK.kunci}-demo`) {
   return createHash("sha256").update(`${secret}:${visitorId}`).digest("hex").slice(0, 32);
@@ -42,16 +44,32 @@ export async function logAi(db: AnyDb, l: AiLogInput) {
 export type LimitResult = { ok: true } | { ok: false; reason: "harian" | "menit" | "global"; message: string };
 export const RESTING_MESSAGE = `${MEREK.asisten.nama} sedang istirahat, coba lagi besok. Kuis kulit, rutinitas, dan pencarian tetap bisa dipakai.`;
 
+// Catatan di ai_logs yang bukan panggilan model: hasil membaca link video (Fase 8C). Tidak dihitung di batas AI.
+export const NON_AI_FEATURES = ["link_video"] as const;
+
 // Batas global: jumlah panggilan AI hari ini (WIB, semua fitur) dibanding AI_DAILY_CAP.
 export async function globalCapReached(db: AnyDb, cfg: AiConfig, now: Date) {
   // Hasil dari cache (model "cache") tidak memanggil AI, jadi tidak dihitung.
-  const [{ n }] = await db.select({ n: count() }).from(schema.aiLogs).where(and(gte(schema.aiLogs.createdAt, wibDayStart(now)), sql`${schema.aiLogs.feature} <> 'eval'`, sql`${schema.aiLogs.model} <> 'cache'`));
+  const [{ n }] = await db.select({ n: count() }).from(schema.aiLogs).where(and(gte(schema.aiLogs.createdAt, wibDayStart(now)), sql`${schema.aiLogs.feature} not in ('eval', 'link_video')`, sql`${schema.aiLogs.model} <> 'cache'`));
   return Number(n) >= cfg.dailyCap;
 }
 
-// Batas chat per pengunjung: 20 pesan per hari WIB saat DEMO_MODE, dan 5 pesan per menit.
+export const SHARED_LIMIT_MESSAGE = `Kuota AI-mu hari ini sudah habis. Kuis kulit, rutinitas, padanan shade, lacak pesanan, dan cek ongkir tetap bisa dipakai di ${MEREK.asisten.nama}.`;
+
+// Batas bersama: semua panggilan AI pembeli (chat, link dan screenshot, foto kuis, tafsir shade) per pengunjung per hari.
+export async function checkSharedBuyerLimit(db: AnyDb, hash: string, now: Date): Promise<LimitResult> {
+  const [{ day }] = await db
+    .select({ day: count() })
+    .from(schema.aiLogs)
+    .where(and(eq(schema.aiLogs.visitorHash, hash), sql`${schema.aiLogs.feature} in ('advisor', 'dupe', 'foto_kulit', 'padanan_shade')`, sql`${schema.aiLogs.model} <> 'cache'`, gte(schema.aiLogs.createdAt, wibDayStart(now))));
+  return Number(day) >= LIMITS.pembeliPerDay ? { ok: false, reason: "harian", message: SHARED_LIMIT_MESSAGE } : { ok: true };
+}
+
+// Batas chat per pengunjung: 20 pesan per hari WIB saat DEMO_MODE, dan 5 pesan per menit, plus batas bersama.
 export async function checkChatLimit(db: AnyDb, cfg: AiConfig, hash: string, now: Date): Promise<LimitResult> {
   if (await globalCapReached(db, cfg, now)) return { ok: false, reason: "global", message: RESTING_MESSAGE };
+  const shared = await checkSharedBuyerLimit(db, hash, now);
+  if (!shared.ok) return shared;
   const base = and(eq(schema.aiLogs.visitorHash, hash), eq(schema.aiLogs.feature, "advisor"));
   const [[{ minute }], [{ day }]] = await Promise.all([
     db.select({ minute: count() }).from(schema.aiLogs).where(and(base, gt(schema.aiLogs.createdAt, new Date(now.getTime() - 60_000)))),
@@ -65,6 +83,10 @@ export async function checkChatLimit(db: AnyDb, cfg: AiConfig, hash: string, now
 // Batas harian per pengunjung untuk fitur foto dan link (berlaku juga di luar DEMO_MODE), plus batas global.
 export async function checkDailyFeatureLimit(db: AnyDb, cfg: AiConfig, hash: string, feature: string, perDay: number, now: Date, label: string): Promise<LimitResult> {
   if (await globalCapReached(db, cfg, now)) return { ok: false, reason: "global", message: "Fitur AI sedang istirahat, coba lagi besok. Kamu tetap bisa mengisi kuis dan mencari produk seperti biasa." };
+  if ((BUYER_AI_FEATURES as readonly string[]).includes(feature)) {
+    const shared = await checkSharedBuyerLimit(db, hash, now);
+    if (!shared.ok) return shared;
+  }
   const [{ day }] = await db.select({ day: count() }).from(schema.aiLogs).where(and(eq(schema.aiLogs.visitorHash, hash), eq(schema.aiLogs.feature, feature), gte(schema.aiLogs.createdAt, wibDayStart(now))));
   if (Number(day) >= perDay) return { ok: false, reason: "harian", message: `Kamu sudah memakai ${label} ${perDay} kali hari ini. Coba lagi besok, ya.` };
   return { ok: true };

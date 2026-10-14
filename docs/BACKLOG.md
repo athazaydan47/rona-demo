@@ -37,6 +37,7 @@ Tambahkan butir baru di kelompok yang sesuai, satu butir per baris, dengan fase 
 - **Pembersihan berkala foto yatim di Blob** (foto ulasan batal dikirim, foto produk yang diganti atau dihapus). Alasan: reset demo menghapusnya tiap malam. (Fase 5, Fase 6B)
 - **Penyedia ubin peta dengan kunci** atau server ubin sendiri, sesuai kebijakan OpenStreetMap untuk trafik nyata. Alasan: trafik demo kecil. (Fase 4)
 - **Log Cloudflare AI Gateway tanpa isi percakapan teks.** Permintaan berisi gambar sudah tanpa isi. Matikan payload log di pengaturan gateway. Alasan: berguna untuk memantau gangguan saat demo. (Fase 7C)
+- **TikTok bisa memblokir IP server.** Link dibaca lewat oEmbed dengan percobaan ulang, lalu halaman video; halaman video membalas tantangan bot begitu IP ditandai. Bila `npm run uji:produksi` menunjukkan blokir dari Vercel, pertimbangkan API resmi TikTok atau layanan pihak ketiga yang berizin. Pembeli selalu ditawari screenshot. Alasan: demo cukup dengan percobaan ulang dan screenshot. (Fase 8C)
 - **Pembaca video YouTube Gemini masih pratinjau.** Bila berubah atau berbayar, ekstraksi jatuh ke judul saja. Alasan: fitur pratinjau pihak ketiga. (Fase 7C)
 - **Laju jual cabang dari data kasir.** Saran transfer memakai lokasi pesanan sebagai lokasi penjualan. Alasan: belum ada kasir di toko. (Fase 7B)
 - **Label kirim dengan font TTF.** Font standar PDF membuang karakter di luar Latin-1. Alasan: nama dan alamat demo berhuruf Latin. (Fase 6A)
@@ -73,6 +74,10 @@ Tambahkan butir baru di kelompok yang sesuai, satu butir per baris, dengan fase 
 
 ### AI
 
+- **Pengenal niat Tanya Rona berbasis pola kata.** Kalimat campuran (misal produk dan ongkir sekaligus) diproses sebagai satu niat. Kalimat yang tidak dikenali aturan diteruskan ke model, yang punya tool yang sama. (Fase 8C)
+- **Ongkir di chat memakai berat bawaan 500 gram**, belum membaca isi keranjang. Angka pasti tetap di checkout. (Fase 8C)
+- **Riwayat Tanya Rona hanya di sesi browser**, dan kartu interaktif (kuis yang setengah jalan) tidak dipulihkan setelah halaman dimuat ulang. (Fase 8C)
+- **Link TikTok contoh di panduan demo milik kreator sungguhan** dan bisa dihapus kapan saja. `npm run cek:tiktok` dan `npm run uji:produksi` memeriksanya; ganti di `src/lib/content/demo.ts` bila gagal. (Fase 8C)
 - **Riwayat chat Asisten Admin** hanya di sesi browser, pertanyaan lanjutan memahami 8 giliran terakhir. (Fase 7B)
 - **Deteksi nama produk karangan model** hanya mengenali nama katalog. Alasan: kartu hanya dari id hasil tool, jadi produk karangan tidak pernah bisa dibeli. (Fase 7A)
 - **Uji penjaga hanya-baca Asisten Admin** memeriksa pemanggilan insert, update, dan delete langsung, bukan fungsi baca yang dibungkus. (Fase 7B)
@@ -80,6 +85,7 @@ Tambahkan butir baru di kelompok yang sesuai, satu butir per baris, dengan fase 
 
 ### Kode dan uji
 
+- **`src/components/ai/open-advisor-button.tsx` tidak dipakai lagi** sejak halaman /advisor memakai contoh kalimat Tanya Rona. Dibiarkan sampai ada izin menghapus berkas dari fase lain. (Fase 8C)
 - **CSP dengan hash, bukan `'unsafe-inline'`**, setelah Next mendukung hash untuk payload prarender sebagian. (Fase 8B)
 - **Panel admin dengan root layout sendiri.** Saat ini kerangka toko disembunyikan dengan CSS di halaman admin, dan komponen klien header toko ikut memanggil server. Alasan: menunggu `global-not-found` Next stabil. (Fase 6A)
 - **Cakupan uji modul AI dan pesanan di bawah 85%.** Yang belum tercakup terutama pembungkus server action dan query halaman, yang diuji lewat Playwright. Logika uang dan stok sudah di atas 85%. (Fase 8B)

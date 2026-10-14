@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Sparkles } from "lucide-react";
-import { OpenAdvisorButton } from "@/components/ai/open-advisor-button";
+import { ContohTanya } from "@/components/tanya/contoh-tanya";
 import { Button } from "@/components/ui/button";
 import { aiTersedia } from "@/lib/ai";
 import { MEREK } from "@/config/merek";
@@ -12,21 +12,16 @@ import { notFound } from "next/navigation";
 
 export const metadata: Metadata = { title: MEREK.asisten.nama, description: `Asisten belanja AI yang hanya merekomendasikan produk yang benar-benar ada di katalog ${MEREK.nama}, dengan harga dan stok dari server.` };
 
-const CONTOH = ["Sunscreen untuk kulit berminyak di bawah 100 ribu", "Kulitku sawo matang, shade cushion yang pas yang mana?", "Lip tint apa saja yang stoknya ada di toko?"];
-
 async function Cta() {
   await connection();
-  if (!aiTersedia("aiPembeli"))
-    return (
-      <p className="rounded-card border border-garis bg-putih p-5 text-sm text-abu-hangat" data-testid="advisor-nonaktif">
-        {MEREK.asisten.nama} sedang tidak aktif di lingkungan ini. Kuis kulit, rutinitas, dan padanan shade tetap bisa dipakai.
-      </p>
-    );
   return (
-    <div className="flex flex-wrap gap-2">
-      {CONTOH.map((c) => (
-        <OpenAdvisorButton key={c} prompt={c} />
-      ))}
+    <div className="space-y-3">
+      {!aiTersedia("aiPembeli") ? (
+        <p className="rounded-card border border-garis bg-putih p-5 text-sm text-abu-hangat" data-testid="advisor-nonaktif">
+          AI sedang tidak aktif di lingkungan ini. Kuis kulit, rutinitas, padanan shade, lacak pesanan, dan ongkir tetap bisa dipakai di chat.
+        </p>
+      ) : null}
+      <ContohTanya />
     </div>
   );
 }
@@ -39,8 +34,8 @@ export default function AdvisorPage() {
       <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-aksen uppercase">
         <Sparkles className="size-3.5" aria-hidden /> {MEREK.asisten.nama}
       </p>
-      <h1 className="mt-2 font-serif text-3xl font-medium text-balance text-kopi md:text-4xl">Tanya produk, shade, dan stok. Jawabannya dari katalog, bukan karangan.</h1>
-      <p className="mt-4 text-lg text-abu-hangat">Advisor wajib membaca katalog sebelum menjawab, lalu server memeriksa setiap produk, harga, dan stok yang disebut. Jawaban AI bisa keliru, tapi kartu produknya selalu nyata.</p>
+      <h1 className="mt-2 font-serif text-3xl font-medium text-balance text-kopi md:text-4xl">Satu chat untuk produk, shade, video, ongkir, dan pesanan. Jawabannya dari data toko, bukan karangan.</h1>
+      <p className="mt-4 text-lg text-abu-hangat">Rekomendasi, kuis kulit, rutinitas, padanan shade, cari dari link TikTok atau screenshot, lacak pesanan, ongkir, dan jam buka cabang ada di satu tempat. Server memeriksa setiap produk, harga, dan stok; kartu yang tampil selalu nyata.</p>
       <div className="mt-8">
         <Suspense fallback={<div className="h-20 animate-pulse rounded-card bg-garis/40" />}>
           <Cta />

@@ -829,3 +829,15 @@ Deploy pertama dilakukan setelah Prompt 4 (supaya alur beli sudah bisa dicoba on
 8. Tutup dengan kalimat: "Ini demo dengan data fiktif. Untuk tokomu, merek, stok, dan cabangnya diganti dengan punyamu, dan bisa disambung ke kasir di toko."
 
 Setelah dia tertarik, langkah berikutnya adalah sesi scoping dengan 5 pertanyaan yang sudah kita susun sebelumnya, lalu RAB per fitur.
+
+## Tambahan Fase 8C: Tanya Rona satu pintu
+
+Uji di HP sungguhan menemukan dua masalah: link TikTok asli gagal dibaca (endpoint oEmbed TikTok menolak sekitar separuh permintaan secara acak dengan HTTP 503, dan kode lama hanya mencoba sekali), dan fitur pembeli tersebar di banyak halaman. Sejak Fase 8C:
+
+- **Tanya Rona adalah satu pintu.** Semua yang bisa dilakukan pembeli di halaman kuis kulit, rutinitas, padanan shade, cari dari video, lacak, cek ongkir, toko kami, dan bantuan juga bisa dilakukan di dalam chat dengan kartu interaktif. Halaman lama tetap ada dan memakai fungsi server yang sama.
+- **Kemampuan berbasis aturan tidak butuh AI.** Kuis, rutinitas, padanan shade, lacak pesanan, ongkir, info cabang, promo, dan bantuan tetap jalan saat kunci AI kosong atau kuota habis. Pertanyaan bebas memakai Advisor seperti sebelumnya.
+- **Link video dibaca ulang dengan tangguh.** Tautan pendek diselesaikan beberapa langkah, oEmbed dicoba ulang untuk 429 dan 5xx, lalu caption dibaca dari halaman video bila oEmbed tetap gagal. Bila semuanya gagal, pembeli langsung ditawari kirim screenshot. Setiap kegagalan tercatat per tahap di Kesehatan AI.
+- **Lacak pesanan di chat** memakai aturan yang sama dengan /lacak: nomor pesanan dan nomor WA harus cocok, atau pembeli yang masuk membuka pesanannya sendiri. Model tidak pernah menerima data pesanan.
+- **Voucher punya penanda publik.** Hanya voucher yang ditandai "Tawarkan ke semua pembeli" yang disebut Tanya Rona.
+
+Skenario demo 5 menit, langkah 5 diganti: buka Tanya Rona dan tekan salah satu contoh kalimat di panduan demo (rekomendasi, padanan shade, link TikTok, ongkir, atau kenali kulitku).

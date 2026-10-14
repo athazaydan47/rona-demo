@@ -10,7 +10,6 @@ import { formatRupiah } from "@/lib/format";
 import type { SearchSuggestions } from "@/lib/catalog/catalog-queries";
 import { cn } from "@/lib/utils";
 import { kunciLokal } from "@/config/merek";
-import { fiturAktif } from "@/config/fitur";
 
 const RECENT_KEY = kunciLokal("search.recent");
 const POPULAR = ["cushion", "sunscreen", "lip tint", "serum niacinamide", "parfum"];
@@ -200,7 +199,7 @@ export function SearchBox({ className, autoFocus = false, initialQuery = "" }: {
         >
           <X className="size-4" />
         </button>
-      ) : ai.tersedia && fiturAktif("aiFotoLink") ? (
+      ) : ai.aiFoto ? (
         <Link
           href="/cari-dari-video"
           className="absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-abu-hangat hover:bg-porselen hover:text-aksen"

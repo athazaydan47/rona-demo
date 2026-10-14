@@ -13,9 +13,9 @@ import type { QuizSuggestion } from "@/lib/ai/skin-photo";
 import { PhotoAssist } from "./photo-assist";
 
 // Ilustrasi SVG buatan sendiri (wajah sederhana, bukan foto orang).
-function FaceArt({ kind }: { kind: string }) {
+export function FaceArt({ kind, className = "size-14" }: { kind: string; className?: string }) {
   return (
-    <svg viewBox="0 0 80 80" className="size-14" aria-hidden>
+    <svg viewBox="0 0 80 80" className={className} aria-hidden>
       <ellipse cx="40" cy="42" rx="24" ry="29" fill="#EBC6A6" />
       <path d="M17 34c3-16 13-24 23-24s20 8 23 24c-6-8-14-11-23-11s-17 3-23 11z" fill="#3B2A24" />
       <circle cx="31" cy="42" r="2.2" fill="#3B2A24" />

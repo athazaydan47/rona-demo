@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Check, ListChecks, X } from "lucide-react";
 import { bacaPanduan, BUKA_EVENT, LANGKAH, langkahDariUrl, PANDUAN_EVENT, simpanPanduan, tandaiLangkah, type LangkahId, type PanduanState } from "@/lib/demo/panduan";
 import { cn } from "@/lib/utils";
+import { ContohTanya } from "@/components/tanya/contoh-tanya";
 import { MEREK } from "@/config/merek";
 
 const EMPTY: PanduanState = { selesai: [], tutup: false, pernahDibuka: false };
@@ -90,6 +91,7 @@ export function DemoGuide() {
                   )}
                 </p>
                 <p className="text-xs text-abu-hangat">{l.detail}</p>
+                {l.id === "advisor" ? <ContohTanya ringkas className="mt-1.5" /> : null}
               </div>
             </li>
           );

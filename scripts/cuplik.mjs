@@ -23,6 +23,7 @@ import { captureAiPhotoFlow } from "./cuplik-ai-foto.mjs";
 import { captureAiAdminFlow } from "./cuplik-ai-admin.mjs";
 import { captureAccountFlow } from "./cuplik-akun.mjs";
 import { captureBuyFlow } from "./cuplik-alur-beli.mjs";
+import { captureTanyaRonaFlow } from "./cuplik-tanya-rona.mjs";
 
 const BASE_URL = (process.env.CUPLIK_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const OUT_DIR = path.resolve("_review");
@@ -67,6 +68,9 @@ const ACTIONS = {
   // Alur AI admin Fase 7B (server dengan AI_PROVIDER=mock): Asisten Admin, saran transfer, penulis deskripsi, draf balasan
   // ulasan, Kabar Harian, dan tab Rona Advisor.
   "ai-admin": { flow: true, label: "alur AI admin", capture: captureAiAdminFlow, covers: ["/admin"] },
+  // Tanya Rona Fase 8C (server dengan AI_PROVIDER=mock), pakai --lebar=375: layar pembuka, kuis, rutinitas, dupe dari
+  // link, lacak pesanan, dan ongkir di dalam chat.
+  "tanya-rona": { flow: true, label: "Tanya Rona", capture: captureTanyaRonaFlow, covers: ["/"] },
 };
 
 function parseArgs(argv) {

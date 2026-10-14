@@ -1,80 +1,83 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { headers } from "next/headers";
 import { db, schema } from "@/db/client";
-import { ONLINE_WAREHOUSE_SLUG } from "@/lib/inventory";
 import { aiConfig, aiModel, aiTersedia } from "@/lib/ai";
-import { MAX_HISTORY, MAX_MESSAGE_CHARS, runAdvisor, type ChatTurn } from "@/lib/ai/advisor";
-import { checkChatLimit, globalCapReached, logAi, RESTING_MESSAGE } from "@/lib/ai/usage";
+import { MAX_HISTORY, MAX_MESSAGE_CHARS, type ChatTurn } from "@/lib/ai/advisor";
+import { mockOembedFetch } from "@/lib/ai/oembed";
+import { globalCapReached, logAi, RESTING_MESSAGE } from "@/lib/ai/usage";
 import { currentVisitorHash } from "@/lib/ai/visitor";
-import { toCardData } from "@/lib/catalog/catalog-queries";
-import { loadCatalogItems } from "@/lib/catalog/load-items";
+import { currentCustomer } from "@/lib/auth/current";
 import { now } from "@/lib/clock";
 import { rejectCrossOrigin } from "@/lib/security/origin";
+import { clientIp, hashKey, limitByKey } from "@/lib/security/rate-limit";
 import { currentSkinProfile } from "@/lib/skin/current";
+import type { TanyaEvent } from "@/lib/tanya/kartu";
+import { jawabTanya } from "@/lib/tanya/otak";
+import { cocok, skema } from "@/lib/validasi";
 import { MEREK } from "@/config/merek";
+import { fiturAktif } from "@/config/fitur";
 
-// Advisor pembeli. Jawaban dialirkan sebagai NDJSON: status per tool, potongan teks, lalu kartu produk dari data server.
+// chat asisten satu pintu (Fase 8C). Jawaban dialirkan sebagai NDJSON: status per tahap, potongan teks, lalu kartu dari
+// data server. Tersedia selama fitur aktif; tanpa kunci AI, kemampuan berbasis aturan tetap jalan.
 export const maxDuration = 60;
 
 export async function GET() {
+  if (!fiturAktif("aiPembeli")) return NextResponse.json({ tersedia: false }, { status: 404 });
   const cfg = aiConfig();
-  if (!aiTersedia("aiPembeli", cfg)) return NextResponse.json({ tersedia: false }, { status: 404 });
-  const [istirahat, profil] = await Promise.all([globalCapReached(db, cfg, now()).catch(() => false), currentSkinProfile().catch(() => null)]);
-  return NextResponse.json({ tersedia: true, istirahat, pesanIstirahat: RESTING_MESSAGE, profil: Boolean(profil?.skinType) }, { headers: { "Cache-Control": "no-store" } });
+  const ai = aiTersedia("aiPembeli", cfg);
+  const [istirahat, profil, me] = await Promise.all([ai ? globalCapReached(db, cfg, now()).catch(() => false) : false, currentSkinProfile().catch(() => null), currentCustomer().catch(() => null)]);
+  return NextResponse.json({ tersedia: true, ai, aiFoto: aiTersedia("aiFotoLink", cfg), istirahat, pesanIstirahat: RESTING_MESSAGE, profil: Boolean(profil?.skinType), masuk: Boolean(me) }, { headers: { "Cache-Control": "no-store" } });
 }
 
 function parseHistory(raw: unknown): ChatTurn[] | null {
-  if (!Array.isArray(raw) || raw.length === 0 || raw.length > 40) return null;
+  if (!Array.isArray(raw) || raw.length > 40) return null;
   const turns = raw
     .slice(-MAX_HISTORY)
     .map((t) => ({ role: t?.role === "assistant" ? ("assistant" as const) : ("user" as const), text: String(t?.text ?? "").slice(0, MAX_MESSAGE_CHARS) }))
     .filter((t) => t.text.trim());
-  if (!turns.length || turns[turns.length - 1].role !== "user") return null;
   return turns;
 }
 
 export async function POST(request: NextRequest) {
   const crossOrigin = rejectCrossOrigin(request);
   if (crossOrigin) return crossOrigin;
+  if (!fiturAktif("aiPembeli")) return NextResponse.json({ ok: false, message: `${MEREK.asisten.nama} belum tersedia.` }, { status: 404 });
+  const body = (await request.json().catch(() => null)) as { pesan?: unknown; produkId?: unknown; aksi?: unknown } | null;
+  const aksi = body?.aksi == null ? null : cocok(skema.aksiTanya, body.aksi);
+  if (body?.aksi != null && !aksi) return NextResponse.json({ ok: false, message: "Aksi tidak valid." }, { status: 400 });
+  const history = parseHistory(body?.pesan ?? []);
+  if (!history || (!aksi && (!history.length || history[history.length - 1].role !== "user"))) return NextResponse.json({ ok: false, message: "Pesan tidak valid." }, { status: 400 });
+  const produkId = Number.isInteger(Number(body?.produkId)) && Number(body?.produkId) > 0 ? Number(body?.produkId) : null;
+  const ipKey = hashKey(clientIp(await headers()));
+  // Batas ringan untuk semua permintaan (termasuk aksi tanpa AI); batas AI dan lacak dihitung terpisah di database.
+  if (!limitByKey(`tanya:${ipKey}`, 60, 60_000)) return NextResponse.json({ ok: false, message: "Pelan-pelan, ya. Tunggu sebentar sebelum bertanya lagi." }, { status: 429 });
   const cfg = aiConfig();
-  const model = aiModel("aiPembeli", cfg);
-  if (!model) return NextResponse.json({ ok: false, message: `${MEREK.asisten.nama} belum tersedia.` }, { status: 404 });
-  const body = (await request.json().catch(() => null)) as { pesan?: unknown; produkId?: unknown } | null;
-  const history = parseHistory(body?.pesan);
-  if (!history) return NextResponse.json({ ok: false, message: "Pesan tidak valid." }, { status: 400 });
-  const productId = Number.isInteger(Number(body?.produkId)) && Number(body?.produkId) > 0 ? Number(body?.produkId) : null;
   const at = now();
-  const hash = await currentVisitorHash();
-  const limit = await checkChatLimit(db, cfg, hash, at);
-  if (!limit.ok) return NextResponse.json({ ok: false, message: limit.message, alasan: limit.reason }, { status: 429 });
-  const profile = await currentSkinProfile();
+  const [hash, me, profile] = await Promise.all([currentVisitorHash(), currentCustomer(), currentSkinProfile()]);
   // Corong Advisor (tab Laporan): satu pesan pembeli satu catatan, tanpa isi pesan.
-  await db.insert(schema.advisorEvents).values({ kind: "percakapan", visitorHash: hash, createdAt: at }).catch(() => {});
+  if (!aksi) await db.insert(schema.advisorEvents).values({ kind: "percakapan", visitorHash: hash, createdAt: at }).catch(() => {});
+  const deps = {
+    db,
+    now: at,
+    cfg,
+    model: aiModel("aiPembeli", cfg),
+    modelFoto: aiModel("aiFotoLink", cfg),
+    visitorHash: hash,
+    ipKey,
+    customerId: me?.customerId ?? null,
+    profile,
+    fetchImpl: cfg.provider === "mock" ? mockOembedFetch : undefined,
+  };
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
-      const send = (e: Record<string, unknown>) => controller.enqueue(encoder.encode(`${JSON.stringify(e)}\n`));
+      const send = (e: TanyaEvent) => controller.enqueue(encoder.encode(`${JSON.stringify(e)}\n`));
       const t0 = Date.now();
-      // Peristiwa dialirkan apa adanya: status per tool, kalimat pembuka dari catatan tool, lalu kalimat jawaban
-      // yang sudah lolos pemeriksaan. Kartu produk dibangun dari data server terbaru.
-      const r = await runAdvisor(db, model, { history, productId, profile, now: at }, (e) => send(e));
-      const items = r.productIds.length ? await loadCatalogItems(db, { kind: "ids", ids: r.productIds }, at) : [];
-      const byId = new Map(items.map((i) => [i.id, i]));
-      const locs = new Map((await db.select({ slug: schema.locations.slug, name: schema.locations.name }).from(schema.locations)).map((l) => [l.slug, l.name]));
-      const products = r.products
-        .map((p) => ({ p, i: byId.get(p.id) }))
-        .filter((x): x is { p: (typeof r.products)[number]; i: NonNullable<ReturnType<typeof byId.get>> } => Boolean(x.i))
-        .map(({ p, i }) => {
-          const branches = new Set<string>();
-          for (const v of i.variants) for (const [slug, n] of Object.entries(v.stockByLocation)) if (n > 0 && slug !== ONLINE_WAREHOUSE_SLUG) branches.add(locs.get(slug) ?? slug);
-          const online = i.variants.reduce((s, v) => s + (v.stockByLocation[ONLINE_WAREHOUSE_SLUG] ?? 0), 0);
-          return { ...toCardData(i), alasan: p.alasan, stokOnline: online, cabang: [...branches].sort() };
-        });
-      // Total paket dihitung server dari harga efektif kartu, bukan dari model.
-      const total = products.length > 1 ? products.reduce((s, p) => s + p.price, 0) : null;
-      send({ type: "done", ok: r.ok, teks: r.text, produk: products, total });
+      const r = await jawabTanya(deps, { history, produkId, aksi }, send).catch((e: unknown) => ({ ok: false, teks: `${MEREK.asisten.nama} sedang tidak bisa dihubungi. Coba lagi sebentar lagi, ya.`, kartu: [], chips: [], jalur: "ai" as const, niat: null, usage: { input: 0, output: 0 }, toolCalls: [], firstTextMs: null, error: e instanceof Error ? e.message : String(e) }));
+      send({ type: "done", ok: r.ok, teks: r.teks, kartu: r.kartu, chips: r.chips });
       controller.close();
-      await logAi(db, { feature: "advisor", model: model.name, inputTokens: r.usage.input, outputTokens: r.usage.output, latencyMs: Date.now() - t0, ok: r.ok, error: r.error, visitorHash: hash, at }).catch(() => {});
+      if (r.jalur === "ai" && deps.model) await logAi(db, { feature: "advisor", model: deps.model.name, inputTokens: r.usage.input, outputTokens: r.usage.output, latencyMs: Date.now() - t0, ok: r.ok, error: r.error, visitorHash: hash, tools: r.toolCalls, at }).catch(() => {});
     },
   });
   return new Response(stream, { headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" } });

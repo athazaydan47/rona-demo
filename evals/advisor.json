@@ -147,5 +147,225 @@
       "pertanyaan": "Susunin rutinitas skincare pagi malam buat aku dong",
       "harapan": "bebas"
     }
+  ],
+  "keteranganTanya": "Fase 8C, Tanya Rona satu pintu (bagian tanya di npm run eval:ai): dijalankan lewat jawabTanya seperti route. harapan.kartu: jenis kartu yang wajib ada; harapan.tanpaKartu: jenis yang tidak boleh ada; harapan.teks: pola teks (regex, huruf kecil); harapan.tanpaModel: model tidak dipanggil (aturan); harapan.model: model wajib dipanggil (tool). {NOMOR_TAMU} dan {WA_TAMU} diisi pesanan tamu acak dari database. Link video memakai oEmbed tiruan (tanpa internet selain API model).",
+  "tanya": [
+    {
+      "id": "link-tiktok-tengah",
+      "pertanyaan": "Kak ada yang mirip ini ga https://vt.tiktok.com/ZSdemo0001/ buat kondangan?",
+      "harapan": {
+        "kartu": [
+          "dupe"
+        ],
+        "tanpaKartu": [
+          "unggah"
+        ]
+      }
+    },
+    {
+      "id": "link-tiktok-panjang",
+      "pertanyaan": "https://www.tiktok.com/@demo.kreator/video/7300000000000000002?is_from_webapp=1&sender_device=pc cushionnya ada yang mirip?",
+      "harapan": {
+        "kartu": [
+          "dupe"
+        ]
+      }
+    },
+    {
+      "id": "link-instagram",
+      "pertanyaan": "https://www.instagram.com/reel/C0ntoh/ lipstiknya ada di sini?",
+      "harapan": {
+        "kartu": [
+          "unggah"
+        ],
+        "tanpaKartu": [
+          "dupe"
+        ],
+        "teks": "instagram",
+        "tanpaModel": true
+      }
+    },
+    {
+      "id": "link-shopee",
+      "pertanyaan": "shopee.co.id/lipstik-matte-123 yang ini dijual juga?",
+      "harapan": {
+        "kartu": [
+          "unggah"
+        ],
+        "tanpaModel": true
+      }
+    },
+    {
+      "id": "video-tanpa-link",
+      "pertanyaan": "Aku lihat lipstik bagus banget di video TikTok tapi lupa namanya, bisa bantu cari?",
+      "harapan": {
+        "kartu": [
+          "video"
+        ],
+        "teks": "link|screenshot",
+        "tanpaModel": true
+      }
+    },
+    {
+      "id": "kuis-minta",
+      "pertanyaan": "Bantu aku pilih skincare dong, bingung mulai dari mana",
+      "harapan": {
+        "kartu": [
+          "kuis"
+        ],
+        "tanpaModel": true
+      }
+    },
+    {
+      "id": "kuis-parafrase",
+      "pertanyaan": "Sebelum beli apa-apa, aku mau tahu dulu kulitku tipe apa",
+      "harapan": {
+        "kartu": [
+          "kuis"
+        ],
+        "model": true
+      }
+    },
+    {
+      "id": "lacak-tanpa-nomor",
+      "pertanyaan": "lacak pesananku",
+      "harapan": {
+        "kartu": [
+          "form_lacak"
+        ],
+        "tanpaKartu": [
+          "pesanan"
+        ],
+        "tanpaModel": true
+      }
+    },
+    {
+      "id": "lacak-parafrase",
+      "pertanyaan": "Paketku kok belum datang juga ya?",
+      "harapan": {
+        "kartu": [
+          "form_lacak"
+        ],
+        "tanpaKartu": [
+          "pesanan"
+        ]
+      }
+    },
+    {
+      "id": "lacak-wa-salah",
+      "pertanyaan": "Cek pesanan {NOMOR_TAMU} nomor WA 089911112222",
+      "harapan": {
+        "kartu": [
+          "form_lacak"
+        ],
+        "tanpaKartu": [
+          "pesanan"
+        ],
+        "teks": "tidak ditemukan",
+        "tanpaModel": true
+      }
+    },
+    {
+      "id": "lacak-cocok",
+      "pertanyaan": "{NOMOR_TAMU} wa {WA_TAMU} sudah sampai mana?",
+      "harapan": {
+        "kartu": [
+          "pesanan"
+        ],
+        "tanpaModel": true
+      }
+    },
+    {
+      "id": "ongkir-kota",
+      "pertanyaan": "Ongkir ke Surabaya berapa?",
+      "harapan": {
+        "kartu": [
+          "ongkir"
+        ],
+        "teks": "surabaya",
+        "tanpaModel": true
+      }
+    },
+    {
+      "id": "ongkir-tidak-dikenal",
+      "pertanyaan": "Berapa ongkir ke Atlantis?",
+      "harapan": {
+        "kartu": [
+          "pilih_kota"
+        ],
+        "tanpaKartu": [
+          "ongkir"
+        ],
+        "teks": "belum mengenal",
+        "tanpaModel": true
+      }
+    },
+    {
+      "id": "ongkir-parafrase",
+      "pertanyaan": "Kalau kirim ke Medan kena berapa ya?",
+      "harapan": {
+        "kartu": [
+          "ongkir"
+        ],
+        "model": true
+      }
+    },
+    {
+      "id": "cabang-jam",
+      "pertanyaan": "Toko di Dinoyo buka jam berapa hari ini?",
+      "harapan": {
+        "kartu": [
+          "cabang"
+        ],
+        "tanpaModel": true
+      }
+    },
+    {
+      "id": "promo",
+      "pertanyaan": "Lagi ada promo apa aja?",
+      "harapan": {
+        "kartu": [
+          "promo"
+        ],
+        "tanpaModel": true
+      }
+    },
+    {
+      "id": "retur-parafrase",
+      "pertanyaan": "Kalau barangnya datang pecah bisa dikembalikan nggak?",
+      "harapan": {
+        "kartu": [
+          "info"
+        ],
+        "model": true
+      }
+    },
+    {
+      "id": "padanan-shade",
+      "pertanyaan": "Aku biasa pakai Pualam Velvet Matte Cushion 02N, yang setara di produk lain apa?",
+      "harapan": {
+        "kartu": [
+          "shade"
+        ],
+        "tanpaModel": true
+      }
+    },
+    {
+      "id": "cocok-kulit-tanpa-profil",
+      "pertanyaan": "Pualam Velvet Matte Cushion SPF 50 cocok buat kulitku?",
+      "harapan": {
+        "kartu": [
+          "cocok",
+          "kuis"
+        ]
+      }
+    },
+    {
+      "id": "video-viral-parafrase",
+      "pertanyaan": "Kemarin nonton review cushion di reels Instagram, kayaknya bagus banget buat kulit berminyak",
+      "harapan": {
+        "teks": "screenshot|link|cushion"
+      }
+    }
   ]
 }

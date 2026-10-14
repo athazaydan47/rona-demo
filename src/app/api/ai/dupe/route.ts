@@ -6,11 +6,9 @@ import { readImages } from "@/lib/ai/images";
 import { mockOembedFetch } from "@/lib/ai/oembed";
 import { checkDailyFeatureLimit, LIMITS } from "@/lib/ai/usage";
 import { currentVisitorHash } from "@/lib/ai/visitor";
-import { toCardData } from "@/lib/catalog/catalog-queries";
-import { loadCatalogItems } from "@/lib/catalog/load-items";
 import { now } from "@/lib/clock";
-import { ONLINE_WAREHOUSE_SLUG } from "@/lib/inventory";
 import { rejectCrossOrigin } from "@/lib/security/origin";
+import { kartuDupe } from "@/lib/tanya/kemampuan";
 
 // Cari dupe dari link TikTok atau YouTube (JSON {link}) atau 1 sampai 3 screenshot (multipart, kolom "gambar").
 // Batas 10 permintaan per pengunjung per hari. Kartu produk dibangun dari data katalog server.
@@ -42,24 +40,11 @@ export async function POST(request: NextRequest) {
   }
   if (!outcome.ok) return NextResponse.json(outcome, { status: 200, headers: { "Cache-Control": "no-store" } });
 
-  const ids = outcome.match.picks.map((p) => p.productId);
-  const items = ids.length ? await loadCatalogItems(db, { kind: "ids", ids }, at) : [];
-  const byId = new Map(items.map((i) => [i.id, i]));
-  const produk = outcome.match.picks.flatMap((p) => {
-    const i = byId.get(p.productId);
-    if (!i) return [];
-    const online = i.variants.reduce((s, v) => s + (v.stockByLocation[ONLINE_WAREHOUSE_SLUG] ?? 0), 0);
-    return [{ ...toCardData(i), alasan: p.alasan, varianPilihan: p.variantId, stokOnline: online }];
-  });
+  // Kartu produk dari data katalog server (pembentuk yang sama dengan chat asisten).
+  const { jenis, ...kartu } = await kartuDupe(db, outcome, at);
+  void jenis;
   return NextResponse.json(
-    {
-      ok: true,
-      sumber: outcome.source,
-      tipe: outcome.match.tipe,
-      namaTerbaca: "namaTerbaca" in outcome.match ? outcome.match.namaTerbaca : null,
-      jenisProduk: outcome.extraction.jenisProduk || null,
-      produk,
-    },
+    { ok: true, ...kartu },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

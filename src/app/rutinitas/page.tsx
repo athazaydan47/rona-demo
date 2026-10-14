@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
-import { RoutineView, type RoutineStepView } from "@/components/routine/routine-view";
+import { RoutineView } from "@/components/routine/routine-view";
+import { routineView } from "@/lib/skin/routine-view";
 import { Button } from "@/components/ui/button";
 import { db } from "@/db/client";
 import type { SkinProfile } from "@/db/schema/customers";
@@ -16,12 +17,11 @@ import { now } from "@/lib/clock";
 import { formatRupiah } from "@/lib/format";
 import { currentSkinProfile } from "@/lib/skin/current";
 import { isProfileUsable } from "@/lib/skin/profile";
-import type { Routine, RoutineStep } from "@/lib/skin/routine";
+import type { Routine } from "@/lib/skin/routine";
 import { MEREK } from "@/config/merek";
 
 export const metadata: Metadata = { title: "Rutinitas", description: `Rutinitas pagi dan malam dari katalog ${MEREK.nama} sesuai profil kulit dan budgetmu.` };
 
-const toView = (steps: RoutineStep[]): RoutineStepView[] => steps.map((s) => ({ key: s.key, label: s.label, options: [s.main, ...s.alternatives].map((p) => ({ productId: p.productId, variantId: p.variantId, slug: p.slug, name: p.name, brandName: p.brandName, brandColor: p.brandColor, packaging: p.packaging as RoutineStepView["options"][number]["packaging"], hex: p.hex, price: p.price, normalPrice: p.normalPrice, onlineStock: p.onlineStock })) }));
 
 // Penjelasan AI dimuat terpisah supaya rutinitas berbasis aturan tampil tanpa menunggu AI.
 async function Explanation({ profile, routine }: { profile: SkinProfile; routine: Routine }) {
@@ -68,15 +68,7 @@ async function Content() {
       <Suspense fallback={null}>
         <Explanation profile={profile} routine={routine} />
       </Suspense>
-      <RoutineView
-        pagi={toView(routine.pagi)}
-        malam={toView(routine.malam)}
-        warnings={routine.warnings.map((w) => ({ id: w.id, text: w.text }))}
-        inti={toView(routine.essentials.steps)}
-        intiWarnings={routine.essentials.warnings.map((w) => ({ id: w.id, text: w.text }))}
-        // Yang baru mulai merawat kulit langsung melihat 3 langkah inti; rutinitas lengkap tetap satu klik.
-        defaultMode={profile.routine === "belum" ? "inti" : "lengkap"}
-      />
+      <RoutineView {...routineView(routine, profile.routine)} />
       <p className="text-[11px] text-abu-hangat">Disusun berbasis aturan dari katalog {MEREK.nama}, bukan diagnosis. Untuk keluhan kulit serius, periksa ke dokter kulit.</p>
     </div>
   );

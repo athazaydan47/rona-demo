@@ -84,7 +84,8 @@ Teks toko dipisah dari komponen:
 | `src/lib/content/return-policy.ts` | Kebijakan retur. |
 | `src/lib/content/toko.ts` | Teks halaman Toko kami. |
 | `src/lib/content/notifikasi.ts` | Templat notifikasi WA dan email (pesanan dibuat, dibayar, dikirim, stok kembali, dan lainnya). |
-| `src/lib/content/demo.ts` | Teks halaman Tentang demo dan panduan demo. Tidak dipakai di luar mode demo. |
+| `src/lib/content/demo.ts` | Teks halaman Tentang demo dan panduan demo, termasuk contoh kalimat dan link TikTok contoh untuk Tanya Rona. |
+| `src/lib/tanya/kartu.ts` | Chip pintu masuk Tanya Rona (label dan urutan). |
 | `src/lib/content/visual.ts` | Contoh packshot untuk lingkaran kategori, MegaMenu, dan hero beranda. |
 | `src/db/seed/content.ts` | Artikel jurnal. |
 | `docs/panduan-admin/` | Panduan admin yang dibaca Asisten Admin. Sesuaikan bila alur toko klien berbeda. |

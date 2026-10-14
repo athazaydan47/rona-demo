@@ -58,6 +58,7 @@ Buka proyek di Vercel, tab **Logs**. Log aplikasi ditulis sebagai satu baris JSO
 | `demo.reset` | Reset data demo (pemicu, durasi). |
 | `ai.galat` | Panggilan Gemini gagal (fitur, kode galat, latensi). |
 | `galat` | Galat server atau klien yang tidak tertangani. |
+| `ai.galat` dengan fitur `link_video` | Link video gagal dibaca, dengan tahap dan status HTTP (tanpa URL). |
 | `csp.pelanggaran` | Browser memblokir sesuatu karena CSP. Satu dua kali wajar (ekstensi browser); banyak berarti ada sumber baru yang perlu diizinkan. |
 
 Nomor WA dan email selalu disamarkan di log (`08***890`, `n***@contoh.com`). Bila `SENTRY_DSN` diisi, galat juga dikirim ke Sentry dengan penyaringan yang sama.
@@ -148,6 +149,16 @@ Langkah:
 2. Bila galat 429 (kuota), cek pemakaian di Google AI Studio dan batas di Cloudflare AI Gateway. Turunkan `AI_DAILY_CAP` bila perlu.
 3. Bila model dihentikan Google, ganti `AI_MODEL` di Vercel ke model yang masih tersedia, lalu redeploy. Jalankan `npm run eval:ai` dan `npm run eval:asisten` dari laptop dengan model baru sebelum mengganti di produksi.
 4. Untuk mematikan AI sementara tanpa deploy kode: kosongkan `GEMINI_API_KEY` di Vercel lalu redeploy. Untuk mematikan fitur tertentu secara permanen, pakai sakelar fitur (docs/RESKIN.md).
+
+## Bila link TikTok gagal dibaca
+
+Gejala: pembeli menempel link TikTok di Tanya Rona atau Cari dari video, lalu ditawari kirim screenshot.
+
+1. Buka Laporan, Kesehatan AI, tabel "Link video yang gagal dibaca, per tahap". Tahap `oembed` dengan status 503 atau 429 berarti endpoint oEmbed TikTok menolak permintaan; server sudah mencoba ulang sampai 6 kali. Tahap `halaman` dengan jenis `ditolak` berarti TikTok membalas tantangan bot karena IP server sedang ditandai.
+2. Cek dari server produksi: `curl -s https://<domain-mu>/api/sehat/tiktok`.
+3. Diagnosis dari laptop dengan link yang dikirim pembeli: `npm run cek:tiktok -- <link>`. Hasilnya tiap tahap beserta status HTTP dan lamanya.
+4. Bila hanya gagal dari Vercel tetapi berhasil dari laptop, TikTok memblokir IP Vercel. Tidak ada yang perlu diubah segera, karena pembeli tetap bisa mengirim screenshot; catat di BACKLOG bila berlangsung lama.
+5. Bila gagal juga dari laptop dengan tahap `tautan_pendek` atau `tidak_ditemukan`, videonya dihapus atau privat. Bila link contoh di panduan demo yang gagal, ganti `CONTOH_LINK_TIKTOK` di `src/lib/content/demo.ts`.
 
 ## Bila Neon bermasalah
 

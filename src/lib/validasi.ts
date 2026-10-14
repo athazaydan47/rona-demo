@@ -22,7 +22,23 @@ export function cocok<T extends z.ZodType>(skema: T, raw: unknown): z.output<T> 
 
 export const TIDAK_VALID = { ok: false as const, message: "Data tidak valid." };
 
+// Aksi chip dan kartu chat asisten (Fase 8C).
+const aksi = z.discriminatedUnion("jenis", [
+  z.object({ jenis: z.literal("rekomendasi") }),
+  z.object({ jenis: z.literal("kuis") }),
+  z.object({ jenis: z.literal("rutinitas") }),
+  z.object({ jenis: z.literal("video") }),
+  z.object({ jenis: z.literal("shade"), varianId: id.optional() }),
+  z.object({ jenis: z.literal("lacak"), nomor: nomorPesanan.optional(), wa: nomorWa.optional() }),
+  z.object({ jenis: z.literal("ongkir"), kota: teks(60).optional(), kode: z.string().regex(/^[a-z0-9.-]{2,30}$/).optional() }),
+  z.object({ jenis: z.literal("cabang") }),
+  z.object({ jenis: z.literal("promo") }),
+  z.object({ jenis: z.literal("bantuan"), topik: z.enum(["retur", "bayar", "kirim", "faq", "kontak"]) }),
+  z.object({ jenis: z.literal("cocok"), produkId: id.optional() }),
+]);
+
 export const skema = {
+  aksiTanya: aksi,
   kategori: z.object({ id: idOpsional, name: teks(80), parentId: idOpsional, description: teks(400).optional(), force: z.boolean().optional() }),
   susunanKategori: z.array(z.object({ id, parentId: idOpsional, sortOrder: z.coerce.number().int().min(0).max(10_000) })).max(200),
   merek: z.object({ id: idOpsional, name: teks(80), slug: teks(80).optional(), color: teks(9), tagline: teks(160).optional(), description: teks(1000).optional(), force: z.boolean().optional() }),

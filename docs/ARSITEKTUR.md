@@ -75,6 +75,25 @@ Prinsip penyusunan:
 | `src/db` | Skema, migrasi, seed deterministik, reset. |
 | `e2e`, `e2e-produksi` | Uji Playwright lokal dan uji asap produksi. |
 
+## Tanya Rona: satu pintu (Fase 8C)
+
+```mermaid
+flowchart TD
+  M[Pesan atau aksi dari chip dan kartu] --> A{Aksi terstruktur?}
+  A -- ya --> R[Kemampuan berbasis aturan<br/>src/lib/tanya/kemampuan.ts]
+  A -- tidak --> N{Niat dikenali aturan?<br/>src/lib/tanya/niat.ts}
+  N -- link TikTok atau YouTube --> L[Baca link: tautan pendek, oEmbed dengan percobaan ulang, halaman video] --> D[Cari dupe AI + pencocokan katalog]
+  N -- lacak, ongkir, kuis, rutinitas, shade, cabang, promo, bantuan --> R
+  N -- tidak --> B{AI tersedia dan dalam batas?}
+  B -- ya --> AD[Advisor dengan tool katalog dan tool toko]
+  B -- tidak --> F[Chip berbasis aturan dan tautan pencarian]
+  AD --> R
+  R --> K[Kartu dari fungsi toko yang sama dengan halaman]
+  D --> K
+```
+
+Otak percakapan (`src/lib/tanya/otak.ts`) dipakai route `/api/ai/advisor` dan evaluasi, jadi perilakunya sama. Setiap kartu dibangun dari fungsi yang juga dipakai halaman biasa: katalog, `susunRutinitas`, `padananShade`, `fitForProfile`, `quoteShippingForZone`, `lacakPesanan`, teks halaman bantuan. Model hanya menerima ringkasan hasil tool tanpa angka; angka tampil di kartu dari data server.
+
 ## Alur pesanan: keranjang sampai Selesai
 
 ```mermaid

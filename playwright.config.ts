@@ -39,7 +39,7 @@ export default defineConfig({
   // Chrome untuk semua uji; WebKit (mesin Safari) untuk alur beli dan alur admin utama (Fase 8A).
   projects: [
     { name: "chrome", use: { channel: "chrome" } },
-    { name: "webkit", use: { ...devices["Desktop Safari"], viewport: { width: 1280, height: 900 } }, testMatch: /\/(alur-beli|admin)\.spec\.ts$/ },
+    { name: "webkit", use: { ...devices["Desktop Safari"], viewport: { width: 1280, height: 900 } }, testMatch: /\/(alur-beli|admin|tanya-rona)\.spec\.ts$/ },
   ],
   // Server utama memakai AI mock (deterministik). Server kedua tanpa env AI untuk menguji toko tetap jalan tanpa AI.
   webServer: [

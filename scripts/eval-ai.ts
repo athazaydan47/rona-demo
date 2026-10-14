@@ -1,11 +1,14 @@
 // Evaluasi AI terhadap API sungguhan: npm run eval:ai (atau npm run eval:ai -- --mock untuk mock).
 //   --hanya=id1,id2   jalankan skenario tertentu saja
-//   --bagian=advisor,tafsir,7c   pilih bagian (bawaan: semua)
+//   --bagian=advisor,tafsir,7c,tanya   pilih bagian (bawaan: semua)
 // Advisor (7A): produk yang direkomendasikan ada dan aktif, angka rupiah di teks dan alasan sama dengan harga efektif
 // produk yang direkomendasikan, teks pembuka bukan daftar nama dan harga, setiap kartu punya alasan singkat, tanpa
 // klaim medis, dan sesuai harapan skenario. Juga mengukur token, latensi total, dan waktu teks pertama.
 // Tafsiran pencarian: token dan latensi per kueri (tanpa cache).
 // Foto dan link (7C): set uji sintetis di evals/7c (lihat evals/7c/README.md), tanpa internet selain API model.
+// Tanya Rona (8C): skenario evals/advisor.json bagian "tanya", dijalankan lewat jawabTanya (sama dengan route): kartu yang
+// diharapkan, kartu terlarang, pola teks, aturan tanpa model atau tool lewat model, tanpa klaim medis, tanpa kalimat
+// "tidak bisa membuka link", dan tanpa nomor WA di teks.
 // Dilewati bila kunci AI tidak ada.
 import { readFileSync } from "node:fs";
 import { config } from "dotenv";
@@ -46,7 +49,7 @@ async function main() {
     process.exit(0);
   }
   const model = aiModel("aiPembeli", cfg)!;
-  const parts = (arg("bagian") ?? "advisor,tafsir,7c").split(",");
+  const parts = (arg("bagian") ?? "advisor,tafsir,7c,tanya").split(",");
   const only = arg("hanya")?.split(",");
   const now = new Date();
   const catalog = await loadCatalogItems(db, { kind: "all" }, now);
@@ -122,12 +125,62 @@ async function main() {
     failed += rows.filter((r) => !r.ok).length;
   }
 
+  if (parts.includes("tanya")) {
+    failed += await evalTanya(db, cfg, model, now, only);
+  }
+
   if (parts.includes("7c")) {
     const { evalVisual } = await import("./eval-visual");
     failed += await evalVisual(db, model, now, { costLine, mock });
   }
 
   process.exit(failed ? 1 : 0);
+}
+
+type TanyaScenario = { id: string; pertanyaan: string; harapan: { kartu?: string[]; tanpaKartu?: string[]; teks?: string; tanpaModel?: boolean; model?: boolean } };
+
+async function evalTanya(db: import("../src/lib/db-types").AnyDb, cfg: import("../src/lib/ai/client").AiConfig, model: import("../src/lib/ai/client").AiModel, now: Date, only?: string[]) {
+  const { jawabTanya } = await import("../src/lib/tanya/otak");
+  const { aiModel } = await import("../src/lib/ai");
+  const { mockOembedFetch } = await import("../src/lib/ai/oembed");
+  const { LINK_REFUSAL, medicalClaims } = await import("../src/lib/ai/guard");
+  const { sql } = await import("drizzle-orm");
+  const { tanya } = JSON.parse(readFileSync("evals/advisor.json", "utf8")) as { tanya: TanyaScenario[] };
+  // Pesanan tamu acak supaya batas tebakan lacak per nomor tidak tercapai saat evaluasi diulang.
+  const [o] = (await db.execute(sql`select number, guest_phone from orders where customer_id is null and guest_phone is not null order by random() limit 1`)) as unknown as { number: string; guest_phone: string }[];
+  const fill = (q: string) => q.replace("{NOMOR_TAMU}", o?.number ?? "RONA-0000-000000").replace("{WA_TAMU}", o?.guest_phone ?? "");
+  const run = `eval-tanya-${Date.now()}`;
+  const rows: { id: string; checks: Record<string, boolean>; detail: string; ms: number; tokens: number; input: number; output: number; jalur: string }[] = [];
+  for (const s of tanya.filter((x) => !only || only.includes(x.id))) {
+    const t0 = Date.now();
+    const r = await jawabTanya({ db, now, cfg, model, modelFoto: aiModel("aiFotoLink", cfg), visitorHash: run, ipKey: run, customerId: null, profile: null, fetchImpl: mockOembedFetch, skipLimits: true, skipCache: true, timeoutMs: 30_000 }, { history: [{ role: "user", text: fill(s.pertanyaan) }] });
+    const ms = Date.now() - t0;
+    const jenis = r.kartu.map((k) => k.jenis as string);
+    const h = s.harapan;
+    const checks: Record<string, boolean> = {
+      jawab: r.ok,
+      kartu: (h.kartu ?? []).every((k) => jenis.includes(k)),
+      terlarang: (h.tanpaKartu ?? []).every((k) => !jenis.includes(k)),
+      teks: !h.teks || new RegExp(h.teks, "i").test(r.teks),
+      jalur: h.tanpaModel ? r.usage.input === 0 && r.toolCalls.length === 0 : h.model ? r.jalur === "ai" || r.usage.input > 0 : true,
+      aman: !medicalClaims(r.teks).length && !LINK_REFUSAL.test(r.teks) && !/(?:\+?62|0)8\d{8,12}/.test(r.teks),
+    };
+    rows.push({ id: s.id, checks, detail: `${r.jalur} [${jenis.join(",")}] ${r.teks.replace(/\s+/g, " ").slice(0, 90)}${r.error ? ` [${r.error}]` : ""}`, ms, tokens: r.usage.input + r.usage.output, input: r.usage.input, output: r.usage.output, jalur: r.jalur });
+    process.stdout.write(Object.values(checks).every(Boolean) ? "." : "x");
+  }
+  const keys = ["jawab", "kartu", "terlarang", "teks", "jalur", "aman"];
+  console.log(`\n\nTanya Rona (Fase 8C):`);
+  console.log(["Skenario".padEnd(26), ...keys.map((k) => k.padEnd(10)), "jalur".padEnd(8), "ms".padStart(6), "token".padStart(7)].join(" "));
+  for (const r of rows) console.log([r.id.padEnd(26), ...keys.map((k) => (r.checks[k] ? "lulus" : "GAGAL").padEnd(10)), r.jalur.padEnd(8), String(r.ms).padStart(6), String(r.tokens).padStart(7)].join(" "));
+  const passed = rows.filter((r) => Object.values(r.checks).every(Boolean)).length;
+  const viaModel = rows.filter((r) => r.tokens > 0);
+  console.log(`\nTanya Rona: ${passed}/${rows.length} skenario lulus semua pemeriksaan. ${rows.length - viaModel.length} dijawab berbasis aturan tanpa token.`);
+  if (viaModel.length) {
+    console.log(`Lewat model: token rata-rata ${avg(viaModel.map((r) => r.tokens))} (masuk ${avg(viaModel.map((r) => r.input))}, keluar ${avg(viaModel.map((r) => r.output))}), latensi median ${median(viaModel.map((r) => r.ms))} ms.`);
+    console.log(costLine(model.name, avg(viaModel.map((r) => r.input)), avg(viaModel.map((r) => r.output))));
+  }
+  for (const r of rows.filter((x) => !Object.values(x.checks).every(Boolean))) console.log(`  ${r.id}: ${r.detail}`);
+  return rows.length - passed;
 }
 
 main().catch((e) => {

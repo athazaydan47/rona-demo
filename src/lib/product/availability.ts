@@ -31,6 +31,14 @@ export function locationFlags(loc: { type: "gudang" | "toko"; openingHours: Open
   return { openNow, shipsToday, pickupToday };
 }
 
+// Jam buka hari ini untuk kartu cabang (Toko kami dan chat asisten): "Buka 09.00 sampai 21.00" atau "Tutup hari ini".
+export function jamHariIni(loc: { openingHours: OpeningHours | null; closedDates?: string[] | null }, now: Date): string {
+  const p = toWibParts(now);
+  if (loc.closedDates?.includes(wibDateKey(p))) return "Tutup hari ini (libur)";
+  const today = loc.openingHours?.[DAY_KEYS[p.weekday]] ?? null;
+  return today ? `Buka ${today.open} sampai ${today.close}` : "Tutup hari ini";
+}
+
 export type StockTone = "habis" | "terbatas" | "tersedia";
 
 export function stockLabel(qty: number): { text: string; tone: StockTone } {

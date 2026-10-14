@@ -100,7 +100,7 @@ async function Content({ searchParams }: { searchParams: Promise<SP> }) {
     body = <VariantPromoManager rows={rows.map((r) => ({ ...r, promoStartsAt: r.promoStartsAt?.toISOString() ?? null, promoEndsAt: r.promoEndsAt?.toISOString() ?? null }))} />;
   } else if (tab === "voucher") {
     const [vouchers, brands, cats] = await Promise.all([listVouchers(db), listBrands(db), rootCategories(db)]);
-    body = <VoucherManager nowIso={nowIso} brands={brands.map((b) => ({ id: b.id, name: b.name }))} categories={cats} vouchers={vouchers.map((v) => ({ id: v.id, code: v.code, title: v.title, description: v.description, type: v.type, value: v.value, maxDiscount: v.maxDiscount, minSpend: v.minSpend, startsAt: v.startsAt.toISOString(), endsAt: v.endsAt.toISOString(), quota: v.quota, quotaPerCustomer: v.quotaPerCustomer, used: v.used, scope: v.scope, stackWithFlash: v.stackWithFlash, isActive: v.isActive, redeemed: v.redeemed, totalDiscount: v.totalDiscount, remaining: v.remaining }))} />;
+    body = <VoucherManager nowIso={nowIso} brands={brands.map((b) => ({ id: b.id, name: b.name }))} categories={cats} vouchers={vouchers.map((v) => ({ id: v.id, code: v.code, title: v.title, description: v.description, type: v.type, value: v.value, maxDiscount: v.maxDiscount, minSpend: v.minSpend, startsAt: v.startsAt.toISOString(), endsAt: v.endsAt.toISOString(), quota: v.quota, quotaPerCustomer: v.quotaPerCustomer, used: v.used, scope: v.scope, stackWithFlash: v.stackWithFlash, isActive: v.isActive, isPublic: v.isPublic, redeemed: v.redeemed, totalDiscount: v.totalDiscount, remaining: v.remaining }))} />;
   } else {
     const [banners, settings] = await Promise.all([listBanners(db), loadSettings(db)]);
     body = (

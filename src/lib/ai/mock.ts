@@ -69,6 +69,13 @@ function advisorTurn(req: GenRequest): GenResponse {
     if (OFF_TOPIC.test(q) && !/kulit|makeup|lipstik|skincare|sunscreen|produk/.test(q)) return direct(`Maaf, aku khusus membantu belanja kosmetik dan perawatan kulit di ${MEREK.namaLengkap}. Mau aku carikan sesuatu untuk kulitmu?`);
     if (MEDICAL_INTENT.test(q)) return direct(`Aku bukan tenaga medis, jadi tidak bisa menilai kondisi kulitmu. ${MEDICAL_REFERRAL} Setelah itu aku bisa bantu pilih pembersih yang lembut.`);
     if (/rutinitas|skincare routine|urutan skincare/.test(q)) return reply([call("susunRutinitas", { catatan: "Aku susun rutinitas dari profil kulitmu." })], req);
+    // Fase 8C: kemampuan toko lewat tool (kalimat yang tidak dikenali aturan chat asisten).
+    if (/tipe (kulit|apa)|kulitku (tipe|jenis)|kenal(an|i) (sama )?kulit/.test(q)) return reply([call("mulaiKuis", { catatan: "Aku siapkan kuis kulit singkat." })], req);
+    if (/paket(ku)?|kiriman(ku)?|belum (datang|sampai)/.test(q)) return reply([call("lacakPesanan", { catatan: "Aku bantu lacak pesananmu." })], req);
+    const kirimKe = /kirim ke ([a-z ]+?)(?: kena| berapa| ya|\?|$)/.exec(q);
+    if (kirimKe) return reply([call("cekOngkir", { catatan: "Aku hitung ongkirnya.", kota: kirimKe[1].trim() })], req);
+    if (/dikembalikan|pecah|rusak|retur/.test(q)) return reply([call("infoToko", { catatan: "Aku cek kebijakan returnya.", topik: "retur" })], req);
+    if (/video|tiktok|reels|instagram/.test(q) && !/https?:/.test(q)) return reply([call("mintaScreenshot", { catatan: "Kirim screenshot-nya, ya." })], req);
     const p = parseQueryRules(q);
     const args: Record<string, unknown> = {};
     if (p.kategori) args.kategori = p.kategori;
@@ -96,6 +103,16 @@ function advisorTurn(req: GenRequest): GenResponse {
   const r = responses[0].functionResponse!;
   const data = r.response as Record<string, unknown>;
   const args = lastCallArgs(req.contents);
+  const TOOL_TEKS: Record<string, string> = {
+    mulaiKuis: "Yuk jawab kuis singkat di bawah supaya aku tahu tipe kulitmu.",
+    lacakPesanan: "Isi nomor pesanan dan nomor WhatsApp di formulir di bawah, ya.",
+    cekOngkir: "Ini perkiraan ongkirnya.",
+    infoToko: "Ini aturan resmi toko soal itu.",
+    mintaScreenshot: "Kirim screenshot produknya dari video itu, nanti aku carikan yang mirip.",
+    infoCabang: "Ini info cabang kami.",
+    promoBerjalan: "Ini promo yang sedang berjalan.",
+  };
+  if (TOOL_TEKS[r.name]) return reply([json({ teks: TOOL_TEKS[r.name], produk: [] })], req);
   if (r.name === "susunRutinitas") {
     if (data.galat) return reply([json({ teks: "Aku perlu tahu jenis kulitmu dulu. Ikuti Kuis Kulit di /kuis-kulit, nanti rutinitasnya langsung tersusun.", produk: [] })], req);
     const steps = (data.langkah as { id: number; langkah: string }[]) ?? [];

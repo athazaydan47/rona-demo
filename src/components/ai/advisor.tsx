@@ -14,7 +14,8 @@ const muatPanel = () => void import("./advisor-panel");
 const AdvisorPanel = dynamic(() => import("./advisor-panel").then((m) => m.AdvisorPanel), { ssr: false });
 
 export const ADVISOR_OPEN_EVENT = namaEvent("advisor-open");
-export type AdvisorOpenDetail = { productId?: number; productName?: string; prompt?: string };
+// kirim: prompt langsung dikirim (contoh kalimat di panduan demo dan halaman Tentang demo).
+export type AdvisorOpenDetail = { productId?: number; productName?: string; prompt?: string; kirim?: boolean };
 export function openAdvisor(detail: AdvisorOpenDetail = {}) {
   window.dispatchEvent(new CustomEvent<AdvisorOpenDetail>(ADVISOR_OPEN_EVENT, { detail }));
 }
@@ -78,12 +79,13 @@ export function AdvisorLauncher() {
           <Sparkles className="size-5 text-emas md:size-4" aria-hidden /> <span className="hidden md:inline">{MEREK.asisten.tombol}</span>
         </button>
       ) : null}
-      {bukaKe > 0 ? <AdvisorPanel open={open} setOpen={setOpen} context={context} bukaKe={bukaKe} resting={resting} hasProfile={hasProfile} /> : null}
+      {bukaKe > 0 ? <AdvisorPanel open={open} setOpen={setOpen} context={context} bukaKe={bukaKe} resting={resting} hasProfile={hasProfile} ai={status.ai} aiFoto={status.aiFoto} /> : null}
     </>
   );
 }
 
-// Tombol "Tanya tentang produk ini" di halaman produk (hanya tampil bila Advisor tersedia).
+// Tombol "Tanya tentang produk ini" di halaman produk (tampil bila chat asisten tersedia, juga tanpa AI: kecocokan
+// kulit, padanan shade, dan ongkir berbasis aturan).
 export function AskAboutProduct({ productId, productName }: { productId: number; productName: string }) {
   const { tersedia } = useAiStatus();
   if (!tersedia) return null;

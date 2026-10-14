@@ -95,6 +95,7 @@ export const voucherSeed = [
     quotaPerCustomer: 1,
     scope: {},
     stackWithFlash: true,
+    isPublic: true,
   },
   {
     code: "HEMAT15",
@@ -108,6 +109,7 @@ export const voucherSeed = [
     quotaPerCustomer: 2,
     scope: {},
     stackWithFlash: false,
+    isPublic: true,
   },
   {
     code: "ONGKIRRONA",
@@ -121,6 +123,7 @@ export const voucherSeed = [
     quotaPerCustomer: 3,
     scope: {},
     stackWithFlash: true,
+    isPublic: true,
   },
   {
     code: "LUMI10",
@@ -134,6 +137,7 @@ export const voucherSeed = [
     quotaPerCustomer: 1,
     scope: { brandSlugs: ["lumi"] },
     stackWithFlash: false,
+    isPublic: false,
   },
 ];
 

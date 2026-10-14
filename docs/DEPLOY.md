@@ -395,6 +395,31 @@ Perubahan perilaku yang perlu diketahui:
 5. Pasang pemantau uptime gratis ke `https://<domain-mu>/api/sehat` (interval 5 menit, peringatan bila bukan 200).
 6. Cek manual di HP sungguhan: buka Advisor, peta di checkout, dan unggah foto ulasan. Buka konsol browser di desktop dan pastikan tidak ada pesan "Content Security Policy".
 
+## Pembaruan ke Fase 8C (Tanya Rona satu pintu dan perbaikan link TikTok): rilis 1.1.0-demo
+
+Migrasi baru: `drizzle/0009_voucher_publik.sql`. Isinya hanya menambah kolom `is_public` (bawaan `false`) di `vouchers`. Aman dijalankan otomatis saat build selagi versi 8B masih tayang. Seed naik ke versi 13 (RONABARU, HEMAT15, dan ONGKIRRONA ditandai publik), jadi reset data demo setelah deploy.
+
+Tidak ada env baru. Perubahan perilaku:
+
+- **Tanya Rona tampil selama fitur `aiPembeli` aktif, juga tanpa kunci AI.** Tanpa AI, kuis, rutinitas, padanan shade, lacak, ongkir, cabang, promo, dan bantuan tetap jalan di chat.
+- **Link TikTok dibaca dengan percobaan ulang dan cadangan halaman video.** Server menghubungi `www.tiktok.com`, `vt.tiktok.com`, `vm.tiktok.com`, `m.tiktok.com`, dan `www.youtube.com` saja.
+- **`/api/sehat/tiktok`** membaca satu link TikTok contoh lewat server (dibatasi 6 per menit per IP) untuk tahu apakah TikTok memblokir IP Vercel.
+- **Voucher publik:** di Admin, Promo, Voucher, centang "Tawarkan ke semua pembeli" untuk voucher yang boleh disebut Tanya Rona.
+
+### Urutan memperbarui produksi
+
+1. **Push** ke `main`. Log build harus menampilkan `Migrasi selesai: 0009_voucher_publik`.
+2. **Reset data demo** dari Dashboard Owner (seed versi 13).
+3. Cek link TikTok dari server produksi:
+
+   ```bash
+   curl -s https://<domain-mu>/api/sehat/tiktok
+   ```
+
+   `ok` true berarti TikTok bisa dibaca dari Vercel. Bila `ok` false, lihat `gagal.tahap` dan `gagal.status`: tahap `oembed` dengan 503 atau 429 berulang dan tahap `halaman` dengan `ditolak` berarti TikTok sedang memblokir IP Vercel. Pembeli tetap ditawari screenshot.
+4. Jalankan `npm run uji:produksi -- --url=https://<domain-mu>` (sekarang termasuk pemeriksaan TikTok dan satu aksi Tanya Rona berbasis aturan).
+5. Coba di HP: buka Tanya Rona, tekan contoh kalimat di panduan demo, tempel link TikTok yang kamu punya.
+
 ## 5. Bagian build yang butuh database
 
 `npm run build` (di Vercel produksi didahului migrasi otomatis) membaca database untuk memprarender data katalog yang di-cache. Build gagal bila `DATABASE_URL` tidak bisa dihubungi. Yang dibaca saat build:

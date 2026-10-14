@@ -2,6 +2,27 @@
 
 Semua perubahan penting Rona per fase. Versi mengikuti `package.json`. Data toko di semua versi fiktif.
 
+## 1.1.0-demo (Fase 8C), 15 Okt 2026
+
+Tanya Rona satu pintu dan perbaikan link TikTok.
+
+**Link TikTok asli**
+- Akar masalah: endpoint oEmbed TikTok menolak sekitar separuh permintaan secara acak (HTTP 503 "overload-protect", kadang 429), sementara kode lama hanya mencoba sekali dan langsung menampilkan "Videonya tidak bisa dibuka".
+- Tautan pendek (vt, vm, tiktok.com/t) diselesaikan sampai 5 langkah, HEAD lalu GET; link dengan parameter pelacak dan link m.tiktok.com dinormalkan ke URL kanonis.
+- oEmbed dicoba ulang sampai 6 kali untuk 429 dan 5xx, lalu caption dibaca dari halaman video. Pagar SSRF tetap di setiap langkah.
+- Gagal tetap: pembeli langsung ditawari kirim screenshot di tempat yang sama. Setiap kegagalan tercatat per tahap dan status di Kesehatan AI.
+- `npm run cek:tiktok -- <url>` untuk diagnosis, dan `npm run uji:produksi` kini mencoba satu link TikTok lewat server produksi.
+
+**Tanya Rona satu pintu**
+- Link TikTok atau YouTube di chat langsung diproses, lampiran 1 sampai 3 screenshot, ajakan screenshot untuk link Instagram dan Shopee.
+- Kuis kulit di chat dengan pilihan bergambar kecil dan foto opsional, rutinitas dengan subtotal dan Tambah semua, padanan shade dari kalimat, "Cocok buat kulitku?".
+- Ongkir ke kota mana pun dari teks bebas, jam buka dan rute cabang, flash sale dan voucher publik, retur, cara bayar, dan pengiriman dari teks halaman bantuan.
+- Lacak pesanan dengan aturan yang sama dengan /lacak; model tidak pernah menerima data pesanan.
+- Ringkasan keranjang dengan Lihat keranjang dan Lanjut checkout. Layar pembuka dengan chip. Tombol kembali menutup chat.
+- Tanpa kunci AI atau saat kuota habis, kemampuan berbasis aturan tetap jalan. Batas AI pembeli dihitung per fitur dan bersama.
+- Voucher punya penanda "Tawarkan ke semua pembeli" (migrasi `0009_voucher_publik`, seed versi 13).
+- Lima contoh kalimat siap tekan di panduan demo, halaman Tentang demo, dan halaman /advisor.
+
 ## 1.0.0-demo (Fase 8B), 15 Okt 2026
 
 Pengerasan, reskin, dan dokumentasi untuk rilis demo publik.

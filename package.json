@@ -1,6 +1,6 @@
 {
   "name": "rona-demo",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -28,7 +28,8 @@
     "cek:rahasia": "node scripts/cek-rahasia.mjs",
     "uji:produksi": "node scripts/uji-produksi.mjs",
     "test:cakupan": "vitest run --coverage",
-    "aset:portofolio": "node scripts/aset-portofolio.mjs"
+    "aset:portofolio": "node scripts/aset-portofolio.mjs",
+    "cek:tiktok": "tsx scripts/cek-tiktok.ts"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",

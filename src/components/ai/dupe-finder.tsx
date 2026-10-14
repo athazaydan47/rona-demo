@@ -1,49 +1,19 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ExternalLink, ImageUp, Link2, Loader2, Search, X } from "lucide-react";
+import { ImageUp, Link2, Loader2, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { shrinkImage } from "@/lib/image/shrink";
 import { cn } from "@/lib/utils";
 import { MEREK } from "@/config/merek";
 import { KartuProdukAi, type KartuAi } from "./kartu-produk-ai";
+import { judulDupe } from "@/lib/tanya/kartu";
+import { SumberVideoBlok } from "./sumber-video";
 
 type DupeCard = KartuAi & { alasan: string; varianPilihan: number | null };
 type Source = { platform: "tiktok" | "youtube"; url: string; title: string; author: string | null; authorUrl: string | null; thumbnailUrl: string | null };
 type Result = { ok: true; sumber: Source | null; tipe: "cocok" | "mirip" | "tidak_ada_sejenis" | "tidak_dikenali"; namaTerbaca: string | null; jenisProduk: string | null; produk: DupeCard[] } | { ok: false; message: string; suggestScreenshot?: boolean };
 
-function SourceBlock({ s }: { s: Source }) {
-  return (
-    <div className="flex gap-3 rounded-xl border border-garis bg-putih p-3" data-testid="sumber-video">
-      {s.thumbnailUrl ? (
-        // Sampul ditampilkan langsung dari server TikTok atau YouTube, tidak diunduh dan tidak disimpan.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={s.thumbnailUrl} alt="" referrerPolicy="no-referrer" className="h-24 w-16 shrink-0 rounded-lg object-cover" />
-      ) : (
-        <div className="grid h-24 w-16 shrink-0 place-items-center rounded-lg bg-porselen text-[10px] font-semibold text-abu-hangat uppercase">{s.platform}</div>
-      )}
-      <div className="min-w-0 text-sm">
-        <p className="line-clamp-3 text-kopi">{s.title}</p>
-        {s.author ? (
-          <p className="mt-1 text-xs text-abu-hangat">
-            Video oleh{" "}
-            {s.authorUrl ? (
-              <a href={s.authorUrl} target="_blank" rel="noopener noreferrer nofollow" className="font-semibold text-kopi hover:underline">
-                {s.author}
-              </a>
-            ) : (
-              <span className="font-semibold text-kopi">{s.author}</span>
-            )}{" "}
-            di {s.platform === "tiktok" ? "TikTok" : "YouTube"}
-          </p>
-        ) : null}
-        <a href={s.url} target="_blank" rel="noopener noreferrer nofollow" className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-aksen hover:underline">
-          Lihat video asli <ExternalLink className="size-3" aria-hidden />
-        </a>
-      </div>
-    </div>
-  );
-}
 
 export function DupeFinder() {
   const [tab, setTab] = useState<"link" | "gambar">("link");
@@ -164,17 +134,9 @@ export function DupeFinder() {
             </div>
           ) : (
             <>
-              {result.sumber ? <SourceBlock s={result.sumber} /> : null}
+              {result.sumber ? <SumberVideoBlok s={result.sumber} /> : null}
               <p className="font-serif text-xl text-kopi" data-testid="judul-hasil-dupe">
-                {result.tipe === "cocok"
-                  ? `Ada di ${MEREK.nama}: ${result.namaTerbaca}`
-                  : result.tipe === "mirip"
-                    ? result.namaTerbaca
-                      ? `${MEREK.nama} tidak menjual ${result.namaTerbaca}, ini yang paling mirip`
-                      : `Ini yang paling mirip di ${MEREK.nama}${result.jenisProduk ? ` untuk ${result.jenisProduk}` : ""}`
-                    : result.tipe === "tidak_ada_sejenis"
-                      ? `${MEREK.nama} belum punya produk sejenis ini`
-                      : "Produknya belum bisa kami kenali"}
+                {judulDupe(result)}
               </p>
               {result.tipe === "tidak_dikenali" ? <p className="text-sm text-abu-hangat">Coba kirim screenshot yang lebih jelas, dengan kemasan atau warna produk terlihat, ya.</p> : null}
               {result.produk.length ? (

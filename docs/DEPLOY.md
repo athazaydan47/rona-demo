@@ -44,7 +44,8 @@ Isi di Vercel (Settings, Environment Variables) untuk Production dan Preview. Un
 | `EMAIL_ALLOWLIST` | Disarankan saat `DEMO_MODE=true` | `kamu@contoh.com,tim@contoh.com` | Mode demo: email sungguhan hanya ke alamat ini, alamat lain ditandai Dilewati supaya situs demo tidak dipakai untuk spam. Kosong berarti semua dilewati. |
 | `AI_GATEWAY_URL` | Opsional | `https://gateway.ai.cloudflare.com/v1/<account_id>/<gateway_id>/google-ai-studio` | Fitur AI pembeli (Fase 7A). Kosong berarti fitur AI tersembunyi; fitur berbasis aturan tetap jalan. |
 | `GEMINI_API_KEY` | Bersama `AI_GATEWAY_URL` | kunci dari Google AI Studio | Dikirim sebagai header `x-goog-api-key` lewat gateway. |
-| `AI_MODEL` | Opsional | `gemini-3.5-flash` (bawaan) | Model Gemini. |
+| `AI_MODEL` | Disarankan | `gemini-3.6-flash` (bawaan sejak 7C) | Model Gemini. `gemini-3.5-flash` tidak lagi ada di halaman harga resmi. |
+| `AI_THINKING_LEVEL` | Opsional | kosong | `minimal`, `low`, `medium`, atau `high`. Kosong: terendah yang didukung model. |
 | `CF_AIG_TOKEN` | Wajib bila gateway terautentikasi | token dari pengaturan gateway | Header `cf-aig-authorization: Bearer <token>`. Tanpa ini gateway terautentikasi menjawab 401. |
 | `AI_DAILY_CAP` | Disarankan | `1000` | Batas panggilan AI per hari WIB (semua fitur). Bila tercapai, AI tampil "sedang istirahat". |
 | `AI_PROVIDER` | Jangan diisi di produksi | kosong | `mock` hanya untuk uji, Playwright, dan cuplik. |
@@ -268,6 +269,51 @@ Migrasi baru: `drizzle/0006_ai_pembeli.sql`. Isinya hanya menambah tabel `ai_log
 ### Biaya dan batas pemakaian
 
 Pemakaian tercatat di tabel `ai_logs` (fitur, model, token masuk dan keluar, latensi, berhasil atau gagal, hash pengunjung; isi percakapan tidak disimpan). Batas: 20 pesan Advisor per pengunjung per hari saat DEMO_MODE, 5 per menit, dan `AI_DAILY_CAP` untuk semua fitur. Perkiraan biaya ada di laporan Fase 7A dan BACKLOG.
+
+## Pembaruan ke Fase 7C (AI dari foto dan link)
+
+Tidak ada migrasi baru. Sumber item baru `cari_video` memakai kolom `source` dari 0006. Seed naik ke versi 9 (serum retinal selalu punya stok online).
+
+### Model dan tarif
+
+- Halaman harga resmi Google (https://ai.google.dev/gemini-api/docs/pricing, dicek 14 Okt 2026) tidak lagi mencantumkan `gemini-3.5-flash`. Model itu masih menjawab lewat gateway, tetapi tarifnya tidak bisa dicocokkan. Ganti `AI_MODEL` ke `gemini-3.6-flash`: US$0,75 per 1 juta token masuk dan US$3,75 per 1 juta token keluar (termasuk token berpikir), naik menjadi US$1,50 dan US$7,50 mulai 1 Jan 2027. `gemini-3.8-flash` bertarif sama tetapi tingkat berpikir terendahnya `low`.
+- `AI_THINKING_LEVEL` boleh kosong: aplikasi memakai tingkat terendah yang didukung model (`minimal`, atau `low` untuk 3.8).
+- Biaya terukur ada di laporan Fase 7C dan bagian Biaya di bawah.
+
+### Gateway: log tanpa isi foto
+
+Permintaan yang berisi foto atau screenshot dikirim dengan header `cf-aig-collect-log-payload: false`, jadi Cloudflare AI Gateway hanya mencatat metadata (token, status, durasi) untuk permintaan itu. Log percakapan teks tetap menyimpan isi (berguna untuk memantau gangguan). Bila ingin tidak ada isi sama sekali, matikan penyimpanan payload di **AI Gateway, Settings, Logs**.
+
+### Urutan memperbarui produksi
+
+1. **Env di Vercel** (Production): ubah `AI_MODEL=gemini-3.6-flash`. `AI_THINKING_LEVEL` biarkan kosong. Env AI lain tetap.
+2. **Push** ke `main`. Tidak ada migrasi baru; build tetap menjalankan pemeriksaan migrasi seperti biasa.
+3. **Reset data demo** dari Dashboard Owner (seed versi 9).
+4. Verifikasi:
+   - Tanya Rona "Sunscreen untuk kulit berminyak di bawah 100 ribu": teks pembuka tanpa daftar nama dan harga, setiap kartu punya alasan, kalimat pertama muncul dalam sekitar 2 detik.
+   - `/cari?q=lipstik yang ga bikin bibir kering buat kondangan` menampilkan beberapa produk bibir dan kalimat "Kami longgarkan: ...".
+   - `/rutinitas` di laptop: tombol Tanya Rona berada di atas bilah "Tambah semua ke keranjang"; ada subtotal pagi dan malam serta "Mulai dari yang penting".
+   - `/kuis-kulit` di HP: pilihan "Bantu isi dari foto (opsional)", layar persetujuan, ambil foto, jawaban bertanda "dari foto".
+   - `/cari-dari-video`: tempel link TikTok publik dan link YouTube Shorts; coba juga link Instagram (diarahkan ke screenshot) dan satu screenshot produk.
+   - `/kebijakan-privasi#foto` bisa dibuka dari layar persetujuan dan dari footer.
+   - Di log gateway, permintaan foto tidak menyimpan isi (hanya metadata).
+
+### Biaya dan batas pemakaian (7C)
+
+Biaya terukur (`npm run eval:ai`, gemini-3.6-flash, tingkat berpikir minimal, 14 Okt 2026, tarif resmi sebelum 1 Jan 2027):
+
+| Pemakaian | Token rata-rata | Biaya per permintaan | Per 1.000 |
+|---|---|---|---|
+| Chat Advisor | 2.503 (masuk 2.364, keluar 138) | US$0,0023 | US$2,29 |
+| Tafsiran pencarian (tanpa cache) | 296 | US$0,0004 | US$0,38 |
+| Foto kuis | 827 | US$0,0009 | US$0,91 |
+| Screenshot dupe | 762 | US$0,0008 | US$0,79 |
+| Link TikTok (caption) | 255 | US$0,0004 | US$0,40 |
+| Link YouTube (video 45 detik, resolusi rendah) | sekitar 2.600 | sekitar US$0,0021 | sekitar US$2,10 |
+
+Mulai 1 Jan 2027 tarif naik dua kali lipat. Link yang sama dalam 7 hari diambil dari cache tanpa biaya.
+
+Batas per pengunjung per hari: 5 foto kuis dan 10 permintaan cari dupe, plus `AI_DAILY_CAP` untuk semua fitur. Hasil dari cache (link yang sama dalam 7 hari) tidak dihitung ke `AI_DAILY_CAP`. Tabel `ai_logs` mencatat fitur `foto_kulit` dan `dupe` tanpa isi foto atau link.
 
 ## 5. Bagian build yang butuh database
 

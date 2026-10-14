@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { SkinQuiz } from "@/components/quiz/skin-quiz";
+import { aiTersedia } from "@/lib/ai";
 import { currentSkinProfile } from "@/lib/skin/current";
 
 export const metadata: Metadata = { title: "Kuis Kulit", description: "Enam pertanyaan bergambar untuk tahu jenis kulit, undertone, dan rutinitas yang pas untukmu." };
@@ -8,7 +9,8 @@ export const metadata: Metadata = { title: "Kuis Kulit", description: "Enam pert
 // Profil yang sudah ada (akun atau cookie tamu) dipakai sebagai jawaban awal.
 async function Quiz() {
   const p = await currentSkinProfile();
-  return <SkinQuiz initial={{ skinType: p?.skinType, concerns: p?.concerns, sensitivity: p?.sensitivity, budget: p?.budget, undertone: p?.undertone, depth: p?.depth, routine: p?.routine }} />;
+  // Pilihan "Bantu isi dari foto" hanya tampil bila AI tersedia; tanpa AI kuis tetap sama seperti biasa.
+  return <SkinQuiz initial={{ skinType: p?.skinType, concerns: p?.concerns, sensitivity: p?.sensitivity, budget: p?.budget, undertone: p?.undertone, depth: p?.depth, routine: p?.routine }} photoAvailable={aiTersedia()} />;
 }
 
 export default function SkinQuizPage() {

@@ -1,6 +1,7 @@
 // Filter katalog: parsing URL, predikat murni, dan pengurutan. Tidak menyentuh database.
 import type { Packaging } from "@/db/schema/enums";
 import { formatRupiah } from "@/lib/format";
+import { SHADE_GROUPS } from "@/lib/skin/shade";
 
 export const SORT_KEYS = ["relevan", "terlaris", "terbaru", "rating", "termurah", "termahal"] as const;
 export type SortKey = (typeof SORT_KEYS)[number];
@@ -281,4 +282,108 @@ export function activeFilterChips(f: CatalogFilters, labels: { brands?: Record<s
   if (f.promo) chips.push({ key: "promo", label: "Sedang promo", next: { ...f, promo: false, page: 1 } });
   for (const a of f.attributes) chips.push({ key: "attributes", label: ATTRIBUTES[a]?.label ?? a, next: { ...f, attributes: f.attributes.filter((x) => x !== a), page: 1 } });
   return chips;
+}
+
+// ---------- Tafsiran pencarian: filter wajib dan penambah peringkat (Fase 7C) ----------
+// Pada hasil tafsiran AI (tafsir=1), hanya kategori, merek, dan batas harga yang menjadi filter wajib. Jenis kulit,
+// masalah, finish, undertone, SPF, atribut manfaat, dan kata sisa (misal "kondangan") menjadi penambah peringkat.
+// Bila produk yang cocok dengan semuanya kurang dari 3, kriteria dilonggarkan bertahap dan pembeli diberi tahu.
+
+export const MIN_INTERPRETED_RESULTS = 3;
+
+export function hardFilters(f: CatalogFilters): CatalogFilters {
+  if (!f.interpreted) return f;
+  return { ...f, skinTypes: [], concerns: [], finishes: [], undertones: [], spf: false, attributes: [] };
+}
+
+export type SoftCriterion = { key: string; label: string; test: (item: CatalogItem) => boolean };
+
+const keywordWords = (k: string) => k.toLowerCase().split(/\s+/).filter((w) => w.length >= 3);
+
+// Urutan = urutan dilonggarkan (yang pertama paling dulu dilepas). Manfaat yang diminta pembeli (misal "ga bikin
+// kering") dan jenis kulit paling akhir dilepas.
+export function softCriteria(f: CatalogFilters): SoftCriterion[] {
+  if (!f.interpreted) return [];
+  const out: SoftCriterion[] = [];
+  const words = f.category ? keywordWords(f.keyword) : [];
+  if (words.length) out.push({ key: "kata", label: `kata "${f.keyword}"`, test: (i) => words.some((w) => i.name.toLowerCase().includes(w) || i.attrText.includes(w)) });
+  for (const x of f.finishes) out.push({ key: `finish:${x}`, label: finishLabels[x] ?? x, test: (i) => i.finish === x });
+  for (const u of f.undertones) out.push({ key: `undertone:${u}`, label: `undertone ${undertoneLabels[u] ?? u}`, test: (i) => i.variants.some((v) => v.undertone === u) });
+  if (f.spf) out.push({ key: "spf", label: "SPF", test: (i) => Boolean(i.spf && i.spf > 0) });
+  for (const a of [...f.attributes].reverse()) out.push({ key: `atribut:${a}`, label: ATTRIBUTES[a]?.label ?? a, test: (i) => ATTRIBUTES[a]?.test(i.attrText) ?? true });
+  for (const c of f.concerns) out.push({ key: `masalah:${c}`, label: concernLabels[c] ?? c, test: (i) => i.concerns.includes(c) });
+  for (const s of f.skinTypes) out.push({ key: `kulit:${s}`, label: `kulit ${(skinTypeLabels[s] ?? s).toLowerCase()}`, test: (i) => i.skinTypes.includes(s) });
+  return out;
+}
+
+export type Loosened = { kind: "soft"; label: string } | { kind: "brands"; values: string[] } | { kind: "category"; from: string; to: string; group: boolean } | { kind: "price"; max: number };
+
+const GROUP_LABELS: Record<string, string> = { wajah: "produk alas wajah", bibir: "produk bibir", pipi: "produk pipi" };
+
+// Kategori lebih luas untuk pelonggaran: kategori shade ke kelompok sejenis (cushion ke alas wajah lain, lipstik ke
+// produk bibir lain), kategori lain ke induknya.
+function widerCategory(slug: string, items: CatalogItem[]): { label: string; group: boolean; test: (i: CatalogItem) => boolean } | null {
+  const group = SHADE_GROUPS[slug];
+  if (group) return { label: group, group: true, test: (i) => SHADE_GROUPS[i.categorySlug] === group };
+  const parentSlug = items.find((i) => i.categorySlug === slug && i.parentSlug !== slug)?.parentSlug;
+  return parentSlug ? { label: parentSlug, group: false, test: (i) => i.parentSlug === parentSlug } : null;
+}
+
+// Hasil tafsiran: filter wajib, dilonggarkan bila hasilnya kurang dari 3 (merek dulu, lalu batas harga, lalu kategori
+// diperluas ke yang sejenis). Produk dari kategori asli tetap di urutan teratas. Setelah itu urutan berdasarkan
+// kecocokan kriteria lunak: produk yang cocok dengan semua kriteria aktif di atas. Kriteria lunak dilepas satu per
+// satu (hanya yang memang menyaring) sampai ada 3 produk yang cocok semuanya. Urutan selain "relevan" dihormati.
+export function rankInterpreted(items: CatalogItem[], f: CatalogFilters): { items: CatalogItem[]; loosened: Loosened[]; hard: CatalogFilters } {
+  let hard = hardFilters(f);
+  const loosened: Loosened[] = [];
+  let widened: ((i: CatalogItem) => boolean) | null = null;
+  const matches = (i: CatalogItem) => (widened ? productMatches(i, { ...hard, category: null }) && widened(i) : productMatches(i, hard));
+  let base = items.filter(matches);
+  const enough = () => base.length >= MIN_INTERPRETED_RESULTS;
+  if (!enough() && hard.brands.length) {
+    loosened.push({ kind: "brands", values: hard.brands });
+    hard = { ...hard, brands: [] };
+    base = items.filter(matches);
+  }
+  if (!enough() && hard.priceMax != null) {
+    loosened.push({ kind: "price", max: hard.priceMax });
+    hard = { ...hard, priceMax: null };
+    base = items.filter(matches);
+  }
+  const original = hard.category;
+  const wider = original ? widerCategory(original, items) : null;
+  if (!enough() && original && wider) {
+    loosened.push({ kind: "category", from: original, to: wider.label, group: wider.group });
+    widened = wider.test;
+    base = items.filter(matches);
+  }
+  const inOriginal = (i: CatalogItem) => !original || i.categorySlug === original || i.parentSlug === original;
+  const all = softCriteria(f);
+  // Tanpa filter wajib sama sekali (misal chip kategori dihapus), produk minimal cocok dengan satu kriteria lunak
+  // supaya hasilnya tetap relevan, bukan seluruh katalog.
+  if (!hard.category && !widened && !hard.brands.length && hard.priceMax == null && hard.priceMin == null && all.length) base = base.filter((i) => all.some((c) => c.test(i)));
+  let active = all;
+  const target = Math.min(MIN_INTERPRETED_RESULTS, base.length);
+  const fullMatches = () => base.filter((i) => active.every((c) => c.test(i))).length;
+  while (active.length && fullMatches() < target) {
+    // Lepas kriteria pertama (menurut urutan prioritas) yang memang menyaring produk.
+    const drop = active.find((c) => base.some((i) => !c.test(i))) ?? active[0];
+    loosened.push({ kind: "soft", label: drop.label });
+    active = active.filter((c) => c !== drop);
+  }
+  const effective = widened ? { ...hard, category: null } : hard;
+  if (f.sort !== "relevan") return { items: sortItems(base, effective), loosened, hard: effective };
+  const score = (i: CatalogItem) => (inOriginal(i) ? 2000 : 0) + (active.length && active.every((c) => c.test(i)) ? 1000 : 0) + all.filter((c) => c.test(i)).length;
+  const order = new Map(sortItems(base, { ...effective, q: "" }).map((i, n) => [i.id, n]));
+  const ranked = [...base].sort((a, b) => score(b) - score(a) || order.get(a.id)! - order.get(b.id)!);
+  return { items: ranked, loosened, hard: effective };
+}
+
+export function loosenedText(list: Loosened[], labels: { brands?: Record<string, string>; categories?: Record<string, string> } = {}) {
+  if (!list.length) return null;
+  const cat = (slug: string) => labels.categories?.[slug] ?? slug;
+  const parts = list.map((l) =>
+    l.kind === "soft" ? `tanpa ${l.label}` : l.kind === "brands" ? `tanpa merek ${l.values.map((b) => labels.brands?.[b] ?? b).join(", ")}` : l.kind === "category" ? `${cat(l.from)} diperluas ke ${l.group ? (GROUP_LABELS[l.to] ?? l.to) : `semua ${cat(l.to)}`}` : `tanpa batas harga ${formatRupiah(l.max)}`,
+  );
+  return `Kami longgarkan: ${parts.join(", ")}.`;
 }

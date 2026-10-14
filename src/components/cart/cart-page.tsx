@@ -59,7 +59,7 @@ export function CartPage({ initial }: { initial: CartView | null }) {
               <SummaryRows view={view} />
             </div>
             <Button asChild size="lg" className="mt-5 w-full">
-              <Link href="/checkout">
+              <Link href="/checkout" data-aksi-utama>
                 Lanjut ke checkout <ArrowRight />
               </Link>
             </Button>

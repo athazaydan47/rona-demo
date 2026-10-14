@@ -8,7 +8,7 @@ import { wibDayStart } from "@/lib/reports";
 import type { AiConfig } from "./client";
 
 export const VISITOR_COOKIE = "rona_pengunjung";
-export const LIMITS = { chatPerDayDemo: 20, chatPerMinute: 5 } as const;
+export const LIMITS = { chatPerDayDemo: 20, chatPerMinute: 5, photoPerDay: 5, dupePerDay: 10 } as const;
 
 export function visitorHash(visitorId: string, secret = process.env.SESSION_SECRET ?? "rona-demo") {
   return createHash("sha256").update(`${secret}:${visitorId}`).digest("hex").slice(0, 32);
@@ -36,7 +36,8 @@ export const RESTING_MESSAGE = "Rona Advisor sedang istirahat, coba lagi besok. 
 
 // Batas global: jumlah panggilan AI hari ini (WIB, semua fitur) dibanding AI_DAILY_CAP.
 export async function globalCapReached(db: AnyDb, cfg: AiConfig, now: Date) {
-  const [{ n }] = await db.select({ n: count() }).from(schema.aiLogs).where(and(gte(schema.aiLogs.createdAt, wibDayStart(now)), sql`${schema.aiLogs.feature} <> 'eval'`));
+  // Hasil dari cache (model "cache") tidak memanggil AI, jadi tidak dihitung.
+  const [{ n }] = await db.select({ n: count() }).from(schema.aiLogs).where(and(gte(schema.aiLogs.createdAt, wibDayStart(now)), sql`${schema.aiLogs.feature} <> 'eval'`, sql`${schema.aiLogs.model} <> 'cache'`));
   return Number(n) >= cfg.dailyCap;
 }
 
@@ -50,6 +51,14 @@ export async function checkChatLimit(db: AnyDb, cfg: AiConfig, hash: string, now
   ]);
   if (Number(minute) >= LIMITS.chatPerMinute) return { ok: false, reason: "menit", message: "Pelan-pelan, ya. Tunggu sebentar sebelum bertanya lagi." };
   if (cfg.demoMode && Number(day) >= LIMITS.chatPerDayDemo) return { ok: false, reason: "harian", message: `Kamu sudah bertanya ${LIMITS.chatPerDayDemo} kali hari ini. Coba lagi besok, ya. Kuis kulit dan rutinitas tetap bisa dipakai.` };
+  return { ok: true };
+}
+
+// Batas harian per pengunjung untuk fitur foto dan link (berlaku juga di luar DEMO_MODE), plus batas global.
+export async function checkDailyFeatureLimit(db: AnyDb, cfg: AiConfig, hash: string, feature: string, perDay: number, now: Date, label: string): Promise<LimitResult> {
+  if (await globalCapReached(db, cfg, now)) return { ok: false, reason: "global", message: "Fitur AI sedang istirahat, coba lagi besok. Kamu tetap bisa mengisi kuis dan mencari produk seperti biasa." };
+  const [{ day }] = await db.select({ day: count() }).from(schema.aiLogs).where(and(eq(schema.aiLogs.visitorHash, hash), eq(schema.aiLogs.feature, feature), gte(schema.aiLogs.createdAt, wibDayStart(now))));
+  if (Number(day) >= perDay) return { ok: false, reason: "harian", message: `Kamu sudah memakai ${label} ${perDay} kali hari ini. Coba lagi besok, ya.` };
   return { ok: true };
 }
 

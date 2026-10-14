@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Info, Loader2, Moon, ShoppingBag, Sun } from "lucide-react";
+import { Info, Loader2, Moon, ShoppingBag, Sparkle, Sun } from "lucide-react";
 import { ProductArt } from "@/components/product-art";
 import { Button } from "@/components/ui/button";
 import { PriceTag } from "@/components/ui/price-tag";
@@ -47,20 +47,37 @@ function Step({ step, n, chosen, onChoose }: { step: RoutineStepView; n: number;
   );
 }
 
-export function RoutineView({ pagi, malam, warnings }: { pagi: RoutineStepView[]; malam: RoutineStepView[]; warnings: { id: string; text: string }[] }) {
+type Warning = { id: string; text: string };
+export type RoutineMode = "lengkap" | "inti";
+
+export function RoutineView({ pagi, malam, warnings, inti, intiWarnings, defaultMode = "lengkap" }: { pagi: RoutineStepView[]; malam: RoutineStepView[]; warnings: Warning[]; inti: RoutineStepView[]; intiWarnings: Warning[]; defaultMode?: RoutineMode }) {
+  const [mode, setMode] = useState<RoutineMode>(defaultMode);
   const [choice, setChoice] = useState<Record<string, number>>({});
   const [state, setState] = useState<"idle" | "busy" | "ok" | "fail">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const pick = (time: string, s: RoutineStepView, i: number) => s.options[choice[`${time}:${i}`] ?? 0];
-  const chosen = [...pagi.map((s, i) => pick("pagi", s, i)), ...malam.map((s, i) => pick("malam", s, i))];
+  const sum = (items: RoutineItemView[]) => [...new Map(items.map((c) => [c.variantId, c.price])).values()].reduce((a, b) => a + b, 0);
+  const chosenPagi = pagi.map((s, i) => pick("pagi", s, i));
+  const chosenMalam = malam.map((s, i) => pick("malam", s, i));
+  const chosenInti = inti.map((s, i) => pick("inti", s, i));
+  const chosen = mode === "inti" ? chosenInti : [...chosenPagi, ...chosenMalam];
   const unique = new Map(chosen.map((c) => [c.variantId, c]));
-  const total = [...unique.values()].reduce((s, p) => s + p.price, 0);
+  const total = sum(chosen);
+  const fullTotal = sum([...chosenPagi, ...chosenMalam]);
+  const shownWarnings = mode === "inti" ? intiWarnings : warnings;
 
-  const section = (time: "pagi" | "malam", steps: RoutineStepView[]) => (
+  const section = (time: "pagi" | "malam" | "inti", steps: RoutineStepView[], subtotal: number) => (
     <section>
-      <h2 className="mb-2 flex items-center gap-2 font-serif text-2xl text-kopi">
-        {time === "pagi" ? <Sun className="size-5 text-emas" aria-hidden /> : <Moon className="size-5 text-kopi" aria-hidden />} {time === "pagi" ? "Pagi" : "Malam"}
-      </h2>
+      <div className="mb-2 flex items-baseline justify-between gap-2">
+        <h2 className="flex items-center gap-2 font-serif text-2xl text-kopi">
+          {time === "pagi" ? <Sun className="size-5 text-emas" aria-hidden /> : time === "malam" ? <Moon className="size-5 text-kopi" aria-hidden /> : <Sparkle className="size-5 text-rona" aria-hidden />}{" "}
+          {time === "pagi" ? "Pagi" : time === "malam" ? "Malam" : "Inti, pagi dan malam"}
+        </h2>
+        <p className="text-sm text-abu-hangat tabular-nums" data-testid={`subtotal-${time}`}>
+          Subtotal <span className="font-semibold text-kopi">{formatRupiah(subtotal)}</span>
+        </p>
+      </div>
+      {time === "inti" ? <p className="mb-2 text-xs text-abu-hangat">Pembersih dan pelembap yang sama dipakai pagi dan malam. Sunscreen cukup pagi hari.</p> : null}
       <ol className="space-y-2">
         {steps.map((s, i) => (
           <Step key={`${time}-${s.key}-${i}`} step={s} n={i + 1} chosen={choice[`${time}:${i}`] ?? 0} onChoose={(c) => setChoice((x) => ({ ...x, [`${time}:${i}`]: c }))} />
@@ -71,25 +88,42 @@ export function RoutineView({ pagi, malam, warnings }: { pagi: RoutineStepView[]
 
   return (
     <div className="space-y-6">
-      {warnings.length ? (
+      <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Pilihan rutinitas">
+        {(
+          [
+            ["lengkap", "Rutinitas lengkap", fullTotal],
+            ["inti", "Mulai dari yang penting", sum(chosenInti)],
+          ] as const
+        ).map(([value, label, price]) => (
+          <button key={value} type="button" role="radio" aria-checked={mode === value} onClick={() => setMode(value)} data-testid={`mode-${value}`} className={cn("rounded-pill border px-3.5 py-2 text-sm", mode === value ? "border-kopi bg-kopi text-putih" : "border-garis bg-putih text-kopi hover:border-kopi/40")}>
+            <span className="font-semibold">{label}</span> <span className={cn("tabular-nums", mode === value ? "text-putih/80" : "text-abu-hangat")}>{formatRupiah(price)}</span>
+          </button>
+        ))}
+      </div>
+      {mode === "inti" ? <p className="-mt-3 text-sm text-abu-hangat">Tiga langkah inti dulu: pembersih, pelembap, dan sunscreen. Tambah serum atau toner nanti setelah kulitmu terbiasa.</p> : null}
+      {shownWarnings.length ? (
         <section className="rounded-xl border border-peringatan/40 bg-[#FBEEDC] p-4" data-testid="peringatan-bahan">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-[#8A5512]">
             <Info className="size-4" aria-hidden /> Saran pemakaian
           </h2>
           <ul className="mt-1 list-inside list-disc space-y-1 text-sm text-[#8A5512]">
-            {warnings.map((w) => (
+            {shownWarnings.map((w) => (
               <li key={w.id}>{w.text}</li>
             ))}
           </ul>
         </section>
       ) : null}
-      <div className="grid gap-6 md:grid-cols-2">
-        {section("pagi", pagi)}
-        {section("malam", malam)}
-      </div>
-      <div className="sticky bottom-16 z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-garis bg-putih/95 p-3 backdrop-blur md:bottom-4">
+      {mode === "inti" ? (
+        <div className="md:max-w-xl">{section("inti", inti, sum(chosenInti))}</div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2">
+          {section("pagi", pagi, sum(chosenPagi))}
+          {section("malam", malam, sum(chosenMalam))}
+        </div>
+      )}
+      <div className="sticky bottom-16 z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-garis bg-putih/95 p-3 backdrop-blur md:bottom-4" data-bilah-bawah>
         <div>
-          <p className="text-xs text-abu-hangat">{unique.size} produk, produk yang dipakai pagi dan malam dihitung sekali</p>
+          <p className="text-xs text-abu-hangat">{unique.size} produk{mode === "lengkap" ? ", produk yang dipakai pagi dan malam dihitung sekali" : ""}</p>
           <p className="font-serif text-xl text-kopi tabular-nums" data-testid="total-rutinitas">
             {formatRupiah(total)}
           </p>
@@ -110,6 +144,7 @@ export function RoutineView({ pagi, malam, warnings }: { pagi: RoutineStepView[]
               setMessage(r.ok ? (r.message ?? "Semua masuk keranjang") : (r.message ?? "Gagal menambah"));
             }}
             data-testid="tambah-semua"
+            data-aksi-utama
           >
             {state === "busy" ? <Loader2 className="animate-spin" /> : <ShoppingBag />} Tambah semua ke keranjang
           </Button>

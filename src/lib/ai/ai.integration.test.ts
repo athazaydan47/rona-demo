@@ -1,34 +1,38 @@
 // AI dan fungsi katalog terhadap database lokal: filter katalog, padanan shade, rutinitas, validasi Advisor dengan
 // model tiruan, batas pemakaian per pengunjung dan global, fallback tafsiran saat AI gagal atau lambat, cache
 // ringkasan ulasan berbasis hash, dan atribusi item dari Advisor. Data uji dibersihkan di akhir.
+import { readFileSync } from "node:fs";
 import { afterAll, describe, expect, it } from "vitest";
 import { dbUrl, integration } from "@/test/integration";
 import { addItems, createCart } from "@/lib/cart/service";
 import { cariProduk, cekStok, detailProduk, padananShade, susunRutinitas } from "@/lib/catalog/tools";
 import { placeOrder, type PlaceOrderInput } from "@/lib/orders/service";
 import { runAdvisor } from "./advisor";
-import { aiConfig, type AiModel, type GenRequest, type GenResponse, type Part } from "./client";
+import { aiConfig, withStream, type AiModel, type GenRequest, type GenResponse, type Part } from "./client";
 import { interpretQuery, normalizeQuery } from "./interpret";
 import { createMockModel } from "./mock";
 import { refreshReviewSummary } from "./review-summary";
-import { checkChatLimit, LIMITS } from "./usage";
+import { dupeFromLink, dupeFromScreenshots } from "./dupe";
+import { analyzeSkinPhoto } from "./skin-photo";
+import { checkChatLimit, checkDailyFeatureLimit, LIMITS, shortHash } from "./usage";
 
 const fnCall = (name: string, args: Record<string, unknown>): Part => ({ functionCall: { name, args } });
 const respond = (parts: Part[]): GenResponse => ({ content: { role: "model", parts }, text: parts.map((p) => p.text ?? "").join(""), functionCalls: parts.filter((p) => p.functionCall).map((p) => ({ name: p.functionCall!.name, args: p.functionCall!.args ?? {} })), usage: { input: 100, output: 20 }, model: "tiruan" });
 
 // Model tiruan yang menjalankan naskah giliran demi giliran.
 function scripted(turns: ((req: GenRequest) => Part[])[]): AiModel & { calls: number } {
-  const m = {
+  let calls = 0;
+  const m = withStream({
     name: "tiruan",
-    calls: 0,
     async generate(req: GenRequest) {
-      const t = turns[Math.min(m.calls, turns.length - 1)];
-      m.calls++;
+      const t = turns[Math.min(calls, turns.length - 1)];
+      calls++;
       return respond(t(req));
     },
-  };
-  return m;
+  });
+  return Object.defineProperty(m, "calls", { get: () => calls }) as AiModel & { calls: number };
 }
+const answer = (teks: string, produk: { id: number; alasan: string }[]): Part[] => [{ text: JSON.stringify({ teks, produk }) }];
 const lastToolResult = (req: GenRequest) => req.contents[req.contents.length - 1].parts.find((p) => p.functionResponse)?.functionResponse?.response as Record<string, unknown>;
 
 describe.skipIf(!dbUrl)("AI dan fungsi katalog (integrasi)", () => {
@@ -36,10 +40,12 @@ describe.skipIf(!dbUrl)("AI dan fungsi katalog (integrasi)", () => {
   const { db, schema, eq, inArray } = t;
   const now = new Date();
   const visitor = `uji-${Date.now().toString(36)}`;
+  let dupeKey = "";
 
   afterAll(async () => {
     await db.delete(schema.aiLogs).where(t.sql`${schema.aiLogs.visitorHash} like ${`${visitor}%`}`);
     await db.delete(schema.aiCache).where(t.sql`${schema.aiCache.key} like 'tafsir:%' and ${schema.aiCache.feature} = 'uji'`);
+    await db.delete(schema.aiCache).where(t.sql`${schema.aiCache.key} = ${dupeKey}`);
     await t.cleanup();
   });
 
@@ -98,47 +104,82 @@ describe.skipIf(!dbUrl)("AI dan fungsi katalog (integrasi)", () => {
     it("id di luar hasil tool ditolak dan jawaban dibuat ulang sekali", async () => {
       const [outside] = await cariProduk(db, { kategori: "eau-de-parfum" }, now);
       const model = scripted([
-        () => [fnCall("cariProduk", { kategori: "sunscreen-wajah" })],
+        () => [fnCall("cariProduk", { kategori: "sunscreen-wajah", catatan: "Aku carikan sunscreen." })],
         (req) => {
           const hasil = (lastToolResult(req).hasil as { id: number }[]).map((h) => h.id);
-          return [fnCall("jawab", { teks: "Ini pilihannya.", produkIds: [hasil[0], outside.id] })];
+          return answer("Ini pilihannya.", [{ id: hasil[0], alasan: "Ringan" }, { id: outside.id, alasan: "Wangi" }]);
         },
         (req) => {
-          expect(String(JSON.stringify(lastToolResult(req)))).toMatch(/ditolak/);
-          return [fnCall("jawab", { teks: "Ini sunscreen yang cocok.", produkIds: [] })];
+          expect(JSON.stringify(req.contents.at(-1))).toMatch(/ditolak/);
+          expect(req.tools).toBeUndefined(); // putaran ulang tanpa tool
+          return answer("Ini sunscreen yang cocok.", []);
         },
       ]);
       const r = await runAdvisor(db, model, { history: [{ role: "user", text: "sunscreen dong" }], now });
       expect(r.regenerated).toBe(true);
       expect(r.productIds).toEqual([]);
       expect(r.text).toBe("Ini sunscreen yang cocok.");
+      expect(r.intro).toBe("Aku carikan sunscreen.");
       expect(model.calls).toBe(3);
     });
-    it("nama produk katalog yang tidak ada di hasil tool dibuang dari teks bila tetap muncul", async () => {
+    it("nama produk katalog di luar hasil tool dan daftar nama dibuang dari teks", async () => {
       const [other] = await cariProduk(db, { kategori: "eau-de-parfum" }, now);
-      let h: { id: number; nama: string } | null = null;
+      let h: { id: number; nama: string }[] = [];
       const model = scripted([
         () => [fnCall("cariProduk", { kategori: "toner" })],
         (req) => {
-          h ??= (lastToolResult(req).hasil as { id: number; nama: string }[])[0];
-          // Tetap menyebut produk di luar hasil tool, juga setelah diminta menulis ulang.
-          return [fnCall("jawab", { teks: `Pakai ${h.nama}. Atau ${other.nama} juga bagus.`, produkIds: [h.id] })];
+          if (!h.length) h = lastToolResult(req).hasil as { id: number; nama: string }[];
+          // Tetap menyebut produk di luar hasil tool dan menulis daftar nama, juga setelah diminta menulis ulang.
+          return answer(`Dua toner lembut untukmu. Pakai ${h[0].nama} atau ${h[1].nama}. Atau ${other.nama} juga bagus.`, [{ id: h[0].id, alasan: "Menenangkan" }, { id: h[1].id, alasan: "Ringan" }]);
         },
       ]);
       const r = await runAdvisor(db, model, { history: [{ role: "user", text: "toner" }], now });
       expect(r.regenerated).toBe(true);
-      expect(r.text).not.toContain(other.nama);
-      expect(r.text).toContain(h!.nama);
-      expect(r.productIds).toHaveLength(1);
+      expect(r.text).toBe("Dua toner lembut untukmu.");
+      expect(r.products).toEqual([{ id: h[0].id, alasan: "Menenangkan" }, { id: h[1].id, alasan: "Ringan" }]);
     });
-    it("model mock: kartu produk berasal dari hasil tool dan harga server", async () => {
-      const r = await runAdvisor(db, createMockModel(), { history: [{ role: "user", text: "Sunscreen untuk kulit berminyak di bawah 100 ribu" }], now });
-      expect(r.toolCalls).toEqual(["cariProduk", "jawab"]);
+    it("angka rupiah harus harga efektif produk yang direkomendasikan; alasan divalidasi", async () => {
+      let hit: { id: number; harga: number; hargaNormal?: number } | null = null;
+      const model = scripted([
+        () => [fnCall("cariProduk", { kategori: "sunscreen-wajah" })],
+        (req) => {
+          hit = (lastToolResult(req).hasil as { id: number; harga: number }[])[0];
+          return answer(`Sunscreen ringan untukmu, cuma Rp ${(hit.harga).toLocaleString("id-ID")}. Totalnya jadi Rp 1.000 saja.`, [
+            { id: hit.id, alasan: `Hemat, Rp ${hit.harga.toLocaleString("id-ID")} saja dan nyaman dipakai harian di bawah makeup tanpa terasa berat sama sekali, cocok juga untuk kulit berminyak` },
+          ]);
+        },
+      ]);
+      const events: string[] = [];
+      const r = await runAdvisor(db, model, { history: [{ role: "user", text: "sunscreen murah" }], now }, (e) => events.push(e.type === "status" ? "status" : `${e.type}:${"text" in e ? e.text : ""}`));
+      expect(r.text).toBe(`Sunscreen ringan untukmu, cuma Rp ${hit!.harga.toLocaleString("id-ID")}.`);
+      expect(r.products[0].alasan.length).toBeLessThanOrEqual(93);
+      expect(r.products[0].alasan).toMatch(/\.\.\.$/);
+      // Kalimat dengan harga karangan tidak pernah dialirkan ke pembeli.
+      expect(events.join("|")).not.toContain("Rp 1.000");
+      expect(events[0]).toBe("status");
+    });
+    it("jawabLangsung: penolakan tanpa produk dalam satu panggilan, klaim medis diganti arahan dokter", async () => {
+      const model = scripted([() => [fnCall("jawabLangsung", { teks: "Krim ini dijamin sembuh dalam seminggu. Maaf, aku tidak bisa menilai kondisi kulitmu." })]]);
+      const r = await runAdvisor(db, model, { history: [{ role: "user", text: "jerawatku meradang" }], now });
+      expect(model.calls).toBe(1);
+      expect(r.text).not.toContain("dijamin sembuh");
+      expect(r.text).toContain("dokter kulit");
+      expect(r.firstTextMs).not.toBeNull();
+    });
+    it("model mock: dua putaran, kartu dari hasil tool dengan alasan, teks tanpa nama dan harga", async () => {
+      const events: string[] = [];
+      const r = await runAdvisor(db, createMockModel(), { history: [{ role: "user", text: "Sunscreen untuk kulit berminyak di bawah 100 ribu" }], now }, (e) => events.push(e.type));
+      expect(r.toolCalls).toEqual(["cariProduk"]);
+      expect(r.rounds).toBe(2);
       const list = await cariProduk(db, { kategori: "sunscreen-wajah", jenisKulit: "berminyak", hargaMaks: 100_000 }, now);
       expect(r.productIds).toEqual(list.slice(0, 3).map((p) => p.id));
+      expect(r.products.every((p) => p.alasan.length > 0)).toBe(true);
+      expect(list.some((p) => r.text.includes(p.nama))).toBe(false);
+      expect(r.text).not.toMatch(/Rp/);
+      expect(events.indexOf("pembuka")).toBeLessThan(events.indexOf("delta"));
     });
     it("AI gagal: jawaban ramah, tidak melempar galat", async () => {
-      const broken: AiModel = { name: "rusak", generate: async () => Promise.reject(new Error("HTTP 503")) };
+      const broken: AiModel = withStream({ name: "rusak", generate: async () => Promise.reject(new Error("HTTP 503")) });
       const r = await runAdvisor(db, broken, { history: [{ role: "user", text: "halo" }], now });
       expect(r).toMatchObject({ ok: false, productIds: [] });
       expect(r.text).toMatch(/tidak bisa dihubungi/);
@@ -168,13 +209,13 @@ describe.skipIf(!dbUrl)("AI dan fungsi katalog (integrasi)", () => {
 
   describe("tafsiran pencarian", () => {
     it("AI lambat: kembali null dalam anggaran waktu, pencarian biasa dipakai", async () => {
-      const slow: AiModel = { name: "lambat", generate: () => new Promise(() => {}) };
+      const slow: AiModel = withStream({ name: "lambat", generate: () => new Promise(() => {}) });
       const t0 = Date.now();
       expect(await interpretQuery(db, slow, "lipstik yang tahan lama buat kondangan uji lambat", now, { budgetMs: 400, visitorHash: `${visitor}-t` })).toBeNull();
       expect(Date.now() - t0).toBeLessThan(1500);
     });
     it("AI gagal atau jawaban rusak: null", async () => {
-      const broken: AiModel = { name: "rusak", generate: async () => Promise.reject(new Error("HTTP 500")) };
+      const broken: AiModel = withStream({ name: "rusak", generate: async () => Promise.reject(new Error("HTTP 500")) });
       expect(await interpretQuery(db, broken, "sunscreen yang ga lengket uji gagal", now, { visitorHash: `${visitor}-t` })).toBeNull();
       const junk = scripted([() => [{ text: "bukan json" }]]);
       expect(await interpretQuery(db, junk, "serum yang bikin glowing uji rusak", now, { visitorHash: `${visitor}-t` })).toBeNull();
@@ -208,10 +249,10 @@ describe.skipIf(!dbUrl)("AI dan fungsi katalog (integrasi)", () => {
     } finally {
       await db.update(schema.reviews).set({ status: "tampil" }).where(eq(schema.reviews.id, r.id));
       await db.delete(schema.reviewSummaries).where(eq(schema.reviewSummaries.productId, productId));
+      // Tanpa AI tidak ada ringkasan baru (halaman produk tidak pernah memicu pembuatan).
+      expect(await refreshReviewSummary(db, null, productId, now)).toBe("gagal");
       if (before) await db.insert(schema.reviewSummaries).values(before);
     }
-    // Tanpa AI tidak ada ringkasan baru (halaman produk tidak pernah memicu pembuatan).
-    expect(await refreshReviewSummary(db, null, productId, now)).toBe("gagal");
   });
 
   it("atribusi: item dari Advisor tercatat bersumber advisor di keranjang dan order_items", async () => {
@@ -232,5 +273,87 @@ describe.skipIf(!dbUrl)("AI dan fungsi katalog (integrasi)", () => {
     const items = await db.select({ variantId: schema.orderItems.variantId, source: schema.orderItems.source }).from(schema.orderItems).where(eq(schema.orderItems.orderId, o.id));
     expect(Object.fromEntries(items.map((i) => [i.variantId, i.source]))).toEqual({ [picks[0].varianCocok[0].id]: "advisor", [picks[1].varianCocok[0].id]: null });
     void inArray;
+  });
+
+  describe("foto dan link (7C)", () => {
+    const tinyJpeg = { mimeType: "image/jpeg" as const, data: Buffer.from(readFileSync("evals/7c/gambar/wajah-ilustrasi.jpg")).toString("base64") };
+    // Bungkus db yang mencatat semua insert dan update supaya terbukti tidak ada jalur penyimpanan foto.
+    const recording = () => {
+      const writes: { table: string; values: unknown }[] = [];
+      const wrapped = new Proxy(db, {
+        get(target, prop, receiver) {
+          if (prop === "insert" || prop === "update") {
+            return (table: Parameters<typeof db.insert>[0]) => {
+              const builder = (target[prop] as (t: typeof table) => { values?: (v: unknown) => unknown; set?: (v: unknown) => unknown })(table);
+              const name = (table as unknown as Record<symbol, string>)[Symbol.for("drizzle:Name")];
+              const key = prop === "insert" ? "values" : "set";
+              const orig = builder[key]!.bind(builder);
+              builder[key] = (v: unknown) => {
+                writes.push({ table: name, values: v });
+                return orig(v);
+              };
+              return builder;
+            };
+          }
+          return Reflect.get(target, prop, receiver);
+        },
+      });
+      return { db: wrapped as typeof db, writes };
+    };
+
+    it("foto kuis: hanya satu baris ai_logs berisi metadata, tanpa isi foto", async () => {
+      const r0 = recording();
+      const r = await analyzeSkinPhoto(r0.db, createMockModel(), tinyJpeg, { now, visitorHash: `${visitor}-foto` });
+      expect(r).toMatchObject({ ok: true, quality: "cukup" });
+      expect(r0.writes.map((w) => w.table)).toEqual(["ai_logs"]);
+      const row = JSON.stringify(r0.writes[0].values);
+      expect(row).not.toContain(tinyJpeg.data.slice(0, 40));
+      expect(r0.writes[0].values).toMatchObject({ feature: "foto_kulit", query: null, ok: true });
+    });
+    it("screenshot dupe: tidak di-cache dan tidak disimpan", async () => {
+      const r0 = recording();
+      const shot = { mimeType: "image/jpeg" as const, data: readFileSync("evals/7c/gambar/lumi-velvet-merah-ceri.jpg").toString("base64") };
+      const r = await dupeFromScreenshots({ db: r0.db, model: createMockModel(), now, visitorHash: `${visitor}-dupe` }, [shot]);
+      expect(r).toMatchObject({ ok: true, match: { tipe: "cocok" } });
+      expect(r0.writes.map((w) => w.table)).toEqual(["ai_logs"]);
+      expect(JSON.stringify(r0.writes)).not.toContain(shot.data.slice(0, 40));
+    });
+    it("link: hasil ekstraksi (teks terstruktur) di-cache per URL, panggilan kedua tanpa AI", async () => {
+      const id = `73${Date.now()}`.slice(0, 19);
+      const url = `https://www.tiktok.com/@uji/video/${id}`;
+      const fetchImpl = async () => new Response(JSON.stringify({ title: "Dupe lipstik Wardah warna nude satin, lembap!", author_name: "uji", author_url: "https://www.tiktok.com/@uji", thumbnail_url: "https://p16.tiktokcdn.com/a.jpeg" }), { status: 200 });
+      let calls = 0;
+      const base = createMockModel();
+      const model = withStream({ name: "mock", generate: (req, o) => (calls++, base.generate(req, o)) });
+      const deps = { db, model, now, visitorHash: `${visitor}-link`, fetchImpl };
+      const first = await dupeFromLink(deps, `${url}?is_from_webapp=1`);
+      const second = await dupeFromLink(deps, url);
+      expect(first).toMatchObject({ ok: true, cached: false, match: { tipe: "mirip", namaTerbaca: "Wardah" } });
+      expect(second).toMatchObject({ ok: true, cached: true });
+      expect(calls).toBe(1);
+      dupeKey = `dupe:${shortHash(url)}`;
+      const [row] = await db.select().from(schema.aiCache).where(eq(schema.aiCache.key, dupeKey));
+      expect(Object.keys(row.value as object).sort()).toEqual(["finish", "jenisProduk", "kataKunci", "kategori", "keyakinan", "merek", "namaProduk", "warnaHex"]);
+      expect(JSON.stringify(row.value)).not.toMatch(/tiktokcdn|thumbnail/); // sampul tidak disimpan
+      expect(Math.round((row.expiresAt.getTime() - row.createdAt.getTime()) / 86_400_000)).toBe(7);
+    });
+    it("batas harian: 5 foto dan 10 permintaan dupe per pengunjung", async () => {
+      const cfg = { ...aiConfig({ AI_PROVIDER: "mock" }), dailyCap: 1_000_000 };
+      const log = (hash: string, feature: string, n: number) => db.insert(schema.aiLogs).values(Array.from({ length: n }, () => ({ feature, model: "uji", visitorHash: hash, createdAt: new Date(now.getTime() - 60_000) })));
+      await log(`${visitor}-batas`, "foto_kulit", LIMITS.photoPerDay - 1);
+      expect(await checkDailyFeatureLimit(db, cfg, `${visitor}-batas`, "foto_kulit", LIMITS.photoPerDay, now, "bantuan foto")).toEqual({ ok: true });
+      await log(`${visitor}-batas`, "foto_kulit", 1);
+      expect(await checkDailyFeatureLimit(db, cfg, `${visitor}-batas`, "foto_kulit", LIMITS.photoPerDay, now, "bantuan foto")).toMatchObject({ ok: false, reason: "harian" });
+      await log(`${visitor}-batas`, "dupe", LIMITS.dupePerDay);
+      expect(await checkDailyFeatureLimit(db, cfg, `${visitor}-batas`, "dupe", LIMITS.dupePerDay, now, "cari dari video")).toMatchObject({ ok: false, reason: "harian" });
+      expect(LIMITS).toMatchObject({ photoPerDay: 5, dupePerDay: 10 });
+    });
+    it("seed: serum retinal punya stok online supaya bentrok bahan bisa dipamerkan", async () => {
+      const [r] = (await db.execute(t.sql`select coalesce(sum(i.on_hand - i.reserved), 0)::int as n from inventory i join variants v on v.id = i.variant_id join products p on p.id = v.product_id join locations l on l.id = i.location_id where p.slug = 'kirana-lab-retinal-night-serum' and l.type = 'gudang'`)) as unknown as { n: number }[];
+      expect(r.n).toBeGreaterThan(0);
+      const routine = await susunRutinitas(db, { skinType: "kombinasi", concerns: ["pori", "penuaan"], sensitivity: "rendah", routine: "lengkap" }, 250_000, now);
+      expect(routine.malam.map((s) => s.main.name)).toContain("Kirana Lab Retinal Night Serum");
+      expect(routine.warnings.map((w) => w.id)).toContain("retinoid-eksfoliasi");
+    });
   });
 });

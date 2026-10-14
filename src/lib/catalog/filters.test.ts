@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { formatRupiah } from "@/lib/format";
 import {
   activeFilterChips,
   applyFilters,
   countActiveFilters,
   emptyFilters,
+  hardFilters,
+  loosenedText,
   paginate,
+  rankInterpreted,
   parseCatalogParams,
   serializeCatalogParams,
   sortItems,
@@ -154,5 +158,56 @@ describe("activeFilterChips", () => {
     expect(chips[0].next.brands).toEqual(["pualam"]);
     expect(chips[2].next.priceMax).toBeNull();
     expect(chips[3].next.location).toBeNull();
+  });
+});
+
+describe("tafsiran pencarian: filter wajib dan penambah peringkat", () => {
+  // Lima lipstik, dua tint, satu cushion. Hanya Satin Lembap yang satin dan melembapkan sekaligus.
+  const catalog = [
+    item({ id: 1, name: "Satin Lembap", finish: "satin", attrText: "melembapkan bibir", soldCount: 10 }),
+    item({ id: 2, name: "Matte Lembap", finish: "matte", attrText: "melembapkan, tahan lama", soldCount: 90 }),
+    item({ id: 3, name: "Matte Kering", finish: "matte", attrText: "tahan lama", soldCount: 300 }),
+    item({ id: 4, name: "Satin Biasa", finish: "satin", attrText: "warna cantik", soldCount: 50 }),
+    item({ id: 5, name: "Glossy Lembap", finish: "glowy", attrText: "lembap seharian", soldCount: 20 }),
+    item({ id: 6, name: "Tint Lembap", categorySlug: "lip-tint", finish: "glowy", attrText: "lembap", soldCount: 500 }),
+    item({ id: 7, name: "Tint Murah", categorySlug: "lip-tint", finish: "satin", attrText: "", soldCount: 400, variants: [variant({ price: 40000, normalPrice: 40000 })] }),
+    item({ id: 8, name: "Cushion", categorySlug: "cushion", parentSlug: "makeup-wajah", finish: "satin", attrText: "melembapkan" }),
+  ];
+  const lipstick = { ...emptyFilters(), q: "lipstik yang ga bikin bibir kering buat kondangan", category: "lipstick", finishes: ["satin"], attributes: ["melembapkan"], keyword: "kondangan", interpreted: true };
+
+  it("hanya kategori, merek, dan harga yang wajib; finish, atribut, dan kata sisa tidak menyaring", () => {
+    expect(hardFilters(lipstick)).toMatchObject({ category: "lipstick", finishes: [], attributes: [] });
+    const r = rankInterpreted(catalog, lipstick);
+    expect(r.items.map((i) => i.id).sort()).toEqual([1, 2, 3, 4, 5]); // semua lipstik, bukan hanya 1 produk
+    expect(r.items[0].id).toBe(1); // cocok satin dan melembapkan
+    // Hanya 1 yang cocok semuanya: kata "kondangan" lalu Satin dilepas (urutan prioritas), Melembapkan dipertahankan.
+    expect(loosenedText(r.loosened)).toBe('Kami longgarkan: tanpa kata "kondangan", tanpa Satin.');
+    expect(r.items.slice(0, 3).map((i) => i.id)).toEqual([1, 2, 5]);
+  });
+  it("tanpa tafsiran, filter tetap wajib seperti biasa", () => {
+    const manual = { ...lipstick, interpreted: false };
+    expect(applyFilters(catalog, manual).map((i) => i.id)).toEqual([1]);
+  });
+  it("cukup hasil: tidak ada pelonggaran", () => {
+    const r = rankInterpreted(catalog, { ...lipstick, finishes: [], keyword: "" });
+    expect(r.loosened).toEqual([]);
+    expect(r.items.slice(0, 3).map((i) => i.id)).toEqual([2, 5, 1]); // yang melembapkan dulu, lalu terlaris
+  });
+  it("kurang dari 3: harga dilonggarkan sebelum kategori, kategori shade diperluas ke kelompok sejenis", () => {
+    const cheap = { ...emptyFilters(), category: "lip-tint", priceMax: 50000, interpreted: true };
+    const r = rankInterpreted(catalog, cheap);
+    expect(r.loosened[0]).toEqual({ kind: "price", max: 50000 });
+    expect(r.loosened[1]).toMatchObject({ kind: "category", from: "lip-tint", to: "bibir", group: true });
+    expect(r.items.slice(0, 2).map((i) => i.id).sort()).toEqual([6, 7]); // kategori asli tetap di atas
+    expect(r.items.some((i) => i.id === 8)).toBe(false); // cushion bukan produk bibir
+    expect(loosenedText(r.loosened, { categories: { "lip-tint": "Lip Tint" } })).toBe(`Kami longgarkan: tanpa batas harga ${formatRupiah(50000)}, Lip Tint diperluas ke produk bibir.`);
+  });
+  it("tanpa filter wajib: produk minimal cocok satu kriteria lunak, bukan seluruh katalog", () => {
+    const r = rankInterpreted(catalog, { ...emptyFilters(), q: "yang satin", finishes: ["satin"], interpreted: true });
+    expect(r.items.map((i) => i.id).sort()).toEqual([1, 4, 7, 8]);
+  });
+  it("kriteria yang tidak menyaring tidak pernah disebut dilonggarkan", () => {
+    const r = rankInterpreted(catalog, { ...lipstick, finishes: [], keyword: "", skinTypes: ["berminyak"] });
+    expect(r.loosened).toEqual([]);
   });
 });

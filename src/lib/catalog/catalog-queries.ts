@@ -13,6 +13,8 @@ import { buildScopeCondition, parent, relevanceExpr, type CatalogScope } from ".
 export type { CatalogScope } from "./scope";
 import {
   applyFilters,
+  rankInterpreted,
+  type Loosened,
   emptyFilters,
   matchingMinPrice,
   paginate,
@@ -105,6 +107,7 @@ export type CatalogResult = {
   hasMore: boolean;
   page: number;
   facets: CatalogFacets;
+  loosened: Loosened[]; // kriteria tafsiran yang dilonggarkan karena hasilnya kurang dari 3
 };
 
 export async function getCatalogResult(scope: CatalogScope, filters: CatalogFilters): Promise<CatalogResult> {
@@ -113,21 +116,25 @@ export async function getCatalogResult(scope: CatalogScope, filters: CatalogFilt
 }
 
 export function buildCatalogResult(items: CatalogItem[], filters: CatalogFilters): CatalogResult {
-  const filtered = sortItems(applyFilters(items, filters), filters);
+  // Hasil tafsiran AI: hanya kategori, merek, dan harga yang wajib; kriteria lain mengurutkan (lihat rankInterpreted).
+  const interpreted = filters.interpreted ? rankInterpreted(items, filters) : null;
+  const effective = interpreted?.hard ?? filters;
+  const filtered = interpreted?.items ?? sortItems(applyFilters(items, filters), filters);
   const page = paginate(filtered, filters.page);
-  const facets = computeFacets(items, filters, {
+  const facets = computeFacets(items, effective, {
     skinTypes: Object.keys(skinTypeLabels),
     concerns: Object.keys(concernLabels),
     finishes: Object.keys(finishLabels),
     undertones: Object.keys(undertoneLabels),
   });
   return {
-    products: page.items.map((item) => toCardData(item, filters)),
+    products: page.items.map((item) => toCardData(item, effective)),
     total: page.total,
     scopeTotal: items.length,
     hasMore: page.hasMore,
     page: filters.page,
     facets,
+    loosened: interpreted?.loosened ?? [],
   };
 }
 

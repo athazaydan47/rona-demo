@@ -4,13 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Dialog } from "radix-ui";
-import { Loader2, SendHorizontal, Sparkles, X } from "lucide-react";
+import { Clapperboard, Loader2, SendHorizontal, Sparkles, X } from "lucide-react";
 import { ProductArt } from "@/components/product-art";
 import { Button } from "@/components/ui/button";
 import { PriceTag } from "@/components/ui/price-tag";
 import type { Packaging } from "@/db/schema/enums";
 import { addToCart } from "@/lib/cart/client-cart";
+import { formatRupiah } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useAiStatus } from "./ai-status";
+import { useFloatingPosition } from "./floating-position";
 
 export const ADVISOR_OPEN_EVENT = "rona:advisor-open";
 export type AdvisorOpenDetail = { productId?: number; productName?: string; prompt?: string };
@@ -19,8 +22,8 @@ export function openAdvisor(detail: AdvisorOpenDetail = {}) {
 }
 
 type CardVariant = { id: number; shadeName: string; hex: string; price: number; normalPrice: number; inStock: boolean };
-type AdvisorCard = { id: number; name: string; slug: string; brandName: string; brandColor: string; packaging: Packaging; price: number; normalPrice: number; primaryHex: string; variantCount: number; variants: CardVariant[]; stokOnline: number; cabang: string[] };
-type Message = { role: "user" | "assistant"; text: string; products?: AdvisorCard[]; status?: string; error?: boolean };
+type AdvisorCard = { id: number; name: string; slug: string; brandName: string; brandColor: string; packaging: Packaging; price: number; normalPrice: number; primaryHex: string; variantCount: number; variants: CardVariant[]; stokOnline: number; cabang: string[]; alasan?: string };
+type Message = { role: "user" | "assistant"; text: string; intro?: string; products?: AdvisorCard[]; total?: number | null; status?: string; error?: boolean };
 
 const SUGGESTIONS = ["Sunscreen untuk kulit berminyak", "Cari padanan shade cushion-ku", "Kado di bawah 200 ribu", "Ada di Rona Dinoyo?"];
 const STORAGE_KEY = "rona.advisor";
@@ -59,6 +62,11 @@ function ProductResult({ p }: { p: AdvisorCard }) {
           {p.name}
         </Link>
         <PriceTag price={v?.price ?? p.price} normalPrice={v?.normalPrice ?? p.normalPrice} size="sm" />
+        {p.alasan ? (
+          <p className="text-xs text-kopi/80" data-testid="alasan-advisor">
+            {p.alasan}
+          </p>
+        ) : null}
         <p className="text-[11px] text-abu-hangat">{p.stokOnline > 0 ? `Stok online ${p.stokOnline}` : p.cabang.length ? `Ada di ${p.cabang.slice(0, 2).join(", ")}` : "Sedang habis"}</p>
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           {p.variantCount > 1 ? (
@@ -97,33 +105,19 @@ function ProductResult({ p }: { p: AdvisorCard }) {
 
 export function AdvisorLauncher() {
   const pathname = usePathname();
-  const [available, setAvailable] = useState(false);
-  const [resting, setResting] = useState<string | null>(null);
-  const [hasProfile, setHasProfile] = useState(false);
+  const status = useAiStatus();
+  const available = status.tersedia;
+  const resting = status.istirahat ? (status.pesanIstirahat ?? "Sedang istirahat, coba lagi besok.") : null;
+  const hasProfile = status.profil;
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [context, setContext] = useState<AdvisorOpenDetail>({});
   const listRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const hidden = HIDDEN_PREFIXES.some((p) => pathname?.startsWith(p));
-
-  // Ketersediaan dicek saat jalan (bukan saat build) supaya env AI yang kosong langsung menyembunyikan tombol.
-  useEffect(() => {
-    let alive = true;
-    fetch("/api/ai/advisor", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: { tersedia?: boolean; istirahat?: boolean; pesanIstirahat?: string; profil?: boolean } | null) => {
-        if (!alive || !d?.tersedia) return;
-        setAvailable(true);
-        setResting(d.istirahat ? (d.pesanIstirahat ?? "Sedang istirahat, coba lagi besok.") : null);
-        setHasProfile(Boolean(d.profil));
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, []);
+  const pos = useFloatingPosition(buttonRef, available && !hidden, { mobile: 16, desktop: 24 });
 
   useEffect(() => {
     const onOpen = (e: Event) => {
@@ -180,13 +174,19 @@ export function AdvisorLauncher() {
         buf = lines.pop() ?? "";
         for (const line of lines) {
           if (!line.trim()) continue;
-          const e = JSON.parse(line) as { type: string; text?: string; produk?: AdvisorCard[]; ok?: boolean };
+          const e = JSON.parse(line) as { type: string; text?: string; teks?: string; produk?: AdvisorCard[]; total?: number | null; ok?: boolean };
           if (e.type === "status") update({ status: e.text });
+          if (e.type === "pembuka") update({ intro: e.text });
+          if (e.type === "reset") {
+            text = "";
+            update({ text });
+          }
           if (e.type === "delta") {
             text += e.text ?? "";
             update({ text, status: undefined });
           }
-          if (e.type === "done") update({ products: e.produk ?? [], status: undefined, error: e.ok === false });
+          // Teks akhir dari server menggantikan teks yang dialirkan (sama, kecuali ada kalimat yang dibuang).
+          if (e.type === "done") update({ text: e.teks ?? text, products: e.produk ?? [], total: e.total ?? null, status: undefined, error: e.ok === false });
         }
       }
     } catch {
@@ -204,17 +204,22 @@ export function AdvisorLauncher() {
     <>
       {!hidden ? (
         <button
+          ref={buttonRef}
           type="button"
           onClick={() => {
             setContext({});
             setMessages(loadHistory());
             setOpen(true);
           }}
+          // Posisi dihitung useFloatingPosition: selalu di atas bilah bawah yang menempel, dan disembunyikan sementara
+          // bila akan menutupi tombol aksi utama.
+          style={{ bottom: pos ? pos.bottom : undefined }}
           className={cn(
-            "fixed right-4 z-40 inline-flex h-12 items-center gap-2 rounded-pill bg-kopi px-4 text-sm font-semibold text-putih shadow-lift transition-transform hover:-translate-y-0.5 md:bottom-6",
-            // Di HP: di atas BottomNav, dan di halaman produk juga di atas bilah beli yang menempel.
-            pathname?.startsWith("/p/") ? "bottom-[calc(9.5rem+env(safe-area-inset-bottom))]" : "bottom-[calc(5rem+env(safe-area-inset-bottom))]",
+            "fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 inline-flex h-12 items-center gap-2 rounded-pill bg-kopi px-4 text-sm font-semibold text-putih shadow-lift transition-[transform,bottom,opacity] duration-200 hover:-translate-y-0.5 md:bottom-6",
+            pos?.covered && "pointer-events-none invisible opacity-0",
           )}
+          aria-hidden={pos?.covered || undefined}
+          tabIndex={pos?.covered ? -1 : undefined}
           aria-label="Buka Rona Advisor"
           data-testid="tombol-advisor"
         >
@@ -256,6 +261,11 @@ export function AdvisorLauncher() {
                         {s}
                       </button>
                     ))}
+                    {context.productName ? null : (
+                      <Link href="/cari-dari-video" onClick={() => setOpen(false)} className="inline-flex items-center gap-1.5 rounded-pill border border-garis bg-porselen px-3 py-1.5 text-xs font-medium hover:border-rona/40" data-testid="chip-video">
+                        <Clapperboard className="size-3.5" aria-hidden /> Lihat produk di video? Kirim link-nya
+                      </Link>
+                    )}
                   </div>
                 </div>
               ) : null}
@@ -266,6 +276,7 @@ export function AdvisorLauncher() {
                   </p>
                 ) : (
                   <div key={i} className="max-w-[95%] space-y-2" data-testid="jawaban-advisor">
+                    {m.intro ? <p className="px-1 text-xs text-abu-hangat italic">{m.intro}</p> : null}
                     {m.status && !m.text ? (
                       <p className="inline-flex items-center gap-2 rounded-2xl bg-putih px-3.5 py-2 text-sm text-abu-hangat">
                         <Loader2 className="size-3.5 animate-spin" aria-hidden /> {m.status}...
@@ -279,6 +290,11 @@ export function AdvisorLauncher() {
                           <ProductResult key={p.id} p={p} />
                         ))}
                       </ul>
+                    ) : null}
+                    {m.products && m.products.length > 1 && m.total ? (
+                      <p className="px-1 text-xs text-abu-hangat" data-testid="total-advisor">
+                        Total {m.products.length} produk: <span className="font-semibold text-kopi tabular-nums">{formatRupiah(m.total)}</span>
+                      </p>
                     ) : null}
                   </div>
                 ),
@@ -313,14 +329,8 @@ export function AdvisorLauncher() {
 
 // Tombol "Tanya tentang produk ini" di halaman produk (hanya tampil bila Advisor tersedia).
 export function AskAboutProduct({ productId, productName }: { productId: number; productName: string }) {
-  const [available, setAvailable] = useState(false);
-  useEffect(() => {
-    fetch("/api/ai/advisor", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: { tersedia?: boolean } | null) => setAvailable(Boolean(d?.tersedia)))
-      .catch(() => {});
-  }, []);
-  if (!available) return null;
+  const { tersedia } = useAiStatus();
+  if (!tersedia) return null;
   return (
     <button type="button" onClick={() => openAdvisor({ productId, productName })} className="inline-flex items-center gap-1.5 text-sm font-semibold text-rona hover:underline" data-testid="tanya-produk">
       <Sparkles className="size-4" aria-hidden /> Tanya tentang produk ini

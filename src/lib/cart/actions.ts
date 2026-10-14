@@ -20,7 +20,7 @@ const isItems = (items: unknown): items is { variantId: number; quantity: number
   Array.isArray(items) && items.length <= 50 && items.every((i) => i && Number.isInteger(i.variantId) && Number.isInteger(i.quantity));
 
 // Sumber item yang diakui (atribusi penjualan). Nilai lain dari browser diabaikan.
-const SOURCES = ["advisor", "rutinitas", "padanan_shade"] as const;
+const SOURCES = ["advisor", "rutinitas", "padanan_shade", "cari_video"] as const;
 
 export async function addToCartAction(items: { variantId: number; quantity: number }[], opts: { source?: string } = {}): Promise<AddToCartResponse> {
   if (!isItems(items)) return { ok: false, count: 0, message: "Data tidak valid." };

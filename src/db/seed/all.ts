@@ -188,6 +188,9 @@ export async function seedAll(db: AnyDb, now: Date): Promise<SeedSummary> {
     // Satu shade cushion Pualam Velvet Matte sengaja habis di semua lokasi untuk memamerkan "Kabari aku".
     const cushionId = productIdBySlugEarly.get("pualam-velvet-matte-cushion-spf-50");
     const soldOutVariant = variantRows.find((v) => v.productId === cushionId && v.shadeName === "10N Kayu Manis");
+    // Serum retinal selalu punya stok online supaya peringatan bentrok bahan (retinoid dan AHA atau BHA) di rutinitas
+    // bisa dipamerkan saat demo. Diterapkan setelah undian supaya urutan angka acak lainnya tidak berubah.
+    const retinalId = productIdBySlugEarly.get("kirana-lab-retinal-night-serum");
     for (const v of variantRows) {
       for (const loc of locationRows) {
         let onHand: number;
@@ -195,6 +198,7 @@ export async function seedAll(db: AnyDb, now: Date): Promise<SeedSummary> {
         if (soldOutVariant && v.id === soldOutVariant.id) onHand = 0;
         else if (loc.type === "gudang") onHand = roll < 0.06 ? 0 : roll < 0.14 ? rng.int(1, 4) : rng.int(8, 60);
         else onHand = roll < 0.18 ? 0 : roll < 0.32 ? rng.int(1, 4) : rng.int(5, 18);
+        if (v.productId === retinalId && loc.type === "gudang") onHand = Math.max(onHand, 24);
         inventoryValues.push({ variantId: v.id, locationId: loc.id, onHand });
       }
     }

@@ -17,9 +17,12 @@ export const metadata: Metadata = { title: "Cari" };
 
 // Kalimat sehari-hari ditafsirkan AI menjadi filter (maksimal 2,5 detik). Bila AI tidak ada, gagal, atau lambat,
 // pencarian trigram biasa langsung dipakai, jadi pencarian tidak pernah terblokir oleh AI.
+// Kata sisa tafsiran menjadi pencarian teks hanya bila tidak ada kategori; bila ada kategori, kata itu cukup menambah
+// peringkat (lihat rankInterpreted), supaya kata seperti "kondangan" tidak menyaring habis hasilnya.
+const interpretedScope = (f: CatalogFilters): CatalogScope => (f.keyword && !f.category ? { kind: "search", q: f.keyword } : { kind: "all" });
 async function resolveSearch(sp: RawParams, filters: CatalogFilters): Promise<{ scope: CatalogScope; filters: CatalogFilters }> {
   const exact = (Array.isArray(sp.persis) ? sp.persis[0] : sp.persis) === "1";
-  if (filters.interpreted) return { scope: filters.keyword ? { kind: "search", q: filters.keyword } : { kind: "all" }, filters };
+  if (filters.interpreted) return { scope: interpretedScope(filters), filters };
   const cfg = aiConfig();
   const model = aiModel(cfg);
   if (!exact && model && looksLikeSentence(filters.q)) {
@@ -31,7 +34,7 @@ async function resolveSearch(sp: RawParams, filters: CatalogFilters): Promise<{ 
       const r = await interpretQuery(db, model, filters.q, at, { visitorHash: await currentVisitorHash() }).catch(() => null);
       if (r) {
         const f = interpretationToFilters(r.interpretation, filters);
-        return { scope: f.keyword ? { kind: "search", q: f.keyword } : { kind: "all" }, filters: f };
+        return { scope: interpretedScope(f), filters: f };
       }
     }
   }

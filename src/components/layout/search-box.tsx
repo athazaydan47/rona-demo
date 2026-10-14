@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Clock, Search, TrendingUp, X } from "lucide-react";
+import { Clapperboard, Clock, Search, TrendingUp, X } from "lucide-react";
+import { useAiStatus } from "@/components/ai/ai-status";
 import { ProductArt } from "@/components/product-art";
 import { formatRupiah } from "@/lib/format";
 import type { SearchSuggestions } from "@/lib/catalog/catalog-queries";
@@ -47,6 +48,7 @@ export function SearchBox({ className, autoFocus = false, initialQuery = "" }: {
   const abortRef = useRef<AbortController | null>(null);
   const rootRef = useRef<HTMLFormElement>(null);
   const listId = useId();
+  const ai = useAiStatus();
 
   // Debounce 200 ms; state hanya diubah dari callback (timer dan fetch), bukan langsung di badan effect.
   useEffect(() => {
@@ -196,6 +198,16 @@ export function SearchBox({ className, autoFocus = false, initialQuery = "" }: {
         >
           <X className="size-4" />
         </button>
+      ) : ai.tersedia ? (
+        <Link
+          href="/cari-dari-video"
+          className="absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-abu-hangat hover:bg-porselen hover:text-rona"
+          aria-label="Cari dari video atau screenshot (opsional)"
+          title="Cari dari video atau screenshot"
+          data-testid="ikon-cari-video"
+        >
+          <Clapperboard className="size-4" />
+        </Link>
       ) : null}
 
       {showPanel ? (

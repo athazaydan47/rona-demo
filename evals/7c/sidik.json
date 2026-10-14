@@ -1,0 +1,118 @@
+{
+  "keterangan": "Sidik thumbnail warna screenshot sintetis dan kunci jawabannya (dibuat scripts/buat-set-7c.tsx). Dipakai model mock.",
+  "gambar": [
+    {
+      "berkas": "lumi-velvet-merah-ceri.jpg",
+      "sidik": "f8f5f3f0ece9ecebe8ecebe9eeeceaebe9e7edebe9fbfbf9fdfcfafdfcfafdfcfafdfcfafdfcfafdfcfafdfcfafdfcfaf6ebe6f5eae5f4e9e4f4e9e4f4e9e4f4e8e4f4e9e4f6ebe6f6ebe6f6ebe6f6ebe6f6ebe6f6ebe6f6ebe6f6ebe6f6ebe6f4e5dff4e5dff4e6e0f4e6e0f4e6e0f4e6e0f4e6e0f4e5dff3e4def3e4def4e5dff4e5dff4e5dff4e5dff4e5dff4e5dff3e4ddf3e4ddf3e4ddf3e4ddf3e4ddf2e2dcf2e3dcf3e3ddf4e8e0f6eae3f3e3ddf3e4ddf3e4ddf3e4ddf3e4ddf3e4ddf2e3dcf2e3dcf2e3dcf2e3dcf3e4ddf5ebe1f5e9e0f2e5ddecd3cee7c7c4f3e5def2e2dcf2e3dcf2e3dcf2e3dcf2e3dcf2e1daf2e1daf2e1daf3e2dbefddd6da9baadda8b2f7f0e6bf6675bc5e6ef6eee5f1ded8f2e1daf2e1daf2e1daf2e1daf1e0d9f1e0d9f0dfd8f3e3dbe9d6d0c15578c66c85f6f1e6c07c6fc38375f2e6dff1dfd8f1e0d9f1e0d9f1e0d9f1e0d9f1dfd8f1dfd8f0ded7f3e2daead5d0c56181cb778df0e5dcc7747fc5707becdad4f2e0d9f1dfd8f1dfd8f1dfd8f1dfd8f0ddd6f0ddd6efdcd5f2e0d8e8d3cdbe5476c56d85ede1d7bf5479bb4d73ebd8d2f1ded7f0dcd6f0ddd6f0ddd6f0ddd6efdcd5efdcd5efdbd5f0ddd6eedbd4d5a7adcfa8aad7c8bec19699ca9da1ebd8d1f1ded7efdcd5eedbd4eedbd4eedbd4edd9d2edd9d2eedbd4ead7d0ebd8d1f2e3d9ebdbd2e7d3cceddfd5eedfd6ead7d0ebd8d1f0dcd5f2ded7f2ded7f2ded7ead6cfc6b4adbdaaa4c3b1abbba8a2bba7a2bba7a2baa8a2c0aca7c6b2adbdaba5baa8a2d3c0b9dcc8c2d8c6bfd8c5bfecd6cfe0cbc4dbc6bfdfc9c3e0cbc5ddc8c1dcc7c0e3cfc7dfcac2e1ccc5e3cec7ddc8c1dec9c2dcc7c0d7c2bbd9c4beedd6cff0d9d2f1dad2f1dad2f2dbd3f1dad2f1dad2f0d9d1f1d9d2f0d9d1efd8d1f0d9d2f0d9d2f1d9d3f1dad3f1dad3ecd5cdebd4cce9d3cbe7d0c9e3cdc5ead3cbe9d3cbe8d1cae9d2cbecd5cdebd4cdebd4cdebd4cdebd4cdebd4cdebd4cdebd3cbe7d0c8e6cfc7dec8c0d4bdb7e7cfc7e6cec6e0c9c2e6cec6ecd4ccebd3cbebd3cbebd3cbebd3cbebd3cbebd3cb",
+      "jawaban": {
+        "kategori": "lipstick",
+        "jenisProduk": "lipstik matte",
+        "warnaHex": "#A91C32",
+        "finish": "matte",
+        "merek": "Lumi",
+        "namaProduk": "Lumi Velvet Matte Lipstick",
+        "kataKunci": [
+          "merah ceri"
+        ],
+        "keyakinan": "tinggi"
+      }
+    },
+    {
+      "berkas": "lumi-juicy-mangga.jpg",
+      "sidik": "f9f6f3f0ece9efedebeceae7edebe9edebe8ebe9e7f0eeebfefdfafefdfafefdfafefdfafefdfafefdfafefdfafefdfafef3e5fdf2e4fcf1e4fcf1e4fcf1e4fcf1e4fbf1e3fcf2e4fef4e6fef4e6fef4e6fef4e6fef4e6fef4e6fef4e6fef4e6fdf0dffdf0dffdf0dffef0e0fdf0e0fef0e0fef0e0fbefdefaedddfdf0dffdf0dffdf0dffdf0dffdf0dffdf0dffdf0dffceedefceedefceedefceedefceedefceedefceedefff8e7fffae9fcefdffceedefceedefceedefceedefceedefceedefdeddcfdeddcfdeddcfdeddcfdeddcfdeddcfbebda9e948e8b817cf4e4d4ffefdefcecdbfdeddcfdeddcfdeddcfdeddcfcecdafcecdafcecdafcecdafbebd9fdeddbf7e8d6514e5028272beaddccfff0defbebd9fcecdafcecdafcecdafcecdafcead7fcead7fcead7fcead7fcead7fcebd7fae7d5cba797c39987f0d8c6feeddafbe9d6fcead7fcead7fcead7fcead7fbe9d5fbe9d5fbe9d5fbe9d5fbe8d4fcebd7f6ddcaeaa181e7906be8c6affdeedbfae8d4fbe9d5fbe9d5fbe9d5fbe9d5fbe7d3fbe7d3fbe7d3fbe7d3fae6d2fce9d5f3dbc7d38c6fcb7957e4c1abfeedd9fae5d1fbe7d3fbe7d3fbe7d3fbe7d3fbe5d0fce7d2fce7d1fce6d1fce7d1fde8d3f2ddc7d5b299d1ab92ecd3bdfee9d3fbe6d1fce6d1fce7d1fce6d1fbe5d0fae4cdf3dec8f3dec8f5e0c9f4dfc8f6e0c9f4dfc8f5e4cdf5e3cef6e1cbf5dfc9f4dec8f5dfc9f4dec8f7e2cbfae4cdf7e1cbdcc7b4dbc6b3d9c5b1dec9b5ddc9b4d0bca9e0cab6d7c2aeddc9b4dac6b3d6c2afe0cbb7d6c2afebd5c0f9e3ccf8e1c9fbe4ccfce5ccfbe4cbfbe4cbfbe4cbfce5ccfbe3cbfbe4ccfbe4ccfce4ccfce4ccfbe4ccfce5ccf9e2caf8e1c9f8e0c8f8dfc8f8e0c7f9e0c8fae1c9f8dfc7f8dfc7f9e0c8f7dfc7f7dfc7f7dfc7f7dfc7f7dfc7f7dfc7f8e0c8f8e0c8f8dec6f7ddc6f6dcc5f2d9c2efd6c0f6dcc5f5dcc5f4dac3f6dcc5f8dec6f8dec6f8dec6f8dec6f8dec6f8dec6f8dec6f7dcc3f3d8c0f1d7bee9d0b9ddc5b0f2d8bff1d7beebd2baf2d7bff8ddc4f7dcc3f7dcc3f7dcc3f7dcc3f7dcc3f7dcc3",
+      "jawaban": {
+        "kategori": "lip-tint",
+        "jenisProduk": "lip tint",
+        "warnaHex": "#E58358",
+        "finish": "glowy",
+        "merek": "Lumi",
+        "namaProduk": null,
+        "kataKunci": [
+          "tint"
+        ],
+        "keyakinan": "sedang"
+      }
+    },
+    {
+      "berkas": "pualam-blush-berry.jpg",
+      "sidik": "f7f6f6efedecebeaecebeaebecebecececedeae9eaeeedeefcfbfdfcfcfefcfcfefcfcfefcfcfefcfcfefcfcfefcfcfef3ecf5f2ebf4f1eaf3f0ebf3f1eaf3f1eaf3f1eaf3f1ebf3f3edf5f3edf5f3edf5f3edf5f3edf5f3edf5f3edf5f3edf5f0e7f2f0e7f3f0e8f3f0e8f3f0e8f3f0e8f3f1e8f3f0e8f3f0e7f2f0e7f2f0e7f2f0e7f2f0e7f2f0e7f2f0e7f2f0e7f2efe6f1efe6f1efe6f1efe6f1efe6f1eee5f0eee5f0eee5efeee5efeee5efeee5f0efe6f1efe6f1efe6f1efe6f1efe6f1eee4f0eee4f0eee4f0eee4f0eee4eff1e7f5f1e9f8f2eaf9f2eaf9f2e9f8f1e8f6eee4f0eee4f0eee4f0eee4f0eee4f0ede2f0ede2f0ede2f0ede2efeee3f2e0d0d6ddcac8dac5c4dac5c4ddc8c6dfced3ece2f0ede2f0ede2f0ede2f0ede2f0ece1efece1efece1efebdfedf2e8f89781779271589874588c6447815b3e90786bebe0efece1efece1efece1efece1efebe0efebe0efebe0efeadfedf0e7f8baa29eb89f8ad3bcadccb3a1b4947db2978eeee5f6eadfeeebe0efebe0efebe0efeadeeeeadeeeeadeeee9ddecefe5f7b99f99bea38dd5bfadceb6a4b9987fb29488ede3f6e9ddece9deeeeadeeeeadeeee9dcedeaddeee9ddede9dcedece0f1d5c6cfbca7a4bda5a0b89f99b69e99d1c0c8ece0f1eaddedebdeefeadeeeeaddede7daebe4d7e8e7daeae7daebe5d8e9e8dceeebe0f3e6dbefe6dcefebe0f4e7daece4d7e8e4d7e7e0d3e3e4d7e7e6d9eae5d8e9bcb0bdb0a4b0b8acb8c2b5c4b5a8b5b9acb9b9acb9b9acb8bbaebacec1d0cabdccccc0cfccbfcdc7bac8dbcfdfe5d8ead7cadad1c4d4d7cadbd8cbdcd3c6d6dacdded4c7d7d8cbdcd5c9d9e8dbede8dbeee8dbede8dbede8dbeee6d9ebe4d7e9e7daece8dbede8daede9dbeee8daede6d9ece8dbeee6d9ece7daece3d6e8e3d6e8e3d6e8e3d6e8e3d6e8e4d7e9e3d5e8e1d3e6e0d2e5ded0e3daccdee0d3e5e0d3e6ded1e3e0d3e5e2d5e8e3d5e8e3d5e8e3d5e8e3d5e8e3d5e8e3d5e8e2d3e8ded0e4ddcee2d7c8dacdbdcedecfe3ddcee2d8cadcddcfe2e3d4e9e2d3e8e2d3e8e2d3e8e2d3e8e2d3e8e2d3e8",
+      "jawaban": {
+        "kategori": "blush",
+        "jenisProduk": "blush krim",
+        "warnaHex": "#B2516E",
+        "finish": null,
+        "merek": "Pualam",
+        "namaProduk": "Pualam Cream Blush",
+        "kataKunci": [
+          "berry"
+        ],
+        "keyakinan": "tinggi"
+      }
+    },
+    {
+      "berkas": "kirana-niacinamide.jpg",
+      "sidik": "f7f7f5efedebecedece9eae9ecedece9eaeaedeeedfbfdfcfcfefdfcfefdfcfefdfcfefdfcfefdfcfefdfcfefdfcfefdeef5f2edf4f1ecf3f1ecf3f1ebf3f0ebf3f0ecf3f1eef5f3eef5f3eef5f3eef5f3eef5f3eef5f3eef5f3eef5f3eef5f3e9f2efe9f2efe9f3f0eaf3f0e9f3f0eaf3f0e9f3f0e8f2efe8f1eee9f2efe9f2efe9f2efe9f2efe9f2efe9f2efe9f2efe8f2efe8f2efe8f2efe8f2efe8f2efe8f2efe8f2efecf6f3edf7f4e8f2efe8f2efe8f2efe8f2efe8f2efe8f2efe8f2efe7f1eee7f1eee7f1eee7f1eee7f1eee6efeceffaf7999b9a868787effaf7e5efece7f1eee7f1eee7f1eee7f1eee7f1eee5f0ece5f0ece5f0ece5f0ece5f0ece4efebe9f4f0bfbfbdb8b5b3e7f2eee5f0ece5f0ece5f0ece5f0ece5f0ece5f0ece4efebe4efebe4efebe4efebe4efebe3efeae5efecf2faf8f1faf8dbe4e1e3eeeae4efebe4efebe4efebe4efebe4efebe3eeeae3eeeae3eeeae3eeeae3eeeae2eeeae3ece9eaebe7e8e8e5d2dbd8e1ece9e3eeeae3eeeae3eeeae3eeeae3eeeae1edeae1edeae1edeae1edeae1edeae1edeadee7e5d6dfdcd1dbd8cad5d1e0ece9e1edeae1edeae1edeae1edeae1edeae0ece9e2eeebe1edeae1edeae0ece9e2eeead4e0dbc2cec9c1cdc7cdd9d4e2eeeae2eeebe2eeebe2eeebe2eeeae1edeaddebe6dae7e2deebe6ddeae5deebe7dbe8e3dae7e2d9e5e0d9e6e1dbe8e3d9e5e0d8e5e1d7e3ded8e4e0dae6e1dbe7e3d9e8e3b5bebab2bab6b1bab5b7c0bbb1bab5b4bdb8bfcac5c1cbc6c2cdc9c0cac5c8d4cfc6d1cdc7d3cfc0cbc6c3cec9dbeae5cfddd8d0dedaccd9d4c7d4d0cedcd7cfdcd8ddece8deede8ddede8deede9ddede8deeee9ddede8deeee9deede9daeae5dcece8dcede8ddeee9dff0ebddede8ddede8daeae6d9e9e5d9e9e5d9e9e5d9e9e5d9e9e5d9e9e5d9e9e5d9e9e5d8e9e3d7e7e2d6e6e1d4e3ded0dfdad6e6e1d6e6e1d5e5dfd6e7e1d8e9e3d8e9e3d8e9e3d8e9e3d8e9e3d8e9e3d8e9e3d6e7e1d4e3ddd3e1dcccd9d4c3cec9d3e2ddd1e1dccedbd6d2e2dcd6e8e2d6e7e1d6e7e1d6e7e1d6e7e1d6e7e1d6e7e1",
+      "jawaban": {
+        "kategori": "serum-dan-essence",
+        "jenisProduk": "serum",
+        "warnaHex": null,
+        "finish": null,
+        "merek": "Kirana Lab",
+        "namaProduk": "Kirana Lab Niacinamide 10% Serum",
+        "kataKunci": [
+          "niacinamide"
+        ],
+        "keyakinan": "tinggi"
+      }
+    },
+    {
+      "berkas": "surya-gel-sunscreen.jpg",
+      "sidik": "f9f7f3f1ede9efeee9edebe7eceae6eeece8ebe9e5f0eeebfffef9fffef9fffef9fffef9fffef9fffef9fffef9fffef9fdf7e7fcf6e6fbf5e5fbf5e5fbf5e5fbf5e5fbf5e5fcf5e5fef7e7fef7e7fef7e7fef7e7fef7e7fef7e7fef7e7fef7e7fdf4dffdf5e0fdf5e0fdf5e0fdf5e0fdf5e0fdf5dffdf4defcf3ddfcf3defdf4dffdf4dffdf4dffdf4dffdf4dffdf4dffcf3ddfcf3ddfcf3ddfcf3ddfcf3ddfcf3dcfef6e2fff8e7fff8e7fef7e4fcf3ddfcf3ddfcf3ddfcf3ddfcf3ddfcf3ddfcf2dafcf2dafcf2dafcf2dafcf2d9fdf3dcf3e4c4eed9aceed8abf1e0bdfcf3dcfcf2d9fcf2dafcf2dafcf2dafcf2dafbf0d7fbf0d7fbf0d7fbf0d7faefd5fdf4dee0c690dfb258dba53cd7b674fdf4dffaefd5fbf0d7fbf0d7fbf0d7fbf0d7fbefd4fbefd4fbefd4fbefd4fbefd4fbeed2f6ead2f0ede7ede8e0f4e9d4fcefd3fbefd4fbefd4fbefd4fbefd4fbefd4f9eed1f9eed1f9eed1f9eed1f9eed1f9efd2f8ebccf1dbb0f0d5a1f6e7c5f9efd3f9eed0f9eed1f9eed1f9eed1f9eed1f9eccef9eccef9eccef9eccef8eaccfef3d9dbc697b48427b07a10d0b57efff4daf8eacaf9eccdf9eccdf9eccef9eccef9ebcbfaecccfaecccfaecccf9eccbfdf0d1e4d4b0bfaa7cbda677dccca6fff1d2fbedccfbedcdfaecccf9ebcbf9ebcbf8e9c8f5e6c5f4e5c4f3e4c5f4e5c4f4e5c4f5e6c6f8ebcdf7eacdf7e9c9efe0c0ecdebff0e1c1f3e4c4f9eac9f8e9c8f5e6c3ddcfafd7c9abd9caacd8caabdccdafd4c6a8e0d1b1d3c4a6d5c7a8dfd1b1daccadded0b0e9dab9faebc7f6e7c5f7e7c2f9eac5faeac5faeac5f9e9c5faeac5fbebc6f9e9c5faeac6faeac5faeac5faeac5faeac5f9e9c4f7e7c2f7e7c2f6e6bff6e6bff6e6bff7e7bff8e8c0f6e6bef6e6bff7e7bff5e6bef5e6bef6e6bef5e6bef5e6bef5e6bef6e6bff6e6bff6e5bcf5e4bbf4e3baf1e0b8eddcb6f4e3bbf4e3bbf2e1b9f4e3bbf6e5bcf6e5bcf6e5bcf6e5bcf6e5bcf6e5bcf6e5bcf5e4b9f1e0b6efdeb5e7d6afdbcba8f0dfb5efdeb4e9d8b1f0dfb5f6e5b9f5e4b9f5e4b9f5e4b9f5e4b9f5e4b9f5e4b9",
+      "jawaban": {
+        "kategori": "sunscreen-wajah",
+        "jenisProduk": "sunscreen gel",
+        "warnaHex": null,
+        "finish": null,
+        "merek": null,
+        "namaProduk": null,
+        "kataKunci": [
+          "sunscreen",
+          "gel"
+        ],
+        "keyakinan": "sedang"
+      }
+    },
+    {
+      "berkas": "generik-lipstik-merah.jpg",
+      "sidik": "f7f5f4efeceaedecece9e8e8ebebebe9e8e8f0efeefdfcfcfcfbfbfcfbfbfcfbfbfcfbfbfcfbfbfcfbfbfcfbfbfcfbfbf2eeebf1edeaf0eceaf0ece9f0edeaf0eceaf0edeaf2efecf2efecf2efecf2efecf2efecf2efecf2efecf2efecf2efeceeeae7efeae7efeae7efeae7efeae7efeae7efeae7eeeae7eee9e6eee9e6eeeae7eeeae7eeeae7eeeae7eeeae7eeeae7eee9e6eee9e6eee9e6eee9e6eee9e6ede8e5ede8e5eee8e5efece9f0efeceee8e5eee9e6eee9e6eee9e6eee9e6eee9e6ede8e5ede8e5ede8e5ede8e5ede8e5f1ece9f1ece9edeae7e8d9d6e4cecaeeeae7ede8e5ede8e5ede8e5ede8e5ede8e5ebe6e3ebe6e3ebe6e3ece7e4e7e2dfc0bebcc8c4c2f1f2efc27475bf6d6eeef2efeae4e1ebe6e3ebe6e3ebe6e3ebe6e3eae5e1eae5e1e9e4e0ece7e3e1dcd9949494a09e9df2f0edc18670c48b75ebebe7eae4e0eae5e1eae5e1eae5e1eae5e1e9e4e0e9e4e0e8e3dfebe6e2e1dcd89c9b9ba7a5a5ebe6e2a5a193a29e90e5dfdceae5e1e9e4e0e9e4e0e9e4e0e9e4e0e7e2dee7e2dee6e1dde9e4e0dedad6929292a09e9de7e2de9091948c8c8ee2ddd9e8e3dfe7e2dee7e2dee7e2dee7e2dee7e1dde8e2dee7e1dee8e2dfe5dfdbc3bebcbebab5d0cbc5afaca7b7b3aee3ddd9e9e3e0e7e1dde7e1dde7e1dde7e1dde5dedbe3dcd9e3dcd9e3dcd9e7e0dde9e2dfe8e0dde1dad6e8e1dde9e1dee3dcd9e1dad7e6dfdce6dfdce6dfdce6dfdce3dcd9bab2b0aca3a1c1b8b5b8b0adb6adabbab1afb8aeacbbb3b0b9b0adc4bbb9d2c9c7e4dddae5dedbe5dedbe5dedbe5dddad9d1ced3cbc8dad2cfd4ccc9dbd3d0d4ccc9d8d0cdd8d0cdd6cdcae2dad7e8e1dee5dddae5dddae5dddae5dddae3dbd8e6dedbe7dfdce6dedbe8e0dde5dddae7dfdce6dedbe6dedbe6dedbe4dcd9e3dbd8e3dbd8e3dbd8e3dbd8e3dbd8e2dad7e1d9d6dfd7d4ddd5d2dad1cee0d8d5dfd7d4ded6d3dfd7d4e2dad7e2dad7e2dad7e2dad7e2dad7e2dad7e2dad7e0d8d5ddd4d1dcd3d0d5cccacbc2bfdcd4d1dbd3d0d6cecbdbd3d0e1d9d6e0d8d5e0d8d5e0d8d5e0d8d5e0d8d5e0d8d5",
+      "jawaban": {
+        "kategori": "lipstick",
+        "jenisProduk": "lipstik matte",
+        "warnaHex": "#B0302E",
+        "finish": "matte",
+        "merek": null,
+        "namaProduk": null,
+        "kataKunci": [
+          "merah bata"
+        ],
+        "keyakinan": "sedang"
+      }
+    },
+    {
+      "berkas": "generik-cushion.jpg",
+      "sidik": "f8f6f3f0ede9efedebebe9e7eeeceaebe9e7f2f0eefffefcfefdfbfefdfbfefdfbfefdfbfefdfbfefdfbfefdfbfefdfbf7f1eaf6f0e9f5efe8f4eee7f5efe8f4efe8f5efe8f7f1eaf7f1eaf7f1eaf7f1eaf7f1eaf7f1eaf7f1eaf7f1eaf7f1eaf4ede4f4ede4f5eee4f5eee4f5eee4f4ede4f4ede4f4ede4f4ede4f4ede4f3ece3f4ede4f4ede4f4ede4f4ede4f4ede4f4ece2f4ece2f4ece2f4ece2f4ece2f8efe6f5ece2f5ece2f6ede3f5ede3f8f0e6f4ece2f4ece2f4ece2f4ece2f4ece2f3eae1f3eae1f3eae1f3eae1f3eae1d6d0caddd9d4dfdad6dad7d2d9d4d1d4cdc8f1e8dff3eae1f3eae1f3eae1f3eae1f2e9e0f2e9e0f2e9e0f4ebe2eae1d8b4b3b2edeff3e8eaedeaeceff3f5f8b2b2b3e3dad1f6ede4f1e8e0f2e9e0f2e9e0f1e9def1e9def1e9def2eae0eae2d6b1b2b1ecf2f8f0f4f8ebeff4e6eaefa9aaabe4dcd0f4ece1f0e8def1e9def1e9deefe7dcefe7dcefe7dcefe7dcede6dbc4bab1cdbfb3cfbeb1ccbeb3d7d3d0cec9c6eae3d9f0e8ddefe7dcefe7dcefe7dcefe5dbefe5daede3d8f7ece1c6c0b8696562928377907f728a7a6d8f8780737170b5afa9f9eee3ede3d9efe5dbefe5dbeee4d8eee5d9eee5d9f3e8dcddd5caa6a29aaba8a1a4a29ca09d97a19d94a19c93d7cec3f4e9ddede3d7eee4d8eee4d8ede3d7ede3d7eae0d4eae0d5f1e7dbf5ebdef1e6d9f2e7daf1e7d9f3e8dbf7ecdfeee4d8eae0d4eee3d7ede3d7ede3d7eadfd3c4b9afb8ada4c1b6acc4bab0bcb0a7c3b7aebaaea5c0b4abb9aea5b8ada4bdb1a9dacec4efe5d8ece1d5ede2d6ebdfd2ddd1c5ddd1c5e0d4c8dcd0c4dfd3c6dfd3c6dacec2dfd3c7dcd0c3d7ccbfe4d8cbefe3d6ebdfd2ece0d3ece0d3ebdfd1eee2d4efe3d4efe3d4f0e4d6eee2d4eee2d4efe3d5eee2d4efe3d5efe3d5ede1d3eaded0ebdfd1ebdfd1ebdfd1eaddcfe9dccee7dbcde5d8cbe1d4c7e8dbcee8dbcee5d8cbe7dbcde9ddcfe9dccfe9ddcfeaddcfeaddcfeaddcfeaddcfe9dccde5d8cae4d7c9ddd0c2d2c5b8e5d7c9e4d6c8dfd1c4e4d7c9eaddcee9dccde9dccde9dccde9dccde9dccde9dccd",
+      "jawaban": {
+        "kategori": "cushion",
+        "jenisProduk": "cushion",
+        "warnaHex": "#D9A77E",
+        "finish": "glowy",
+        "merek": null,
+        "namaProduk": null,
+        "kataKunci": [
+          "cushion"
+        ],
+        "keyakinan": "sedang"
+      }
+    }
+  ]
+}

@@ -67,7 +67,15 @@ async function Content() {
       <Suspense fallback={null}>
         <Explanation profile={profile} routine={routine} />
       </Suspense>
-      <RoutineView pagi={toView(routine.pagi)} malam={toView(routine.malam)} warnings={routine.warnings.map((w) => ({ id: w.id, text: w.text }))} />
+      <RoutineView
+        pagi={toView(routine.pagi)}
+        malam={toView(routine.malam)}
+        warnings={routine.warnings.map((w) => ({ id: w.id, text: w.text }))}
+        inti={toView(routine.essentials.steps)}
+        intiWarnings={routine.essentials.warnings.map((w) => ({ id: w.id, text: w.text }))}
+        // Yang baru mulai merawat kulit langsung melihat 3 langkah inti; rutinitas lengkap tetap satu klik.
+        defaultMode={profile.routine === "belum" ? "inti" : "lengkap"}
+      />
       <p className="text-[11px] text-abu-hangat">Disusun berbasis aturan dari katalog Rona, bukan diagnosis. Untuk keluhan kulit serius, periksa ke dokter kulit.</p>
     </div>
   );

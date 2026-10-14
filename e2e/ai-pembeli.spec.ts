@@ -14,6 +14,8 @@ test("Advisor merekomendasikan sunscreen, tambah ke keranjang, item tercatat ber
   const card = panel.getByTestId("kartu-advisor").first();
   await expect(card).toBeVisible();
   await expect(panel.getByTestId("jawaban-advisor").last()).toContainText("Surya Shield");
+  // Teks pembuka tanpa daftar nama dan harga; alasan tampil di setiap kartu.
+  await expect(card.getByTestId("alasan-advisor")).not.toBeEmpty();
   const name = (await card.locator("a").nth(1).textContent())?.trim() ?? "";
   await card.getByRole("button", { name: "Tambah" }).click();
   await expect(card.getByText("Masuk keranjang")).toBeVisible();
@@ -33,7 +35,7 @@ test("Advisor merekomendasikan sunscreen, tambah ke keranjang, item tercatat ber
   expect(items).toEqual([{ product_name: name, source: "advisor" }]);
 });
 
-test("pencarian kalimat menampilkan chip tafsiran; hapus satu chip dan hasilnya berubah", async ({ page }) => {
+test("pencarian kalimat menampilkan chip tafsiran; atribut lunak tidak menyaring habis; hapus satu chip dan hasilnya berubah", async ({ page }) => {
   await page.goto(`/cari?q=${encodeURIComponent("lipstik yang ga bikin bibir kering buat kondangan")}`);
   const chips = page.getByTestId("chip-tafsiran");
   await expect(chips).toContainText("Kami artikan sebagai:");
@@ -41,16 +43,20 @@ test("pencarian kalimat menampilkan chip tafsiran; hapus satu chip dan hasilnya 
   await expect(chips).toContainText("Satin");
   await expect(chips).toContainText("Melembapkan");
   await expect(page.getByTestId("tafsiran-ai").getByRole("link", { name: "cari kata persis saja" })).toBeVisible();
-  await expect(page.getByText(/^1 produk/).first()).toBeVisible();
+  // Satin dan Melembapkan hanya penambah peringkat; katalog cuma punya 2 lipstik, jadi pencarian dilonggarkan dan diberi tahu.
+  await expect(page.getByTestId("dilonggarkan")).toContainText("Kami longgarkan: Lipstick diperluas ke produk bibir, tanpa Satin.");
+  const count = page.getByText(/^\d+ produk/).first();
+  expect(Number((await count.textContent())!.match(/^(\d+)/)![1])).toBeGreaterThanOrEqual(3);
+  await expect(page.locator("main article, main [data-testid=kartu-produk]").first()).toContainText("Lipstick");
 
-  // Hapus chip kategori: tafsiran lain tetap berlaku dan hasilnya bertambah.
+  // Hapus chip kategori: tidak ada filter wajib lagi, hasil tetap harus cocok minimal satu tafsiran dan bertambah.
   await page.goto(`/cari?q=${encodeURIComponent("sunscreen yang ga lengket buat kulit berminyak")}`);
   await expect(chips).toContainText("Sunscreen Wajah");
-  const count = page.getByText(/^\d+ produk/).first();
-  await expect(count).toHaveText(/^2 produk/);
+  await expect(count).toHaveText(/^3 produk/);
   await chips.getByRole("button", { name: "Hapus filter Sunscreen Wajah", exact: true }).click();
   await expect(chips).not.toContainText("Sunscreen Wajah");
-  await expect(count).toHaveText(/^4 produk/);
+  await expect(count).not.toHaveText(/^3 produk/);
+  expect(Number((await count.textContent())!.match(/^(\d+)/)![1])).toBeGreaterThan(3);
   expect(page.url()).toContain("tafsir=1");
 });
 

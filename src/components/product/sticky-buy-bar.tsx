@@ -34,6 +34,7 @@ export function StickyBuyBar({ watchRef, price, normalPrice, shadeName, outOfSto
       )}
       aria-hidden={!show}
       data-sticky-bar
+      data-bilah-bawah
     >
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">

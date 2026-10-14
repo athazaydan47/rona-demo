@@ -49,7 +49,8 @@ export function interpretSchema(allowed: AllowedValues): Schema {
   return {
     type: "OBJECT",
     properties: {
-      kategori: { type: "STRING", enum: ["", ...allowed.categories.map((c) => c.slug)], description: "slug kategori, kosong bila tidak jelas" },
+      // Gemini menolak string kosong di enum, jadi "tidak jelas" ditulis sebagai null.
+      kategori: { type: "STRING", enum: allowed.categories.map((c) => c.slug), nullable: true, description: "slug kategori, null bila tidak jelas" },
       merek: { type: "ARRAY", items: { type: "STRING", enum: allowed.brands.map((b) => b.slug) } },
       jenisKulit: { type: "ARRAY", items: { type: "STRING", enum: [...SKIN_TYPE_VALUES] } },
       masalah: { type: "ARRAY", items: { type: "STRING", enum: [...CONCERN_VALUES] } },
@@ -119,8 +120,7 @@ export async function allowedValues(db: AnyDb): Promise<AllowedValues> {
 export function interpretPrompt(q: string, allowed: AllowedValues) {
   return [
     "TUGAS: tafsir_cari. Ubah kueri pembeli toko kosmetik menjadi filter katalog.",
-    "Hanya pakai nilai dari skema. Jangan menebak merek atau kategori yang tidak disebut.",
-    `Kategori: ${allowed.categories.map((c) => `${c.slug} (${c.name})`).join(", ")}.`,
+    "Hanya pakai nilai dari skema (daftar slug kategori ada di skema). Jangan menebak merek atau kategori yang tidak disebut.",
     `Merek: ${allowed.brands.map((b) => `${b.slug} (${b.name})`).join(", ")}.`,
     `Atribut: ${Object.entries(ATTRIBUTES).map(([k, v]) => `${k} (${v.label})`).join(", ")}.`,
     "Contoh: \"lipstik yang ga bikin bibir kering buat kondangan\" menjadi kategori lipstick, finish satin, atribut melembapkan.",
@@ -128,15 +128,15 @@ export function interpretPrompt(q: string, allowed: AllowedValues) {
   ].join("\n");
 }
 
-export type InterpretResult = { interpretation: Interpretation; source: "cache" | "ai" } | null;
+export type InterpretResult = { interpretation: Interpretation; source: "cache" | "ai"; usage?: { input: number; output: number } } | null;
 
-export async function interpretQuery(db: AnyDb, model: AiModel, q: string, now: Date, opts: { visitorHash?: string; budgetMs?: number } = {}): Promise<InterpretResult> {
+export async function interpretQuery(db: AnyDb, model: AiModel, q: string, now: Date, opts: { visitorHash?: string; budgetMs?: number; skipCache?: boolean } = {}): Promise<InterpretResult> {
   const started = Date.now();
   const norm = normalizeQuery(q);
   if (!norm) return null;
   const key = `tafsir:${shortHash(norm)}`;
   const allowed = await allowedValues(db);
-  const cached = await cacheGet<unknown>(db, key, now).catch(() => null);
+  const cached = opts.skipCache ? null : await cacheGet<unknown>(db, key, now).catch(() => null);
   if (cached) {
     const v = validateInterpretation(cached, allowed);
     if (v) return { interpretation: v, source: "cache" };
@@ -154,7 +154,7 @@ export async function interpretQuery(db: AnyDb, model: AiModel, q: string, now: 
     await logAi(db, { feature: "tafsir_cari", model: res.model, inputTokens: res.usage.input, outputTokens: res.usage.output, latencyMs: Date.now() - t0, ok: Boolean(v), visitorHash: opts.visitorHash, query: norm, at: now }).catch(() => {});
     if (!v || interpretationIsEmpty(v)) return null;
     await cacheSet(db, key, "tafsir_cari", v, INTERPRET_CACHE_DAYS, now).catch(() => {});
-    return { interpretation: v, source: "ai" };
+    return { interpretation: v, source: "ai", usage: res.usage };
   } catch (e) {
     await logAi(db, { feature: "tafsir_cari", model: model.name, latencyMs: Date.now() - t0, ok: false, error: e instanceof Error ? e.message : String(e), visitorHash: opts.visitorHash, query: norm, at: now }).catch(() => {});
     return null;

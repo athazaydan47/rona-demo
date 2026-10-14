@@ -72,12 +72,20 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 
 ## AI pembeli (Fase 7A)
 
-- Chat Advisor mengalirkan status per tool lalu teks jawaban per potongan kata; teks model sendiri tidak di-stream token demi token karena jawaban akhir harus divalidasi dulu (id produk dan nama produk) sebelum ditampilkan. (Fase 7A)
-- Evaluasi `npm run eval:ai` belum dijalankan ke Gemini sungguhan: gateway di `.env.local` memakai Authenticated Gateway tetapi `CF_AIG_TOKEN` kosong (401), dan model langsung sempat menjawab 503 karena permintaan tinggi. Isi `CF_AIG_TOKEN` lalu jalankan ulang. (Fase 7A)
-- Perkiraan biaya memakai tarif pihak ketiga Gemini 3.5 Flash (US$1,50 per 1 juta token masuk, US$9,00 per 1 juta token keluar); cek halaman harga resmi Google dan ai_logs setelah dipakai. Pertimbangkan thinkingLevel rendah untuk tafsiran pencarian setelah diuji di model sungguhan. (Fase 7A)
 - Deteksi "nama produk di luar hasil tool" hanya mengenali nama produk katalog Rona; nama yang benar-benar dikarang model (tidak ada di katalog) tidak terdeteksi, tetapi tidak pernah menjadi kartu produk karena kartu hanya dari id hasil tool. (Fase 7A)
-- Stok online serum retinal di seed kebetulan 0, jadi contoh peringatan "retinoid dan BHA di malam yang sama" jarang terlihat di rutinitas demo; aturannya tetap teruji di uji unit. (Fase 7A)
 - Penanda sumber item tidak ditimpa bila produk yang sama ditambah lagi dari halaman biasa; laporan penjualan per sumber dijadwalkan Fase 7B. (Fase 7A)
+
+## AI dari foto dan link (Fase 7C)
+
+- Model `gemini-3.5-flash` (nilai `AI_MODEL` di `.env.local`) tidak lagi tercantum di halaman harga dan daftar model resmi Google (dicek 14 Okt 2026); masih menjawab lewat gateway. Disarankan pindah ke `gemini-3.6-flash` (tarif resmi US$0,75 masuk dan US$3,75 keluar per 1 juta token, naik menjadi 1,50 dan 7,50 mulai 1 Jan 2027). Bawaan kode sudah `gemini-3.6-flash`. (Fase 7C)
+- Uji foto wajah sungguhan belum dilakukan: repo hanya memakai wajah ilustrasi sintetis. Atha perlu mencoba di HP dengan foto sendiri (cahaya alami, gelap, berfilter) dan mencatat hasilnya. (Fase 7C)
+- Pengenalan gambar di mode mock memakai sidik thumbnail dari set sintetis (`evals/7c/sidik.json`), bukan pengenalan sungguhan; gambar lain dianggap tidak dikenali. Bila gambar set uji diubah, jalankan ulang `npx tsx scripts/buat-set-7c.tsx`. (Fase 7C)
+- Membaca video YouTube dari URL masih fitur pratinjau Gemini (gratis selama pratinjau, bisa berubah); bila gagal, ekstraksi memakai judul saja. Biayanya sekitar 2.300 token video per link (45 detik, 0,5 fps, resolusi rendah). (Fase 7C)
+- Sampul TikTok dan YouTube ditampilkan langsung dari CDN platform (tiktokcdn.com, ytimg.com). CSP penuh Fase 8 perlu mengizinkan host ini di img-src. (Fase 7C)
+- Log Cloudflare AI Gateway untuk percakapan teks masih mencatat isi permintaan (berguna untuk memantau gangguan); hanya permintaan berisi gambar yang memakai `cf-aig-collect-log-payload: false`. Bila ingin lebih ketat, matikan payload log di pengaturan gateway. (Fase 7C)
+- Teks pertama Advisor (sekitar 1,5 detik) berasal dari catatan tool ("Aku carikan ..."); kalimat jawaban baru muncul setelah putaran kedua. Dua panggilan model berurutan masing-masing sekitar 1,2 detik sampai byte pertama dari jaringan lokal; ukur ulang dari Vercel (region Singapura). (Fase 7C)
+- Facet di pencarian hasil tafsiran dihitung dengan filter wajib saja, jadi jumlah di panel filter tidak berubah saat chip lunak dihapus (urutannya yang berubah). (Fase 7C)
+- Pencocokan dupe tidak memakai harga produk aslinya (tidak diketahui), jadi alasan "harga paling hemat" berarti termurah di antara produk Rona yang sejenis. (Fase 7C)
 
 ## Deploy
 
@@ -97,6 +105,10 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 
 - Laporan di HP: tabel rincian tampil dua baris per baris data, tanpa gulir ke samping; Ringkasan dan sheet Excel memuat rekonsiliasi omzet. Notifikasi keluar menampilkan "Pratinjau" untuk email saat EMAIL_PROVIDER=preview, dan pratinjau isinya memakai tautan absolut. (Fase 7A, dari review 6C)
 - Sebaran pelanggan riwayat diperbaiki (seed versi 8). (Fase 7A)
+- Advisor: teks pembuka tanpa daftar nama dan harga, alasan per kartu, penjaga angka rupiah, total dari server, teks dialirkan per kalimat yang sudah lolos pemeriksaan, putaran tool dibatasi, dan tingkat berpikir terendah. Evaluasi sungguhan sudah dijalankan dengan tarif resmi Google. (Fase 7C, dari review 7A)
+- Pencarian kalimat tidak lagi menyaring habis: atribut lunak menjadi penambah peringkat dengan pelonggaran bertahap yang diberi tahu. Skema tafsiran diperbaiki (Gemini menolak string kosong di enum, sehingga tafsiran di 7A selalu jatuh ke pencarian biasa). (Fase 7C)
+- Tombol Tanya Rona tidak lagi menutupi bilah Tambah semua di /rutinitas; aturan global dan uji tumpang tindih di 375 dan 1440 px. (Fase 7C)
+- Rutinitas: subtotal pagi dan malam, "Mulai dari yang penting", dan serum retinal selalu punya stok online (seed versi 9). (Fase 7C)
 
 - Kanban di HP membuka tab status aktif pertama yang berisi (urutan Dibayar, Diproses, Menunggu Pembayaran, Siap Diambil, Dikirim) dan mengingat pilihan tab per staf selama sesi; tab kosong berisi kalimat yang membantu. (Fase 6C)
 - Pencarian pelanggan di Cmd+K kini membuka detail pelanggan. (Fase 6C)

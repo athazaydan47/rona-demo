@@ -2,7 +2,9 @@
 // dan ringkasan ulasan. Murni, dengan fetch tiruan.
 import { describe, expect, it } from "vitest";
 import { emptyFilters } from "@/lib/catalog/filters";
-import { aiConfig, aiTersedia, AiError, createGeminiModel, parseResponse, requestBody } from "./client";
+import { aiConfig, aiTersedia, AiError, createGeminiModel, lowestThinkingLevel, mergeStreamParts, parseResponse, readSse, requestBody } from "./client";
+import { badRupiah, cleanReason, filterSentences, rupiahAmounts } from "./guard";
+import { createSentenceStream, partialStringField } from "./stream-json";
 import { medicalClaims, stripSentences, validateAdvisorOutput } from "./guard";
 import { interpretationToFilters, looksLikeSentence, normalizeQuery, validateInterpretation, type AllowedValues } from "./interpret";
 import { reviewListHash, validateSummary } from "./review-summary";
@@ -17,7 +19,7 @@ describe("konfigurasi AI", () => {
     expect(aiTersedia(aiConfig({ AI_GATEWAY_URL: GW }))).toBe(false);
     expect(aiTersedia(aiConfig({ AI_GATEWAY_URL: GW, GEMINI_API_KEY: "k" }))).toBe(true);
     expect(aiTersedia(aiConfig({ AI_PROVIDER: "mock" }))).toBe(true);
-    expect(aiConfig({}).model).toBe("gemini-3.5-flash");
+    expect(aiConfig({}).model).toBe("gemini-3.6-flash");
     expect(aiConfig({ AI_DAILY_CAP: "250" }).dailyCap).toBe(250);
   });
 });
@@ -121,5 +123,73 @@ describe("ringkasan ulasan", () => {
   it("validasi ringkasan: maksimal 3 butir, klaim medis dibuang", () => {
     expect(validateSummary({ pros: ["Ringan", "Tahan lama", "Wangi", "Lembap"], cons: ["Mengobati jerawat"], suitableFor: "Kulit berminyak" })).toEqual({ pros: ["Ringan", "Tahan lama", "Wangi"], cons: [], suitableFor: "Kulit berminyak" });
     expect(validateSummary({ pros: [], cons: [], suitableFor: "" })).toBeNull();
+  });
+});
+
+describe("Fase 7C: tingkat berpikir, streaming, dan header gateway", () => {
+  it("tingkat berpikir terendah per model dan dikirim di generationConfig", () => {
+    expect(aiConfig({ AI_MODEL: "gemini-3.6-flash" }).thinkingLevel).toBe("minimal");
+    expect(aiConfig({ AI_MODEL: "gemini-3.8-flash" }).thinkingLevel).toBe("low");
+    expect(aiConfig({ AI_THINKING_LEVEL: "medium" }).thinkingLevel).toBe("medium");
+    expect(lowestThinkingLevel("gemini-3.5-flash")).toBe("minimal");
+    expect(requestBody({ contents: [], mediaResolution: "low" }, { thinkingLevel: "minimal" }).generationConfig).toMatchObject({ thinkingConfig: { thinkingLevel: "minimal" }, mediaResolution: "MEDIA_RESOLUTION_LOW" });
+  });
+  it("permintaan berisi gambar meminta gateway tidak menyimpan isi log; teks biasa tidak", async () => {
+    const seen: Record<string, string>[] = [];
+    const fake = (async (_url: string, init: RequestInit) => {
+      seen.push(init.headers as Record<string, string>);
+      return new Response(JSON.stringify(okBody), { status: 200 });
+    }) as unknown as typeof fetch;
+    const m = createGeminiModel(aiConfig({ AI_GATEWAY_URL: GW, GEMINI_API_KEY: "k" }), fake);
+    await m.generate({ contents: [{ role: "user", parts: [{ inlineData: { mimeType: "image/jpeg", data: "AAAA" } }, { text: "x" }] }] });
+    await m.generate({ contents: [{ role: "user", parts: [{ text: "halo" }] }] });
+    expect(seen[0]["cf-aig-collect-log-payload"]).toBe("false");
+    expect(seen[1]["cf-aig-collect-log-payload"]).toBeUndefined();
+  });
+  it("SSE: teks dialirkan per potongan, potongan digabung, function call dan thoughtSignature utuh", async () => {
+    const events = [
+      { candidates: [{ content: { role: "model", parts: [{ text: '{"teks":"Dua pilih' }] } }] },
+      { candidates: [{ content: { role: "model", parts: [{ text: 'an ringan."}' }] } }] },
+      { candidates: [{ content: { role: "model", parts: [{ text: "", thoughtSignature: "sig" }] } }], usageMetadata: { promptTokenCount: 50, candidatesTokenCount: 9 } },
+    ];
+    const body = new Response(events.map((e) => `data: ${JSON.stringify(e)}\r\n\r\n`).join("")).body!;
+    const deltas: string[] = [];
+    const r = await readSse(body, "m", (d) => deltas.push(d));
+    expect(deltas).toEqual(['{"teks":"Dua pilih', 'an ringan."}']);
+    expect(r.text).toBe('{"teks":"Dua pilihan ringan."}');
+    expect(r.content.parts).toEqual([{ text: '{"teks":"Dua pilihan ringan."}', thoughtSignature: "sig" }]);
+    expect(r.usage).toEqual({ input: 50, output: 9 });
+    expect(mergeStreamParts([[{ functionCall: { name: "cariProduk", args: {} }, thoughtSignature: "a" }], [{ text: "x" }]])).toHaveLength(2);
+  });
+  it("stream gagal sebelum teks pertama dicoba ulang sekali; setelah teks terkirim tidak", async () => {
+    let n = 0;
+    const flaky = (async () => (++n === 1 ? new Response("{}", { status: 503 }) : new Response(`data: ${JSON.stringify(okBody)}\n\n`, { status: 200 }))) as unknown as typeof fetch;
+    const m = createGeminiModel(aiConfig({ AI_GATEWAY_URL: GW, GEMINI_API_KEY: "k" }), flaky);
+    await expect(m.stream({ contents: [] }, () => {})).resolves.toMatchObject({ text: "halo" });
+    expect(n).toBe(2);
+  });
+});
+
+describe("Fase 7C: kalimat pembuka dan angka rupiah", () => {
+  it("kolom string dari JSON yang belum selesai, termasuk escape", () => {
+    expect(partialStringField('{"teks":"Halo, ini', "teks")).toEqual({ value: "Halo, ini", complete: false });
+    expect(partialStringField('{"teks":"A \\"kutip\\" B\\n","produk":[', "teks")).toEqual({ value: 'A "kutip" B\n', complete: true });
+    expect(partialStringField('{"produk":[]', "teks")).toBeNull();
+  });
+  it("aliran per kalimat: kalimat yang melanggar tidak pernah dikirim", () => {
+    const out: string[] = [];
+    const st = createSentenceStream("teks", (s) => !s.includes("Rp 1.000"), (t) => out.push(t));
+    for (const chunk of ['{"teks":"Tiga pilihan ri', "ngan. Harganya Rp 1.000 saja. Semua", ' ada stoknya."', ',"produk":[]}']) st.push(chunk);
+    expect(out).toEqual(["Tiga pilihan ringan.", " Semua ada stoknya."]);
+  });
+  it("angka rupiah harus harga efektif; alasan dipotong dan dibersihkan", () => {
+    expect(rupiahAmounts("Mulai Rp 89.000, atau Rp89.000 dan Rp 1.250.000")).toEqual([89000, 89000, 1250000]);
+    expect(badRupiah("cuma Rp 89.000", new Set([89000]))).toEqual([]);
+    expect(badRupiah("normalnya Rp 120.000", new Set([89000]))).toEqual([120000]);
+    const rules = { catalogNames: ["Lumi Velvet Matte Lipstick", "Lumi Satin Glow Lipstick"], allowedNames: new Set(["Lumi Velvet Matte Lipstick", "Lumi Satin Glow Lipstick"]), allowedPrices: new Set([89000]) };
+    expect(filterSentences("Dua lipstik lembap. Coba Lumi Velvet Matte Lipstick dan Lumi Satin Glow Lipstick. Total Rp 178.000.", rules).text).toBe("Dua lipstik lembap.");
+    expect(cleanReason("Mengobati jerawat", new Set())).toBe("");
+    expect(cleanReason("Harga Rp 99.000 saja", new Set([89000]))).toBe("");
+    expect(cleanReason("x ".repeat(80), new Set()).length).toBeLessThanOrEqual(93);
   });
 });

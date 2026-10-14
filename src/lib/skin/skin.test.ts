@@ -143,6 +143,16 @@ describe("rutinitas", () => {
     expect(r.pagi.find((s) => s.key === "serum")!.main.name).not.toBe("Retinal Serum");
     expect(r.malam.find((s) => s.key === "perawatan")!.main.name).toBe("Retinal Serum");
   });
+  it("subtotal pagi dan malam, serta 'Mulai dari yang penting' dengan 3 langkah inti", () => {
+    const r = buildRoutine({ skinType: "berminyak", concerns: ["jerawat"] }, catalog, 250_000);
+    const sum = (steps: typeof r.pagi) => [...new Map(steps.map((s) => [s.main.variantId, s.main.price])).values()].reduce((a, b) => a + b, 0);
+    expect(r.subtotal).toEqual({ pagi: sum(r.pagi), malam: sum(r.malam) });
+    expect(r.essentials.steps.map((s) => s.key)).toEqual(["pembersih", "pelembap", "sunscreen"]);
+    expect(r.essentials.total).toBe(sum(r.essentials.steps));
+    expect(r.essentials.total).toBeLessThan(r.total);
+    // Tanpa produk aktif keras, rutinitas inti tidak memunculkan bentrok retinoid atau AHA dan BHA.
+    expect(r.essentials.warnings.some((w) => w.id === "retinoid-eksfoliasi")).toBe(false);
+  });
   it("profil sensitif menghindari BHA dan retinoid", () => {
     const r = buildRoutine({ skinType: "sensitif", sensitivity: "tinggi" }, catalog, 250_000);
     const names = [...r.pagi, ...r.malam].map((s) => s.main.name);

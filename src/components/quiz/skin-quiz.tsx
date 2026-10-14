@@ -2,13 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, Check, Loader2, PencilLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { depthLabels, undertoneGuide } from "@/lib/shade";
 import { saveQuizAction } from "@/lib/skin/actions";
 import { BUDGET_OPTIONS, CONCERN_OPTIONS, ROUTINE_OPTIONS, SENSITIVITY_OPTIONS, SKIN_TYPE_OPTIONS } from "@/lib/skin/options";
 import type { QuizAnswers } from "@/lib/skin/profile";
 import { cn } from "@/lib/utils";
+import type { QuizSuggestion } from "@/lib/ai/skin-photo";
+import { PhotoAssist } from "./photo-assist";
 
 // Ilustrasi SVG buatan sendiri (wajah sederhana, bukan foto orang).
 function FaceArt({ kind }: { kind: string }) {
@@ -46,24 +48,52 @@ function FaceArt({ kind }: { kind: string }) {
   );
 }
 
-function Option({ selected, onClick, children, testId }: { selected: boolean; onClick: () => void; children: React.ReactNode; testId?: string }) {
+export function FromPhotoBadge() {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-rona/10 px-2 py-0.5 text-[10px] font-semibold text-rona" data-testid="dari-foto">
+      <Camera className="size-3" aria-hidden /> dari foto
+    </span>
+  );
+}
+
+function Option({ selected, onClick, children, testId, fromPhoto }: { selected: boolean; onClick: () => void; children: React.ReactNode; testId?: string; fromPhoto?: boolean }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={selected} data-testid={testId} className={cn("flex min-h-14 w-full items-center gap-3 rounded-xl border-2 bg-putih p-3 text-left text-sm transition-colors", selected ? "border-kopi" : "border-garis hover:border-kopi/30")}>
       {children}
-      {selected ? <Check className="ml-auto size-4 shrink-0 text-rona" aria-hidden /> : null}
+      {selected && fromPhoto ? <span className="ml-auto"><FromPhotoBadge /></span> : null}
+      {selected ? <Check className={cn("size-4 shrink-0 text-rona", !fromPhoto && "ml-auto")} aria-hidden /> : null}
     </button>
   );
 }
 
 const STEPS = ["Jenis kulit", "Masalah kulit", "Sensitivitas", "Budget", "Warna kulit", "Rutinitas sekarang"];
 
-export function SkinQuiz({ initial }: { initial: QuizAnswers }) {
+export function SkinQuiz({ initial, photoAvailable = false }: { initial: QuizAnswers; photoAvailable?: boolean }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [a, setA] = useState<QuizAnswers>(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, run] = useTransition();
-  const set = (patch: Partial<QuizAnswers>) => setA((x) => ({ ...x, ...patch }));
+  const [mode, setMode] = useState<"manual" | "foto">("manual");
+  const [fromPhoto, setFromPhoto] = useState<Set<keyof QuizAnswers>>(new Set());
+  const [hints, setHints] = useState<QuizSuggestion["hints"]>({});
+  // Jawaban yang diubah pembeli tidak lagi bertanda "dari foto".
+  const set = (patch: Partial<QuizAnswers>) => {
+    setA((x) => ({ ...x, ...patch }));
+    setFromPhoto((f) => {
+      const next = new Set(f);
+      for (const k of Object.keys(patch) as (keyof QuizAnswers)[]) next.delete(k);
+      return next;
+    });
+  };
+  const applyPhoto = (sug: QuizSuggestion) => {
+    setA((x) => ({ ...x, ...sug.answers }));
+    setFromPhoto(new Set(sug.fromPhoto));
+    setHints(sug.hints);
+    setMode("manual");
+    setStep(0);
+  };
+  const photo = (k: keyof QuizAnswers) => fromPhoto.has(k);
   const ready = [Boolean(a.skinType), true, Boolean(a.sensitivity), Boolean(a.budget), Boolean(a.depth && a.undertone), Boolean(a.routine)][step];
 
   return (
@@ -80,10 +110,35 @@ export function SkinQuiz({ initial }: { initial: QuizAnswers }) {
         </div>
       </div>
 
-      {step === 0 ? (
+      {photoAvailable && step === 0 && mode === "manual" && !fromPhoto.size ? (
+        <div className="mb-4 grid gap-2 sm:grid-cols-2" data-testid="pilihan-isi-kuis">
+          <button type="button" aria-pressed className="flex items-center gap-3 rounded-xl border-2 border-kopi bg-kopi p-3 text-left text-sm text-putih">
+            <PencilLine className="size-5 shrink-0" aria-hidden />
+            <span>
+              <span className="block font-semibold">Isi sendiri</span>
+              <span className="block text-xs text-putih/80">Pilih jawaban di bawah, cuma 1 menit</span>
+            </span>
+          </button>
+          <button type="button" onClick={() => setMode("foto")} className="flex items-center gap-3 rounded-xl border-2 border-garis bg-putih p-3 text-left text-sm hover:border-kopi/30" data-testid="bantu-foto">
+            <Camera className="size-5 shrink-0 text-rona" aria-hidden />
+            <span>
+              <span className="block font-semibold">Bantu isi dari foto (opsional)</span>
+              <span className="block text-xs text-abu-hangat">Foto tidak disimpan, hasilnya bisa kamu ubah</span>
+            </span>
+          </button>
+        </div>
+      ) : null}
+      {fromPhoto.size && mode === "manual" ? (
+        <p className="mb-4 flex flex-wrap items-center gap-1.5 rounded-xl bg-putih px-3 py-2 text-sm text-kopi" data-testid="info-dari-foto">
+          Jawaban bertanda <FromPhotoBadge /> adalah usulan dari fotomu. Periksa dan ubah bila perlu, lalu konfirmasi di setiap langkah.
+        </p>
+      ) : null}
+      {mode === "foto" ? <PhotoAssist onApply={applyPhoto} onManual={() => setMode("manual")} /> : null}
+
+      {mode === "manual" && step === 0 ? (
         <div className="grid gap-2 sm:grid-cols-2">
           {SKIN_TYPE_OPTIONS.map((o) => (
-            <Option key={o.value} selected={a.skinType === o.value} onClick={() => set({ skinType: o.value })} testId={`kulit-${o.value}`}>
+            <Option key={o.value} selected={a.skinType === o.value} onClick={() => set({ skinType: o.value })} testId={`kulit-${o.value}`} fromPhoto={photo("skinType")}>
               <FaceArt kind={o.value} />
               <span>
                 <span className="block font-semibold">{o.label}</span>
@@ -93,14 +148,14 @@ export function SkinQuiz({ initial }: { initial: QuizAnswers }) {
           ))}
         </div>
       ) : null}
-      {step === 1 ? (
+      {mode === "manual" && step === 1 ? (
         <div>
           <p className="mb-2 text-sm text-abu-hangat">Pilih sampai 3, atau lewati bila tidak ada.</p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {CONCERN_OPTIONS.map((o) => {
               const on = a.concerns?.includes(o.value) ?? false;
               return (
-                <Option key={o.value} selected={on} onClick={() => set({ concerns: on ? (a.concerns ?? []).filter((x) => x !== o.value) : [...(a.concerns ?? []), o.value].slice(0, 3) })} testId={`masalah-${o.value}`}>
+                <Option key={o.value} selected={on} onClick={() => set({ concerns: on ? (a.concerns ?? []).filter((x) => x !== o.value) : [...(a.concerns ?? []), o.value].slice(0, 3) })} testId={`masalah-${o.value}`} fromPhoto={photo("concerns")}>
                   <span className="font-semibold">{o.label}</span>
                 </Option>
               );
@@ -108,8 +163,9 @@ export function SkinQuiz({ initial }: { initial: QuizAnswers }) {
           </div>
         </div>
       ) : null}
-      {step === 2 ? (
+      {mode === "manual" && step === 2 ? (
         <div className="grid gap-2">
+          {hints.sensitivity ? <p className="text-sm text-abu-hangat">{hints.sensitivity}</p> : null}
           {SENSITIVITY_OPTIONS.map((o) => (
             <Option key={o.value} selected={a.sensitivity === o.value} onClick={() => set({ sensitivity: o.value })} testId={`sensitif-${o.value}`}>
               <span>
@@ -120,7 +176,7 @@ export function SkinQuiz({ initial }: { initial: QuizAnswers }) {
           ))}
         </div>
       ) : null}
-      {step === 3 ? (
+      {mode === "manual" && step === 3 ? (
         <div className="grid gap-2 sm:grid-cols-2">
           {BUDGET_OPTIONS.map((o) => (
             <Option key={o.value} selected={a.budget === o.value} onClick={() => set({ budget: o.value })} testId={`budget-${o.value}`}>
@@ -129,10 +185,10 @@ export function SkinQuiz({ initial }: { initial: QuizAnswers }) {
           ))}
         </div>
       ) : null}
-      {step === 4 ? (
+      {mode === "manual" && step === 4 ? (
         <div className="space-y-4">
           <div>
-            <p className="mb-2 text-sm font-medium">Kedalaman (lihat rahang di cahaya alami)</p>
+            <p className="mb-2 flex items-center gap-2 text-sm font-medium">Kedalaman (lihat rahang di cahaya alami) {photo("depth") && a.depth ? <FromPhotoBadge /> : null}</p>
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
               {depthLabels.map((d) => (
                 <button key={d.depth} type="button" onClick={() => set({ depth: d.depth })} aria-pressed={a.depth === d.depth} data-testid={`kedalaman-${d.depth}`} className={cn("rounded-xl border-2 bg-putih p-2 text-center text-xs", a.depth === d.depth ? "border-kopi" : "border-garis")}>
@@ -146,7 +202,7 @@ export function SkinQuiz({ initial }: { initial: QuizAnswers }) {
             <p className="mb-2 text-sm font-medium">Undertone</p>
             <div className="grid gap-2 sm:grid-cols-3">
               {undertoneGuide.map((u) => (
-                <Option key={u.value} selected={a.undertone === u.value} onClick={() => set({ undertone: u.value })} testId={`undertone-${u.value}`}>
+                <Option key={u.value} selected={a.undertone === u.value} onClick={() => set({ undertone: u.value })} testId={`undertone-${u.value}`} fromPhoto={photo("undertone")}>
                   <span className="size-6 shrink-0 rounded-full border border-garis" style={{ background: u.hex }} aria-hidden />
                   <span>
                     <span className="block font-semibold">{u.label}</span>
@@ -158,7 +214,7 @@ export function SkinQuiz({ initial }: { initial: QuizAnswers }) {
           </div>
         </div>
       ) : null}
-      {step === 5 ? (
+      {mode === "manual" && step === 5 ? (
         <div className="grid gap-2">
           {ROUTINE_OPTIONS.map((o) => (
             <Option key={o.value} selected={a.routine === o.value} onClick={() => set({ routine: o.value })} testId={`rutin-${o.value}`}>
@@ -173,7 +229,7 @@ export function SkinQuiz({ initial }: { initial: QuizAnswers }) {
           {error}
         </p>
       ) : null}
-      <div className="mt-5 flex items-center justify-between gap-2">
+      <div className={cn("mt-5 flex items-center justify-between gap-2", mode === "foto" && "hidden")} data-aksi-utama>
         <Button variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>
           <ArrowLeft /> Kembali
         </Button>

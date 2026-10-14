@@ -52,23 +52,24 @@ export async function POST(request: NextRequest) {
     async start(controller) {
       const send = (e: Record<string, unknown>) => controller.enqueue(encoder.encode(`${JSON.stringify(e)}\n`));
       const t0 = Date.now();
-      const r = await runAdvisor(db, model, { history, productId, profile, now: at }, (status) => send({ type: "status", text: status }));
-      // Teks dialirkan per potongan kata supaya terasa mengetik; kartu produk dibangun dari data server terbaru.
-      const words = r.text.split(/(\s+)/);
-      for (let i = 0; i < words.length; i += 6) send({ type: "delta", text: words.slice(i, i + 6).join("") });
+      // Peristiwa dialirkan apa adanya: status per tool, kalimat pembuka dari catatan tool, lalu kalimat jawaban
+      // yang sudah lolos pemeriksaan. Kartu produk dibangun dari data server terbaru.
+      const r = await runAdvisor(db, model, { history, productId, profile, now: at }, (e) => send(e));
       const items = r.productIds.length ? await loadCatalogItems(db, { kind: "ids", ids: r.productIds }, at) : [];
       const byId = new Map(items.map((i) => [i.id, i]));
       const locs = new Map((await db.select({ slug: schema.locations.slug, name: schema.locations.name }).from(schema.locations)).map((l) => [l.slug, l.name]));
-      const products = r.productIds
-        .map((id) => byId.get(id))
-        .filter((i): i is NonNullable<typeof i> => Boolean(i))
-        .map((i) => {
+      const products = r.products
+        .map((p) => ({ p, i: byId.get(p.id) }))
+        .filter((x): x is { p: (typeof r.products)[number]; i: NonNullable<ReturnType<typeof byId.get>> } => Boolean(x.i))
+        .map(({ p, i }) => {
           const branches = new Set<string>();
           for (const v of i.variants) for (const [slug, n] of Object.entries(v.stockByLocation)) if (n > 0 && slug !== ONLINE_WAREHOUSE_SLUG) branches.add(locs.get(slug) ?? slug);
           const online = i.variants.reduce((s, v) => s + (v.stockByLocation[ONLINE_WAREHOUSE_SLUG] ?? 0), 0);
-          return { ...toCardData(i), stokOnline: online, cabang: [...branches].sort() };
+          return { ...toCardData(i), alasan: p.alasan, stokOnline: online, cabang: [...branches].sort() };
         });
-      send({ type: "done", ok: r.ok, produk: products });
+      // Total paket dihitung server dari harga efektif kartu, bukan dari model.
+      const total = products.length > 1 ? products.reduce((s, p) => s + p.price, 0) : null;
+      send({ type: "done", ok: r.ok, teks: r.text, produk: products, total });
       controller.close();
       await logAi(db, { feature: "advisor", model: model.name, inputTokens: r.usage.input, outputTokens: r.usage.output, latencyMs: Date.now() - t0, ok: r.ok, error: r.error, visitorHash: hash, at }).catch(() => {});
     },

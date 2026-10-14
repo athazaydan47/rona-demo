@@ -1,9 +1,11 @@
 // Model mock (AI_PROVIDER=mock) untuk uji, cuplik, dan Playwright. Deterministik dan memakai jalur yang sama dengan
 // model sungguhan: memanggil tool katalog lewat function call, lalu menutup dengan "jawab". Tugas JSON (tafsiran
 // pencarian, ringkasan ulasan, penjelasan rutinitas, tafsir padanan) dijawab dengan aturan sederhana.
-import { formatRupiah } from "@/lib/format";
-import type { AiModel, Content, GenRequest, GenResponse, Part } from "./client";
+import { withStream, type AiModel, type Content, type GenRequest, type GenResponse, type Part } from "./client";
 import { MEDICAL_REFERRAL } from "./guard";
+import type { ImageInput } from "./images";
+import visionFixtures from "../../../evals/7c/sidik.json";
+import { mockDupeFromImages, mockSkinReading } from "./mock-vision";
 import { INJECTION, MEDICAL_INTENT, OFF_TOPIC, parseQueryRules, realBrandIn } from "./rules-parser";
 
 const estimateTokens = (s: string) => Math.ceil(s.length / 4);
@@ -28,20 +30,42 @@ function brandsFromPrompt(text: string) {
   return [...line.matchAll(/([a-z0-9-]+) \(([^)]+)\)/g)].map((m) => ({ slug: m[1], name: m[2] }));
 }
 
+const json = (v: unknown): Part => ({ text: JSON.stringify(v) });
+const CATEGORY_WORDS: Record<string, string> = { "sunscreen-wajah": "sunscreen", "tinted-sunscreen": "tinted sunscreen", "serum-dan-essence": "serum", "lip-tint": "lip tint", "lip-cream": "lip cream", lipstick: "lipstik", pembersih: "pembersih wajah" };
+const categoryWords = (slug?: unknown) => (typeof slug === "string" ? (CATEGORY_WORDS[slug] ?? slug.replace(/-/g, " ")) : "");
+
+type MockHit = { id?: number; produkId?: number; nama?: string; produk?: string; harga: number; hargaNormal?: number; rating?: number; stokOnline?: number; kategori?: string };
+
+function lastCallArgs(contents: Content[]) {
+  for (let i = contents.length - 1; i >= 0; i--) {
+    const call = contents[i].parts.find((p) => p.functionCall)?.functionCall;
+    if (contents[i].role === "model" && call) return call.args ?? {};
+  }
+  return {};
+}
+
+function reasonFor(h: MockHit, args: Record<string, unknown>) {
+  if (h.hargaNormal && h.hargaNormal > h.harga) return "Sedang promo, harganya lebih hemat dari biasanya";
+  if (typeof args.jenisKulit === "string") return `Cocok untuk kulit ${args.jenisKulit}, teksturnya nyaman dipakai harian`;
+  if ((h.rating ?? 0) >= 4.6) return "Rating tinggi dari pembeli lain";
+  if (typeof args.lokasi === "string") return "Stoknya ada di cabang yang kamu sebut";
+  return "Pilihan populer di kategorinya";
+}
+
 function advisorTurn(req: GenRequest): GenResponse {
   const last = req.contents[req.contents.length - 1];
   const responses = last?.parts.filter((p) => p.functionResponse) ?? [];
-  const q = lastUserText(req.contents).toLowerCase();
+  const q = lastUserText(req.contents.filter((c) => !c.parts.some((p) => p.text?.startsWith("Jawaban")))).toLowerCase();
   const brand = realBrandIn(q);
-  const onlyJawab = (req.tools ?? []).every((t) => t.name === "jawab");
+  const direct = (teks: string) => reply([call("jawabLangsung", { teks })], req);
 
-  // Giliran pertama: putuskan dari kalimat pembeli.
-  if (!responses.length) {
-    if (INJECTION.test(q)) return reply([call("jawab", { teks: "Aku hanya bisa membantu soal produk dan perawatan kulit di Rona Beauty, dan aturanku tidak bisa diubah. Ada yang ingin kamu cari?", produkIds: [] })], req);
-    if (OFF_TOPIC.test(q) && !/kulit|makeup|lipstik|skincare|sunscreen|produk/.test(q)) return reply([call("jawab", { teks: "Maaf, aku khusus membantu belanja kosmetik dan perawatan kulit di Rona Beauty. Mau aku carikan sesuatu untuk kulitmu?", produkIds: [] })], req);
-    if (MEDICAL_INTENT.test(q)) return reply([call("jawab", { teks: `Aku bukan tenaga medis, jadi tidak bisa menilai kondisi kulitmu. ${MEDICAL_REFERRAL} Setelah itu aku bisa bantu pilih pembersih yang lembut.`, produkIds: [] })], req);
-    if (onlyJawab) return reply([call("jawab", { teks: "Maaf, aku belum menemukan jawabannya.", produkIds: [] })], req);
-    if (/rutinitas|skincare routine|urutan skincare/.test(q)) return reply([call("susunRutinitas", {})], req);
+  // Putaran pertama (mode tool wajib): pilih tool dari kalimat pembeli.
+  if (req.toolMode === "ANY") {
+    if (INJECTION.test(q)) return direct("Aku hanya bisa membantu soal produk dan perawatan kulit di Rona Beauty, dan aturanku tidak bisa diubah. Ada yang ingin kamu cari?");
+    if (/diskon|ubah harga|harganya rp|jadi admin|sebagai admin/.test(q)) return direct("Maaf, aku tidak bisa mengubah harga atau memberi diskon. Harga dan promo resmi selalu tampil di halaman produk.");
+    if (OFF_TOPIC.test(q) && !/kulit|makeup|lipstik|skincare|sunscreen|produk/.test(q)) return direct("Maaf, aku khusus membantu belanja kosmetik dan perawatan kulit di Rona Beauty. Mau aku carikan sesuatu untuk kulitmu?");
+    if (MEDICAL_INTENT.test(q)) return direct(`Aku bukan tenaga medis, jadi tidak bisa menilai kondisi kulitmu. ${MEDICAL_REFERRAL} Setelah itu aku bisa bantu pilih pembersih yang lembut.`);
+    if (/rutinitas|skincare routine|urutan skincare/.test(q)) return reply([call("susunRutinitas", { catatan: "Aku susun rutinitas dari profil kulitmu." })], req);
     const p = parseQueryRules(q);
     const args: Record<string, unknown> = {};
     if (p.kategori) args.kategori = p.kategori;
@@ -59,32 +83,59 @@ function advisorTurn(req: GenRequest): GenResponse {
       const words = q.replace(brand?.toLowerCase() ?? "", "").replace(/[^\p{L}\s]/gu, " ").split(/\s+/).filter((w) => w.length > 3 && !/^(yang|buat|untuk|ada|cari|mau|dong|kamu|punya|jual|apakah|produk)$/.test(w));
       if (!brand && words.length) args.teks = words.slice(0, 3).join(" ");
     }
+    const what = categoryWords(args.kategori) || "produk";
+    args.catatan = `Aku carikan ${what}${args.jenisKulit ? ` untuk kulit ${args.jenisKulit}` : ""} di katalog Rona.`;
     return reply([call("cariProduk", args)], req);
   }
 
-  // Giliran berikutnya: susun jawaban dari hasil tool (nama dan harga dari server).
+  // Putaran berikutnya: jawaban terstruktur dari hasil tool (nama dan harga tampil di kartu, bukan di teks).
+  if (!responses.length) return reply([json({ teks: "Maaf, aku ulangi: ini hanya produk yang ada di katalog Rona.", produk: [] })], req);
   const r = responses[0].functionResponse!;
-  if (r.name === "jawab") {
-    // Jawaban sebelumnya ditolak validasi: jawab ulang tanpa produk.
-    return reply([call("jawab", { teks: "Maaf, aku ulangi: ini hanya produk yang ada di katalog Rona.", produkIds: [] })], req);
-  }
   const data = r.response as Record<string, unknown>;
+  const args = lastCallArgs(req.contents);
   if (r.name === "susunRutinitas") {
-    if (data.galat) return reply([call("jawab", { teks: "Aku perlu tahu jenis kulitmu dulu. Ikuti Kuis Kulit di /kuis-kulit, nanti rutinitasnya langsung tersusun.", produkIds: [] })], req);
-    const steps = (data.langkah as { utama: { id: number; nama: string } }[]) ?? [];
-    return reply([call("jawab", { teks: `Ini rutinitas yang disusun dari profil kulitmu, ${steps.length} langkah pagi dan malam. Lihat lengkapnya di halaman Rutinitas.`, produkIds: [...new Set(steps.map((s) => s.utama.id))].slice(0, 4) })], req);
+    if (data.galat) return reply([json({ teks: "Aku perlu tahu jenis kulitmu dulu. Ikuti Kuis Kulit di /kuis-kulit, nanti rutinitasnya langsung tersusun.", produk: [] })], req);
+    const steps = (data.langkah as { id: number; langkah: string }[]) ?? [];
+    const ids = [...new Set(steps.map((s) => s.id))].slice(0, 4);
+    return reply([json({ teks: `Ini rutinitas dari profil kulitmu, ${steps.length} langkah pagi dan malam. Lihat lengkapnya di halaman Rutinitas.`, produk: ids.map((id) => ({ id, alasan: steps.find((s) => s.id === id)?.langkah ?? "Bagian dari rutinitasmu" })) })], req);
   }
-  const hasil = ((data.hasil as { id: number; nama: string; harga: number; cabangDenganStok?: string[] }[]) ?? []).slice(0, 3);
+  const hasil = (((data.hasil as MockHit[]) ?? []).map((h) => ({ ...h, id: h.id ?? h.produkId }))).slice(0, 3);
   const prefix = brand ? `Rona tidak menjual ${brand}, jadi aku tidak bisa merekomendasikannya. ` : "";
-  if (!hasil.length) return reply([call("jawab", { teks: `${prefix}Aku belum menemukan produk yang cocok di katalog Rona. Coba longgarkan budget atau kategorinya, ya.`, produkIds: [] })], req);
-  const list = hasil.map((h) => `${h.nama} (${formatRupiah(h.harga)})`).join(", ");
-  const loc = /dinoyo/.test(q) ? " Semuanya ada stoknya di Rona Dinoyo." : "";
-  return reply([call("jawab", { teks: `${prefix}${brand ? "Sebagai gantinya, ini" : "Ini"} pilihan dari katalog Rona yang cocok untukmu: ${list}.${loc}`, produkIds: hasil.map((h) => h.id) })], req);
+  if (!hasil.length) return reply([json({ teks: `${prefix}Aku belum menemukan produk yang cocok di katalog Rona. Coba longgarkan budget atau kategorinya, ya.`, produk: [] })], req);
+  const what = categoryWords(args.kategori) || "produk";
+  const budget = typeof args.hargaMaks === "number" ? `, semuanya di bawah ${Math.round(args.hargaMaks / 1000)} ribu` : "";
+  const skin = typeof args.jenisKulit === "string" ? ` untuk kulit ${args.jenisKulit}` : "";
+  const loc = typeof args.lokasi === "string" ? " Semuanya ada stoknya di cabang itu." : "";
+  const teks = `${prefix}${brand ? "Sebagai gantinya, ini" : "Ini"} ${hasil.length} pilihan ${what}${skin} dari katalog Rona${budget}.${loc}`;
+  return reply([json({ teks, produk: hasil.map((h) => ({ id: h.id, alasan: reasonFor(h, args) })) })], req);
 }
 
-function jsonTask(req: GenRequest): GenResponse {
+// Kata warna di caption ke perkiraan hex (untuk tugas dupe dari teks).
+const COLOR_WORDS: [RegExp, string][] = [
+  [/merah bata|terracotta/, "#A0452E"],
+  [/nude/, "#C98B76"],
+  [/mauve/, "#B07A8C"],
+  [/coral/, "#F07F65"],
+  [/pink|merah muda/, "#E58FA5"],
+  [/merah/, "#B0302E"],
+  [/cokelat|coklat|brown/, "#8B5A3C"],
+];
+
+async function jsonTask(req: GenRequest): Promise<GenResponse> {
   const prompt = lastUserText(req.contents);
   const task = /TUGAS: (\w+)/.exec(prompt)?.[1] ?? "";
+  const images = req.contents.flatMap((c) => c.parts.filter((p) => p.inlineData).map((p) => p.inlineData!)) as ImageInput[];
+  if (task === "foto_kulit") return reply([{ text: JSON.stringify(await mockSkinReading(images[0])) }], req);
+  if (task === "dupe_gambar") {
+    return reply([{ text: JSON.stringify(await mockDupeFromImages(images, visionFixtures.gambar)) }], req);
+  }
+  if (task === "dupe_teks" || task === "dupe_video") {
+    const t = (/Teks: ([\s\S]+)$/.exec(prompt)?.[1] ?? "").toLowerCase();
+    const p = parseQueryRules(t);
+    const hex = COLOR_WORDS.find(([re]) => re.test(t))?.[1] ?? null;
+    const known = Boolean(p.kategori || hex);
+    return reply([{ text: JSON.stringify({ kategori: p.kategori, jenisProduk: p.kategori ?? "", warnaHex: hex, finish: p.finish[0] ?? null, merek: realBrandIn(t), namaProduk: null, kataKunci: [], keyakinan: known ? "sedang" : "rendah" }) }], req);
+  }
   if (task === "tafsir_cari") {
     const q = /Kueri: (.+)$/m.exec(prompt)?.[1] ?? "";
     return reply([{ text: JSON.stringify(parseQueryRules(q, brandsFromPrompt(prompt))) }], req);
@@ -124,12 +175,13 @@ function jsonTask(req: GenRequest): GenResponse {
   return reply([{ text: "{}" }], req);
 }
 
+// Advisor dikenali dari prompt sistemnya; tugas JSON lain memakai penanda "TUGAS:" di pesan pembeli.
 export function createMockModel(): AiModel {
-  return {
+  return withStream({
     name: "mock",
     async generate(req) {
-      if (req.jsonSchema) return jsonTask(req);
-      return advisorTurn(req);
+      if (req.system?.startsWith("Kamu Rona Advisor")) return advisorTurn(req);
+      return jsonTask(req);
     },
-  };
+  });
 }

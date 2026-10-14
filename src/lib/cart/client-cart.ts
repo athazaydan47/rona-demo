@@ -35,7 +35,7 @@ export async function addToCart(variantId: number, quantity = 1, opts: { openDra
   return addManyToCart([{ variantId, quantity }], opts);
 }
 
-// source: asal item untuk atribusi penjualan ("advisor", "rutinitas", "padanan_shade").
+// source: asal item untuk atribusi penjualan ("advisor", "rutinitas", "padanan_shade", "cari_video").
 export async function addManyToCart(items: { variantId: number; quantity: number }[], opts: { openDrawer?: boolean; source?: string } = {}): Promise<AddResult> {
   try {
     const r = await addToCartAction(items, { source: opts.source });

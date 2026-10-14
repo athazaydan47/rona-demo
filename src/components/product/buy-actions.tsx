@@ -60,7 +60,7 @@ export function BuyActions({ productId, productName, shadeName, variantId, maxQt
           <p className="text-xs text-abu-hangat tabular-nums">Maks {maxQty}</p>
         </div>
       ) : null}
-      <div ref={mainButtonRef} className="mt-4 grid grid-cols-[1fr_auto_auto] gap-2 sm:grid-cols-[1fr_1fr_auto_auto]">
+      <div ref={mainButtonRef} className="mt-4 grid grid-cols-[1fr_auto_auto] gap-2 sm:grid-cols-[1fr_1fr_auto_auto]" data-aksi-utama>
         {outOfStock ? (
           <RestockDialog
             variantId={variantId}

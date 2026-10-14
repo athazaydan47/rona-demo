@@ -3,7 +3,7 @@ import { Chip } from "@/components/ui/chip";
 import { ProductCardSkeleton, type CardBadge } from "@/components/product-card";
 import { getCatalogResult, getProductCards, type CatalogScope } from "@/lib/catalog/catalog-queries";
 import { scopeToParams } from "@/lib/catalog/scope";
-import { serializeCatalogParams, type CatalogFilters } from "@/lib/catalog/filters";
+import { loosenedText, serializeCatalogParams, type CatalogFilters } from "@/lib/catalog/filters";
 import { getBrands, getCategoryTree, getLocations } from "@/lib/catalog/queries";
 import { ActiveChips } from "./active-chips";
 import { Breadcrumb, type Crumb } from "./breadcrumb";
@@ -40,6 +40,7 @@ export async function CatalogPage({ scope, filters, basePath, title, description
   const scopeQuery = new URLSearchParams(scopeToParams(scope)).toString();
   const apiQuery = [scopeQuery, serializeCatalogParams(filters, { omitPage: true })].filter(Boolean).join("&");
   const bestsellers = result.total === 0 ? await getProductCards({ kind: "all" }, "terlaris", 4) : [];
+  const loosened = loosenedText(result.loosened, labels);
 
   return (
     <div className="container-rona py-6 md:py-8">
@@ -73,6 +74,11 @@ export async function CatalogPage({ scope, filters, basePath, title, description
           <ActiveChips filters={filters} labels={labels} basePath={basePath} locked={lockedFilters} prefix={chipsPrefix} />
         </div>
       </div>
+      {loosened ? (
+        <p className="mt-3 rounded-xl bg-[#FBEEDC] px-3 py-2 text-sm text-[#8A5512]" role="status" data-testid="dilonggarkan">
+          {loosened} Produk yang paling cocok tetap di urutan atas.
+        </p>
+      ) : null}
 
       <div className="mt-6 flex items-start gap-8">
         <FilterPanel filters={filters} facets={result.facets} labels={labels} basePath={basePath} hide={hideFacets} />

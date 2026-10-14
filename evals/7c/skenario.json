@@ -1,0 +1,24 @@
+{
+  "keterangan": "Skenario evaluasi Fase 7C (foto dan link) tanpa bergantung internet selain API model. Gambar di evals/7c/gambar dibuat scripts/buat-set-7c.tsx dari ProductArt sendiri, tanpa foto orang sungguhan dan tanpa gambar merek nyata. Link memakai data oEmbed rekaman di bawah, video YouTube tidak dibaca. foto: harapan valid (keluaran lolos skema ketat) atau kualitas_kurang. gambar dan link: tipe yang boleh (cocok, mirip, tidak_ada_sejenis, tidak_dikenali), produk slug yang diharapkan, kategori yang boleh untuk alternatif, namaMengandung untuk nama yang terbaca, gagal untuk link yang harus ditolak.",
+  "foto": [
+    { "id": "wajah-ilustrasi", "berkas": "wajah-ilustrasi.jpg", "harapan": "valid" },
+    { "id": "wajah-gelap", "berkas": "wajah-gelap.jpg", "harapan": "kualitas_kurang" }
+  ],
+  "gambar": [
+    { "id": "screenshot-lumi-velvet", "berkas": ["lumi-velvet-merah-ceri.jpg"], "tipe": ["cocok"], "produk": "lumi-velvet-matte-lipstick", "shade": "06 Merah Ceri" },
+    { "id": "screenshot-pualam-blush", "berkas": ["pualam-blush-berry.jpg"], "tipe": ["cocok"], "produk": "pualam-cream-blush" },
+    { "id": "screenshot-kirana-serum", "berkas": ["kirana-niacinamide.jpg"], "tipe": ["cocok"], "produk": "kirana-lab-niacinamide-10-serum" },
+    { "id": "screenshot-lumi-tint", "berkas": ["lumi-juicy-mangga.jpg"], "tipe": ["cocok", "mirip"], "kategori": ["lip-tint", "lipstick", "lip-cream", "lip-gloss", "lip-balm-dan-lip-care"] },
+    { "id": "screenshot-surya-gel", "berkas": ["surya-gel-sunscreen.jpg"], "tipe": ["cocok", "mirip"], "kategori": ["sunscreen-wajah", "tinted-sunscreen", "sunscreen-tubuh"] },
+    { "id": "generik-lipstik", "berkas": ["generik-lipstik-merah.jpg"], "tipe": ["mirip"], "kategori": ["lipstick", "lip-cream", "lip-tint", "lip-gloss", "lip-balm-dan-lip-care"], "minimal": 3 },
+    { "id": "generik-cushion", "berkas": ["generik-cushion.jpg"], "tipe": ["mirip"], "kategori": ["cushion", "foundation", "concealer", "bedak", "tinted-sunscreen"], "minimal": 3 }
+  ],
+  "link": [
+    { "id": "tiktok-wardah", "url": "https://www.tiktok.com/@rona.demo/video/7300000000000000001", "oembed": { "title": "Dupe lipstik Wardah warna nude satin buat kondangan, lembap seharian! #lipstik #kondangan", "author_name": "Rona Demo Kreator", "author_url": "https://www.tiktok.com/@rona.demo" }, "tipe": ["mirip"], "namaMengandung": "Wardah", "kategori": ["lipstick", "lip-cream", "lip-tint", "lip-gloss", "lip-balm-dan-lip-care"], "minimal": 3 },
+    { "id": "tiktok-cushion", "url": "https://www.tiktok.com/@rona.demo/video/7300000000000000002", "oembed": { "title": "Cushion favorit buat kulit berminyak, hasilnya matte natural #cushion", "author_name": "Rona Demo Kreator", "author_url": "https://www.tiktok.com/@rona.demo" }, "tipe": ["mirip", "cocok"], "kategori": ["cushion", "foundation", "concealer", "bedak", "tinted-sunscreen"] },
+    { "id": "youtube-skintific", "url": "https://youtu.be/RonaDemo001", "oembed": { "title": "Review jujur Skintific 5X Ceramide Barrier Moisture Gel setelah 2 minggu", "author_name": "Kanal Demo", "author_url": "https://www.youtube.com/@kanal.demo" }, "tipe": ["mirip"], "namaMengandung": "Skintific", "kategori": ["pelembap"] },
+    { "id": "instagram", "url": "https://www.instagram.com/p/C0nt0hDemo/", "gagal": "screenshot" },
+    { "id": "ssrf-lokal", "url": "http://127.0.0.1:3000/admin", "gagal": "tidak_valid" },
+    { "id": "ssrf-metadata", "url": "http://169.254.169.254/latest/meta-data", "gagal": "tidak_valid" }
+  ]
+}

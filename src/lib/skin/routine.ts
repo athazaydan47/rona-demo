@@ -68,7 +68,14 @@ export function productScore(p: RoutineProduct, profile: SkinProfile, time: "pag
 }
 
 export type RoutineStep = { key: StepKey; label: string; main: RoutineProduct; alternatives: RoutineProduct[] };
-export type Routine = { pagi: RoutineStep[]; malam: RoutineStep[]; total: number; warnings: ConflictWarning[]; budget: number };
+// "Mulai dari yang penting": 3 langkah inti (pembersih, pelembap, sunscreen). Pembersih dan pelembap yang sama dipakai
+// pagi dan malam, sunscreen hanya pagi, jadi cukup 3 produk.
+export const ESSENTIAL_STEPS: StepKey[] = ["pembersih", "pelembap", "sunscreen"];
+export type RoutineEssentials = { steps: RoutineStep[]; total: number; warnings: ConflictWarning[] };
+export type Routine = { pagi: RoutineStep[]; malam: RoutineStep[]; total: number; subtotal: { pagi: number; malam: number }; warnings: ConflictWarning[]; budget: number; essentials: RoutineEssentials };
+
+// Jumlah harga produk unik (produk yang muncul di dua langkah dihitung sekali).
+export const uniqueTotal = (steps: RoutineStep[]) => [...new Map(steps.map((s) => [s.main.variantId, s.main.price])).values()].reduce((a, b) => a + b, 0);
 
 function pickStep(def: StepDef, products: RoutineProduct[], profile: SkinProfile, time: "pagi" | "malam", budget: number, avoid: Set<number>): RoutineStep | null {
   const pool = products.filter((p) => def.categories.includes(p.categorySlug));
@@ -95,12 +102,16 @@ export function buildRoutine(profile: SkinProfile, products: RoutineProduct[], b
   const avoid = new Set<number>();
   const pagi = build("pagi", steps.pagi, avoid);
   const malam = build("malam", steps.malam, avoid);
-  const unique = new Map<number, RoutineProduct>();
-  for (const s of [...pagi, ...malam]) unique.set(s.main.variantId, s.main);
-  const total = [...unique.values()].reduce((s, p) => s + p.price, 0);
+  const total = uniqueTotal([...pagi, ...malam]);
   const toCheck = (steps: RoutineStep[]) => steps.map((s) => ({ name: s.main.name, classes: ingredientClasses(s.main) }));
   const warnings = checkConflicts({ pagi: toCheck(pagi), malam: toCheck(malam), hasSunscreen: pagi.some((s) => s.key === "sunscreen"), profile });
-  return { pagi, malam, total, warnings, budget };
+  const core = pagi.filter((s) => ESSENTIAL_STEPS.includes(s.key));
+  const essentials: RoutineEssentials = {
+    steps: core,
+    total: uniqueTotal(core),
+    warnings: checkConflicts({ pagi: toCheck(core), malam: toCheck(core.filter((s) => s.key !== "sunscreen")), hasSunscreen: core.some((s) => s.key === "sunscreen"), profile }),
+  };
+  return { pagi, malam, total, subtotal: { pagi: uniqueTotal(pagi), malam: uniqueTotal(malam) }, warnings, budget, essentials };
 }
 
 // Isi rutinitas sebagai kunci cache penjelasan AI.

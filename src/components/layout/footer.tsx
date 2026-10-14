@@ -127,6 +127,10 @@ export function Footer({ categories, locations, studio, demoMode }: FooterProps)
             <Link href="/tentang-demo" className="font-semibold text-rona-gelap hover:underline">
               Tentang demo
             </Link>
+            {" · "}
+            <Link href="/kebijakan-privasi" className="font-semibold text-rona-gelap hover:underline">
+              Kebijakan privasi
+            </Link>
             {demoMode ? null : " "}
           </p>
           <p>

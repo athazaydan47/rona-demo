@@ -16,6 +16,7 @@ import { pathToFileURL } from "node:url";
 import { capturePage, formatBytes, labelWib, launchBrowser, screenshotHtmlToJpeg, stampWib } from "./screenshot.mjs";
 import { captureAdminFlow } from "./cuplik-admin.mjs";
 import { captureAdmin6bFlow } from "./cuplik-admin-6b.mjs";
+import { captureAdmin6cFlow } from "./cuplik-admin-6c.mjs";
 import { captureAccountFlow } from "./cuplik-akun.mjs";
 import { captureBuyFlow } from "./cuplik-alur-beli.mjs";
 
@@ -52,6 +53,8 @@ const ACTIONS = {
   admin: { flow: true, label: "alur admin", capture: captureAdminFlow, covers: ["/admin"] },
   // Alur admin Fase 6B: produk, kategori, promo, banner, pengaturan, kanban baru, opname di HP.
   "admin-6b": { flow: true, label: "alur admin 6B", capture: captureAdmin6bFlow, covers: ["/admin"] },
+  // Alur admin Fase 6C: laporan, pelanggan, moderasi ulasan, notifikasi keluar, laporan di HP.
+  "admin-6c": { flow: true, label: "alur admin 6C", capture: captureAdmin6cFlow, covers: ["/admin"] },
 };
 
 function parseArgs(argv) {

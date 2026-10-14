@@ -65,4 +65,11 @@ export const AUDIT_ACTIONS: Record<string, string> = {
   "promo.promobar": "PromoBar",
   "pengaturan.ubah": "Ubah pengaturan",
   "pengaturan.cabang": "Ubah cabang",
+  "ulasan.sembunyi": "Sembunyikan ulasan",
+  "ulasan.tampil": "Tampilkan ulasan",
+  "ulasan.balas": "Balas ulasan",
+  "ulasan.hapus_balasan": "Hapus balasan ulasan",
+  "pelanggan.poin": "Sesuaikan poin pelanggan",
+  "notifikasi.kirim_ulang": "Kirim ulang notifikasi",
+  "laporan.unduh": "Unduh laporan Excel",
 };

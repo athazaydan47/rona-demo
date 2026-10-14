@@ -4,19 +4,29 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { statusTone } from "@/components/order/order-parts";
 import { courierName } from "@/lib/admin/couriers";
-import { KANBAN_FINAL, KANBAN_FINAL_DAYS, planMove } from "@/lib/admin/kanban";
+import { emptyColumnText, initialKanbanTab, KANBAN_FINAL, KANBAN_FINAL_DAYS, KANBAN_TAB_COOKIE, planMove } from "@/lib/admin/kanban";
 import { statusLabels, type OrderStatus } from "@/lib/orders/status";
 import { cn } from "@/lib/utils";
 import { OrderCardBody, type CardOrder } from "./order-card";
 import { useStatusChange } from "./status-change";
 
+// Cookie sesi (tanpa masa berlaku): hilang saat browser ditutup.
+function rememberTab(staffId: number, status: OrderStatus) {
+  document.cookie = `${KANBAN_TAB_COOKIE}=${staffId}:${status}; path=/admin; samesite=lax`;
+}
+
 export type KanbanColumn = { status: OrderStatus; total: number; orders: CardOrder[] };
 
-export function OrdersKanban({ columns }: { columns: KanbanColumn[] }) {
+export function OrdersKanban({ columns, staffId, rememberedTab = null }: { columns: KanbanColumn[]; staffId: number; rememberedTab?: OrderStatus | null }) {
   const [dragging, setDragging] = useState<CardOrder | null>(null);
   const [over, setOver] = useState<OrderStatus | null>(null);
   const [notice, setNotice] = useState<{ tone: "error" | "ok"; text: string } | null>(null);
-  const [tab, setTab] = useState<OrderStatus>(columns.find((c) => c.status === "dibayar")?.status ?? columns[0].status);
+  const [tab, setTabState] = useState<OrderStatus>(() => initialKanbanTab(columns, rememberedTab));
+  // Pilihan tab diingat per staf selama sesi browser (cookie tanpa masa berlaku).
+  const setTab = (s: OrderStatus) => {
+    setTabState(s);
+    rememberTab(staffId, s);
+  };
   const change = useStatusChange((ok, message) => setNotice(ok ? { tone: "ok", text: "Status pesanan diperbarui." } : { tone: "error", text: message ?? "Gagal." }));
 
   const drop = (o: CardOrder, to: OrderStatus) => {
@@ -65,7 +75,9 @@ export function OrdersKanban({ columns }: { columns: KanbanColumn[] }) {
               </a>
             </li>
           ) : current.orders.length === 0 ? (
-            <li className="rounded-xl border border-dashed border-garis p-6 text-center text-sm text-abu-hangat">Kosong.</li>
+            <li className="rounded-xl border border-dashed border-garis p-6 text-center text-sm text-abu-hangat" data-testid="kanban-kosong">
+              {emptyColumnText(current.status)}
+            </li>
           ) : null}
         </ul>
       </div>
@@ -145,6 +157,7 @@ export function OrdersKanban({ columns }: { columns: KanbanColumn[] }) {
                     </li>
                   ))}
                   {c.total > c.orders.length ? <li className="px-1 text-center text-[11px] text-abu-hangat">dan {c.total - c.orders.length} lainnya di tampilan tabel</li> : null}
+                  {c.orders.length === 0 ? <li className="px-2 py-4 text-center text-xs text-abu-hangat">{emptyColumnText(c.status)}</li> : null}
                 </ul>
               </section>
             );

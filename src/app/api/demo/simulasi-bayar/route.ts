@@ -7,9 +7,11 @@ import { revalidateProducts } from "@/lib/orders/revalidate";
 import { confirmPayment } from "@/lib/orders/service";
 import { rejectCrossOrigin } from "@/lib/security/origin";
 import { siteUrl } from "@/lib/site";
+import { scheduleEmailDispatch } from "@/lib/email/schedule";
 
 // Simulasi pembayaran berhasil. Lewat satu pintu yang sama dengan webhook (confirmPayment).
 export async function POST(request: NextRequest) {
+  scheduleEmailDispatch(); // kirim email dari outbox setelah respons
   const blocked = demoOnly();
   if (blocked) return blocked;
   const crossOrigin = rejectCrossOrigin(request);

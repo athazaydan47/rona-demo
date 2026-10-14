@@ -24,6 +24,7 @@ import { can } from "./permissions";
 import { adminSearch } from "./search";
 import { createStaff, isDemoStaffEmail, resetStaffPassword, setStaffActive, updateStaff } from "./staff";
 import { receiveStock, searchVariants, submitOpname, transferStock } from "./stock";
+import { scheduleEmailDispatch } from "@/lib/email/schedule";
 
 const DENIED = { ok: false as const, message: "Sesi staf berakhir. Masuk lagi, ya." };
 
@@ -99,6 +100,7 @@ const statusSchema = z.object({
 });
 
 export async function changeOrderStatusAction(raw: z.input<typeof statusSchema>) {
+  scheduleEmailDispatch(); // kirim email dari outbox setelah respons
   const me = await currentStaff();
   if (!me) return DENIED;
   const parsed = statusSchema.safeParse(raw);
@@ -109,6 +111,7 @@ export async function changeOrderStatusAction(raw: z.input<typeof statusSchema>)
 }
 
 export async function processOrdersAction(numbers: string[]) {
+  scheduleEmailDispatch(); // kirim email dari outbox setelah respons
   const me = await currentStaff();
   if (!me) return DENIED;
   if (!Array.isArray(numbers)) return { ok: false as const, message: "Pilih pesanan dulu." };
@@ -140,6 +143,7 @@ export async function variantAvailabilityAction(variantIds: number[]) {
 const linesSchema = z.array(z.object({ variantId: z.number().int(), quantity: z.number().int() })).max(60);
 
 export async function receiveStockAction(raw: { locationId: number; lines: { variantId: number; quantity: number }[]; reference?: string; note?: string }) {
+  scheduleEmailDispatch(); // kirim email dari outbox setelah respons
   const me = await currentStaff();
   if (!me) return DENIED;
   const lines = linesSchema.safeParse(raw?.lines);
@@ -150,6 +154,7 @@ export async function receiveStockAction(raw: { locationId: number; lines: { var
 }
 
 export async function transferStockAction(raw: { fromId: number; toId: number; lines: { variantId: number; quantity: number }[]; note?: string }) {
+  scheduleEmailDispatch(); // kirim email dari outbox setelah respons
   const me = await currentStaff();
   if (!me) return DENIED;
   const lines = linesSchema.safeParse(raw?.lines);
@@ -160,6 +165,7 @@ export async function transferStockAction(raw: { fromId: number; toId: number; l
 }
 
 export async function submitOpnameAction(raw: { locationId: number; counts: { variantId: number; counted: number }[]; note?: string }) {
+  scheduleEmailDispatch(); // kirim email dari outbox setelah respons
   const me = await currentStaff();
   if (!me) return DENIED;
   const counts = z.array(z.object({ variantId: z.number().int(), counted: z.number().int() })).max(300).safeParse(raw?.counts);

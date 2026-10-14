@@ -155,8 +155,13 @@ export const notifications = pgTable(
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     sentAt: timestamp({ withTimezone: true }),
     readAt: timestamp({ withTimezone: true }),
+    // Pengiriman lewat adapter email (Fase 6C): jumlah percobaan, error terakhir, kunci klaim supaya tidak dobel.
+    attempts: integer().notNull().default(0),
+    lastError: text(),
+    claimedAt: timestamp({ withTimezone: true }),
+    providerId: text(),
   },
-  (t) => [index("notifications_customer_idx").on(t.customerId, t.createdAt), index("notifications_order_idx").on(t.orderId), index("notifications_recipient_idx").on(t.recipient, t.createdAt)],
+  (t) => [index("notifications_customer_idx").on(t.customerId, t.createdAt), index("notifications_order_idx").on(t.orderId), index("notifications_recipient_idx").on(t.recipient, t.createdAt), index("notifications_status_idx").on(t.channel, t.status, t.createdAt)],
 );
 
 // Kode OTP masuk dan ganti nomor. Kode disimpan sebagai HMAC, tidak pernah teks asli.

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { connection } from "next/server";
 import { asc, eq } from "drizzle-orm";
 import { OrdersKanban } from "@/components/admin/orders-kanban";
@@ -9,6 +10,7 @@ import { Denied, fieldClass, PageHead, Pager, Skeleton } from "@/components/admi
 import type { CardOrder } from "@/components/admin/order-card";
 import { db, schema } from "@/db/client";
 import { requireStaff } from "@/lib/admin/current";
+import { KANBAN_TAB_COOKIE, parseKanbanTab } from "@/lib/admin/kanban";
 import { kanbanBoard, listAdminOrders, type AdminOrderRow } from "@/lib/admin/orders";
 import { can, canAccessLocation, type StaffPrincipal } from "@/lib/admin/permissions";
 import { now } from "@/lib/clock";
@@ -57,12 +59,13 @@ async function Content({ searchParams }: Props) {
 
   if (view === "kanban") {
     const board = await kanbanBoard(db, me, now());
+    const remembered = parseKanbanTab((await cookies()).get(KANBAN_TAB_COOKIE)?.value, me.id);
     return (
       <>
         <PageHead title="Pesanan" description="Seret kartu ke kolom lain untuk mengubah status. Hanya perpindahan yang sah yang diterima.">
           {tabs}
         </PageHead>
-        <OrdersKanban columns={board.map((c) => ({ status: c.status, total: c.total, orders: c.orders.map((o) => toCard(me, o)) }))} />
+        <OrdersKanban staffId={me.id} rememberedTab={remembered} columns={board.map((c) => ({ status: c.status, total: c.total, orders: c.orders.map((o) => toCard(me, o)) }))} />
       </>
     );
   }

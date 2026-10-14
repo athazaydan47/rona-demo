@@ -41,7 +41,7 @@ export async function adminSearch(db: AnyDb, staff: StaffPrincipal, raw: string)
       .where(or(ilike(schema.customers.name, like), ilike(schema.customers.phone, `%${q.replace(/\D/g, "") || q}%`)))
       .orderBy(asc(schema.customers.name))
       .limit(5);
-    for (const c of customers) hits.push({ kind: "pelanggan", title: c.name || "Tanpa nama", subtitle: `${c.phone.slice(0, 4)}••••${c.phone.slice(-3)}`, href: `/admin/pesanan?q=${encodeURIComponent(c.phone)}` });
+    for (const c of customers) hits.push({ kind: "pelanggan", title: c.name || "Tanpa nama", subtitle: `${c.phone.slice(0, 4)}••••${c.phone.slice(-3)}`, href: `/admin/pelanggan/${c.id}` });
   }
   return hits;
 }

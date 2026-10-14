@@ -6,9 +6,11 @@ import { canAccessOrder, getOrderDetail } from "@/lib/orders/queries";
 import { simulateProcessAndShip } from "@/lib/orders/service";
 import { rejectCrossOrigin } from "@/lib/security/origin";
 import { siteUrl } from "@/lib/site";
+import { scheduleEmailDispatch } from "@/lib/email/schedule";
 
 // Simulasi toko: pesanan kirim yang sudah Dibayar diproses lalu dikirim dengan resi dummy. Hanya saat DEMO_MODE=true.
 export async function POST(request: NextRequest) {
+  scheduleEmailDispatch(); // kirim email dari outbox setelah respons
   const blocked = demoOnly();
   if (blocked) return blocked;
   const crossOrigin = rejectCrossOrigin(request);

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, BellRing, Clock, PackageOpen, RefreshCw, RotateCcw, Store } from "lucide-react";
+import { AlertTriangle, BellRing, Clock, MessageSquareWarning, PackageOpen, RefreshCw, RotateCcw, Store } from "lucide-react";
 import { ProductArt } from "@/components/product-art";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 const REFRESH_MS = 30_000;
 const STATUS_ORDER: OrderStatus[] = ["menunggu_pembayaran", "dibayar", "diproses", "siap_diambil", "dikirim", "selesai", "dibatalkan", "diretur"];
-const ACTION_ICON = { belum_diproses: Clock, bayar_di_toko: Store, siap_lama: PackageOpen, kabari_aku: BellRing };
+const ACTION_ICON = { belum_diproses: Clock, bayar_di_toko: Store, siap_lama: PackageOpen, kabari_aku: BellRing, ulasan_rendah: MessageSquareWarning };
 
 function Stat({ label, value, hint, testId }: { label: string; value: string; hint?: string; testId?: string }) {
   return (

@@ -38,6 +38,10 @@ Isi di Vercel (Settings, Environment Variables) untuk Production dan Preview. Un
 | `DEMO_STAFF_PASSWORD` | Disarankan | kata sandi demo pilihanmu, minimal 10 karakter | Kata sandi empat akun staf demo (`owner@`, `admin@`, `dinoyo@`, `gudang@rona.demo`) saat seed dan reset harian. Bawaan `demo1234`. Di mode demo pengunjung masuk lewat tombol masuk cepat, jadi kata sandi ini hanya untuk masuk manual. |
 | `DEMO_DAILY_RESET` | Opsional | `true` | Reset data demo tiap malam pukul 03.00 WIB lewat cron harian. Hanya berjalan bila `DEMO_MODE=true` juga. Kosongkan untuk mematikan. |
 | `ALLOW_CLOCK_OVERRIDE` | Jangan diisi di produksi | kosong | Hanya uji Playwright lokal: membuka `/api/demo/jam` untuk memajukan jam server. |
+| `EMAIL_PROVIDER` | Opsional | `preview` (bawaan) atau `resend` | Adapter email (Fase 6C). `preview` tidak mengirim apa pun; email tetap Menunggu dan terlihat di Kotak Notifikasi serta Notifikasi keluar. |
+| `RESEND_API_KEY` | Hanya bila `resend` | `re_***` dari dashboard Resend | Dipanggil lewat REST API (fetch, tanpa SDK) dengan header Idempotency-Key per notifikasi. |
+| `EMAIL_FROM` | Hanya bila `resend` | `Rona Beauty <halo@domain-terverifikasi.id>` | Alamat pengirim; domainnya wajib terverifikasi di Resend. |
+| `EMAIL_ALLOWLIST` | Disarankan saat `DEMO_MODE=true` | `kamu@contoh.com,tim@contoh.com` | Mode demo: email sungguhan hanya ke alamat ini, alamat lain ditandai Dilewati supaya situs demo tidak dipakai untuk spam. Kosong berarti semua dilewati. |
 | `SKIP_BUILD_MIGRATION` | Jangan diisi, kecuali darurat | kosong | Isi `true` untuk melewati migrasi otomatis di build produksi (Fase 6B). |
 | `CONFIRM_RESET` | Hanya saat reset | `rona-demo` | Konfirmasi wajib untuk `db:reset` atau `db:seed` ke host selain localhost. Jangan disimpan di Vercel. |
 
@@ -176,6 +180,50 @@ Ini fase pertama dengan migrasi otomatis, tapi skrip migrasinya ikut di deploy i
    - Simpan satu produk di admin, lalu buka halaman produknya dan satu halaman produk lain: keduanya harus tetap tampil.
 
 Bila build otomatis tidak bisa dipakai, jalankan cara manual di bagian 3 (`db:deploy` lalu push).
+
+## Pembaruan ke Fase 6C (ulasan, pelanggan, laporan, email)
+
+Migrasi baru: `drizzle/0005_ulasan_email.sql`. Isinya hanya menambah:
+
+- nilai enum `dilewati` pada `notification_status` (`ADD VALUE IF NOT EXISTS`, aman diulang),
+- kolom `attempts` (bawaan 0), `last_error`, `claimed_at`, `provider_id` di `notifications`,
+- kolom `hidden_reason` dan `hidden_at` di `reviews`,
+- indeks `notifications_status_idx`.
+
+Tidak ada kolom yang dihapus atau diubah, dan nilai enum baru tidak dipakai di migrasi yang sama, jadi aman dijalankan otomatis saat build selagi versi 6B masih tayang. Versi 6B tidak membaca kolom baru dan tidak pernah menulis status `dilewati`.
+
+Urutan persis:
+
+1. **Env di Vercel** (Production): tidak ada yang wajib. Untuk mengirim email sungguhan, isi `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM` (domain terverifikasi di Resend), dan `EMAIL_ALLOWLIST` berisi alamatmu sendiri selama `DEMO_MODE=true`. Tanpa itu email tetap mode pratinjau seperti sebelumnya.
+2. **Push** ke `main`. Log build harus menampilkan `Migrasi selesai: 0005_ulasan_email`.
+3. **Reset data demo** dari Dashboard Owner (pemberitahuan versi seed 7 muncul) supaya ulasan bintang 1 dan 2 contoh tersedia untuk moderasi.
+4. Verifikasi:
+   - `/admin/laporan`, `/admin/ulasan`, `/admin/pelanggan`, `/admin/notifikasi` terbuka untuk Owner, dan tidak ada lagi menu "Segera".
+   - Unduh Excel dari Laporan: file `laporan-rona-YYYYMMDD-YYYYMMDD.xlsx` dengan 10 sheet.
+   - Bila Resend aktif: balas ulasan milik akun yang emailnya ada di `EMAIL_ALLOWLIST`, lalu cek status Terkirim di Notifikasi keluar. Panggil cron sekali dan lihat bagian `email` pada jawabannya.
+
+### Email transaksional
+
+Notifikasi kanal email dikirim setelah respons selesai (`after()` dari Next) dari aksi checkout, perubahan status pesanan, stok masuk dan transfer (kabar stok kembali), konfirmasi diterima, simulasi demo, webhook pembayaran, dan balasan ulasan. Cron harian mengirim yang masih menunggu dan mencoba ulang yang gagal, maksimal 3 kali; error permanen dari penyedia (misal alamat tidak valid) langsung berhenti. Setiap baris diklaim dulu sebelum dikirim dan kunci idempoten `rona-notif-<id>` dikirim ke Resend, jadi satu notifikasi tidak terkirim dua kali walau dua proses berjalan bersamaan. Owner bisa menekan "Kirim ulang" di Notifikasi keluar untuk email yang gagal.
+
+### WhatsApp Business Platform (belum diimplementasikan)
+
+Kanal WhatsApp tetap pratinjau di Kotak Notifikasi. Antarmuka `WhatsAppSender` ada di `src/lib/email/whatsapp.ts`. Untuk toko sungguhan dibutuhkan:
+
+1. **Verifikasi bisnis Meta** (Business Manager): dokumen legal usaha, domain situs, dan nama tampilan yang disetujui.
+2. **Nomor khusus** untuk WhatsApp Business Platform (Cloud API). Nomor yang sudah dipakai di aplikasi WhatsApp biasa harus dilepas dulu.
+3. **Template pesan yang disetujui Meta** (kategori Utility, bahasa Indonesia), satu per notifikasi yang ada:
+   - `pesanan_dibuat`: nomor pesanan, total, batas bayar, tautan bayar.
+   - `pesanan_dibayar`: nomor pesanan, total.
+   - `pesanan_siap_diambil`: nomor pesanan, nama cabang, alamat cabang.
+   - `pesanan_dikirim`: nomor pesanan, kurir, nomor resi, tautan lacak.
+   - `pesanan_selesai`: nomor pesanan, ajakan menulis ulasan.
+   - `pesanan_dibatalkan`: nomor pesanan, alasan.
+   - `stok_kembali`: nama produk dan shade, tautan produk.
+   - `ulasan_dibalas`: nama produk, potongan balasan, tautan produk.
+   - `kode_masuk` (kategori Authentication): kode OTP.
+4. **Kebijakan percakapan**: sistem tidak memulai chat duluan ke nomor yang belum pernah berinteraksi atau belum memberi izin (opt-in saat checkout). Ide masuk lewat WA yang dimulai pembeli: pembeli mengirim kode pendek ke nomor toko, toko membalas tautan masuk sekali pakai dalam jendela 24 jam, jadi tidak perlu template OTP berbayar.
+5. Env yang nanti dibutuhkan: `WA_PHONE_NUMBER_ID`, `WA_ACCESS_TOKEN`, `WA_APP_SECRET` (verifikasi webhook status kirim).
 
 ## 5. Bagian build yang butuh database
 

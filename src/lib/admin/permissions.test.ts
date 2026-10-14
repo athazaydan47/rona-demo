@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALL_PERMISSIONS, can, canAll, effectivePermissions, ROLE_TEMPLATES, type PermissionKey, type RoleSlug, type StaffPrincipal } from "./permissions";
+import { ALL_PERMISSIONS, can, canAll, effectivePermissions, ROLE_SLUGS, ROLE_TEMPLATES, type PermissionKey, type RoleSlug, type StaffPrincipal } from "./permissions";
 
 const staff = (roleSlug: RoleSlug, over: Partial<StaffPrincipal> = {}): StaffPrincipal => ({ id: 1, name: "Uji", email: "uji@rona.test", roleSlug, isActive: true, grants: [], revokes: [], locationIds: [], ...over });
 const DINOYO = 2;
@@ -8,7 +8,7 @@ const SAWOJAJAR = 3;
 // Matriks harapan per peran (sesuai tabel peran di BRIEF).
 const EXPECTED: Record<RoleSlug, PermissionKey[]> = {
   owner: ALL_PERMISSIONS,
-  admin_online: ["pesanan.lihat", "pesanan.ubah_status", "pesanan.batalkan", "pesanan.cetak", "stok.lihat", "produk.kelola", "kategori.kelola", "promo.kelola", "ulasan.kelola", "pelanggan.lihat", "laporan.lihat"],
+  admin_online: ["pesanan.lihat", "pesanan.ubah_status", "pesanan.batalkan", "pesanan.cetak", "stok.lihat", "produk.kelola", "kategori.kelola", "promo.kelola", "ulasan.kelola", "pelanggan.lihat", "pelanggan.kontak", "laporan.lihat"],
   staf_cabang: ["pesanan.lihat", "pesanan.ubah_status", "pesanan.cetak", "stok.lihat", "stok.opname"],
   gudang: ["stok.lihat", "stok.masuk", "stok.transfer", "stok.opname", "pesanan.lihat", "pesanan.cetak"],
 };
@@ -21,7 +21,7 @@ describe("can(): matriks izin empat peran", () => {
     });
   }
   it("hanya Owner yang bisa kelola staf, lihat keuangan, log, dan reset demo", () => {
-    for (const key of ["staf.kelola", "laporan.keuangan", "log.lihat", "demo.reset"] as PermissionKey[]) {
+    for (const key of ["staf.kelola", "laporan.keuangan", "log.lihat", "demo.reset", "pelanggan.poin"] as PermissionKey[]) {
       expect(can(staff("owner"), key)).toBe(true);
       expect(can(staff("admin_online"), key)).toBe(false);
       expect(can(staff("staf_cabang"), key)).toBe(false);
@@ -83,5 +83,30 @@ describe("izin halaman Fase 6B", () => {
   });
   it("izin tambahan per akun membuka halaman pengaturan untuk Admin Online", () => {
     expect(can(staff("admin_online", { grants: ["pengaturan.kelola"] }), "pengaturan.kelola")).toBe(true);
+  });
+});
+
+describe("izin halaman dan aksi Fase 6C", () => {
+  const PAGES = { "/admin/ulasan": "ulasan.kelola", "/admin/pelanggan": "pelanggan.lihat", "/admin/laporan": "laporan.lihat", "/admin/notifikasi": "pengaturan.kelola" } as const;
+  const ALLOWED: Record<RoleSlug, string[]> = {
+    owner: Object.keys(PAGES),
+    admin_online: ["/admin/ulasan", "/admin/pelanggan", "/admin/laporan"],
+    staf_cabang: [],
+    gudang: [],
+  };
+  for (const role of Object.keys(ALLOWED) as RoleSlug[]) {
+    it(`${ROLE_TEMPLATES[role].name}: ${ALLOWED[role].join(", ") || "tidak ada"}`, () => {
+      for (const [page, key] of Object.entries(PAGES)) expect(can(staff(role), key), `${role} ${page}`).toBe(ALLOWED[role].includes(page));
+    });
+  }
+  it("poin manual hanya Owner; kontak pelanggan Owner dan Admin Online; angka rupiah laporan hanya Owner", () => {
+    expect(ROLE_SLUGS.filter((r) => can(staff(r), "pelanggan.poin"))).toEqual(["owner"]);
+    expect(ROLE_SLUGS.filter((r) => can(staff(r), "pelanggan.kontak"))).toEqual(["owner", "admin_online"]);
+    expect(ROLE_SLUGS.filter((r) => can(staff(r), "laporan.keuangan"))).toEqual(["owner"]);
+  });
+  it("menu Segera hadir sudah tidak ada", async () => {
+    const { ADMIN_NAV } = await import("./nav");
+    expect(ADMIN_NAV.filter((n) => n.soon)).toEqual([]);
+    expect(ADMIN_NAV.find((n) => n.href === "/admin/notifikasi")?.permission).toBe("pengaturan.kelola");
   });
 });

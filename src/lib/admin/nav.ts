@@ -1,7 +1,7 @@
 // Menu panel admin untuk semua modul (6A dan 6B). Menu tampil sesuai izin; pengamannya tetap can() di server.
 import type { PermissionKey, RoleSlug } from "./permissions";
 
-export type NavKey = "dashboard" | "pesanan" | "stok" | "produk" | "kategori" | "promo" | "ulasan" | "pelanggan" | "laporan" | "pengaturan" | "staf" | "log";
+export type NavKey = "dashboard" | "pesanan" | "stok" | "produk" | "kategori" | "promo" | "ulasan" | "pelanggan" | "laporan" | "pengaturan" | "notifikasi" | "staf" | "log";
 
 export const ADMIN_NAV: { key: NavKey; href: string; label: string; permission: PermissionKey | null; soon?: boolean }[] = [
   { key: "dashboard", href: "/admin", label: "Dashboard", permission: null },
@@ -10,10 +10,11 @@ export const ADMIN_NAV: { key: NavKey; href: string; label: string; permission: 
   { key: "produk", href: "/admin/produk", label: "Produk", permission: "produk.kelola" },
   { key: "kategori", href: "/admin/kategori", label: "Kategori dan Merek", permission: "kategori.kelola" },
   { key: "promo", href: "/admin/promo", label: "Promo", permission: "promo.kelola" },
-  { key: "ulasan", href: "/admin/ulasan", label: "Ulasan", permission: "ulasan.kelola", soon: true },
-  { key: "pelanggan", href: "/admin/pelanggan", label: "Pelanggan", permission: "pelanggan.lihat", soon: true },
-  { key: "laporan", href: "/admin/laporan", label: "Laporan", permission: "laporan.lihat", soon: true },
+  { key: "ulasan", href: "/admin/ulasan", label: "Ulasan", permission: "ulasan.kelola" },
+  { key: "pelanggan", href: "/admin/pelanggan", label: "Pelanggan", permission: "pelanggan.lihat" },
+  { key: "laporan", href: "/admin/laporan", label: "Laporan", permission: "laporan.lihat" },
   { key: "pengaturan", href: "/admin/pengaturan", label: "Pengaturan", permission: "pengaturan.kelola" },
+  { key: "notifikasi", href: "/admin/notifikasi", label: "Notifikasi keluar", permission: "pengaturan.kelola" },
   { key: "staf", href: "/admin/staf", label: "Staf dan izin", permission: "staf.kelola" },
   { key: "log", href: "/admin/log", label: "Log aktivitas", permission: "log.lihat" },
 ];

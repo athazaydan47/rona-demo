@@ -1,60 +1,28 @@
 // Data Dashboard admin. Omzet = total pesanan yang sudah mencapai Dibayar, dikurangi yang kemudian Dibatalkan atau
 // Diretur, dikelompokkan per tanggal bayar dalam WIB. Staf yang mengampu lokasi tertentu hanya melihat lokasinya.
-import { and, count, desc, eq, gte, inArray, isNotNull, lt, lte, notInArray, sql, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, lt, lte, sql, type SQL } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import type { AnyDb } from "@/lib/db-types";
-import { toWibParts, wibDate } from "@/lib/format";
 import { ONLINE_WAREHOUSE_SLUG } from "@/lib/inventory";
 import type { OrderStatus } from "@/lib/orders/status";
+import { dailyRevenue, topProducts, wibDayStart } from "@/lib/reports";
+import { loadReportData } from "@/lib/reports/load";
+import { lowRatingUnreplied } from "./reviews";
 import { lowStockThreshold } from "./stock";
 import { allLocations, can, type StaffPrincipal } from "./permissions";
 
 const DAY = 24 * 60 * 60_000;
-export const REVENUE_EXCLUDED: OrderStatus[] = ["dibatalkan", "diretur"];
+// Agregasi omzet dan produk terlaris ada di src/lib/reports (satu sumber angka dengan halaman Laporan dan Excel).
+export { REVENUE_EXCLUDED, dailyRevenue, wibDayKey, wibDayStart } from "@/lib/reports";
 
-// Kunci hari WIB "2026-10-14" untuk sebuah waktu UTC.
-export function wibDayKey(d: Date) {
-  const p = toWibParts(d);
-  return `${p.year}-${String(p.month).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
-}
-
-// Awal hari WIB (dalam UTC) untuk `now` dikurangi `daysBack` hari.
-export function wibDayStart(now: Date, daysBack = 0) {
-  const p = toWibParts(new Date(now.getTime() - daysBack * DAY));
-  return wibDate(p.year, p.month, p.day);
-}
-
-export type RevenueOrder = { total: number; paidAt: Date | null; status: string };
-
-// Seri omzet harian N hari terakhir (termasuk hari ini, WIB), murni supaya bisa diuji.
-export function dailyRevenue(orders: RevenueOrder[], now: Date, days = 30) {
-  const keys = Array.from({ length: days }, (_, i) => wibDayKey(wibDayStart(now, days - 1 - i)));
-  const sums = new Map(keys.map((k) => [k, { revenue: 0, orders: 0 }]));
-  for (const o of orders) {
-    if (!o.paidAt || REVENUE_EXCLUDED.includes(o.status as OrderStatus)) continue;
-    const bucket = sums.get(wibDayKey(o.paidAt));
-    if (!bucket) continue;
-    bucket.revenue += o.total;
-    bucket.orders += 1;
-  }
-  const series = keys.map((k) => ({ day: k, ...sums.get(k)! }));
-  const today = series[series.length - 1];
-  const total = series.reduce((s, d) => s + d.revenue, 0);
-  const paidOrders = series.reduce((s, d) => s + d.orders, 0);
-  return { series, today: today.revenue, todayOrders: today.orders, total, paidOrders, averageOrder: paidOrders ? Math.round(total / paidOrders) : 0 };
-}
-
-export type ActionItem = { kind: "belum_diproses" | "bayar_di_toko" | "siap_lama" | "kabari_aku"; title: string; detail: string; href: string; at: Date | null };
+export type ActionItem = { kind: "belum_diproses" | "bayar_di_toko" | "siap_lama" | "kabari_aku" | "ulasan_rendah"; title: string; detail: string; href: string; at: Date | null };
 
 export async function dashboardData(db: AnyDb, staff: StaffPrincipal, now: Date) {
   const scope: SQL | undefined = allLocations(staff) ? undefined : inArray(schema.orders.locationId, staff.locationIds.length ? staff.locationIds : [-1]);
   const finance = can(staff, "laporan.keuangan");
-  const since30 = wibDayStart(now, 29);
-  const [paid, statusCounts, recent] = await Promise.all([
-    db
-      .select({ total: schema.orders.total, paidAt: schema.orders.paidAt, status: schema.orders.status })
-      .from(schema.orders)
-      .where(and(scope, isNotNull(schema.orders.paidAt), gte(schema.orders.paidAt, since30))),
+  const range30 = { from: wibDayStart(now, 29), to: wibDayStart(now, -1) };
+  const [report, statusCounts, recent] = await Promise.all([
+    loadReportData(db, range30, { locationIds: allLocations(staff) ? null : staff.locationIds }),
     db.select({ status: schema.orders.status, n: count() }).from(schema.orders).where(scope).groupBy(schema.orders.status),
     db
       .select({ id: schema.orders.id, number: schema.orders.number, status: schema.orders.status, method: schema.orders.method, total: schema.orders.total, name: schema.orders.guestName, createdAt: schema.orders.createdAt, locationName: schema.locations.name })
@@ -64,20 +32,12 @@ export async function dashboardData(db: AnyDb, staff: StaffPrincipal, now: Date)
       .orderBy(desc(schema.orders.createdAt))
       .limit(6),
   ]);
-  const revenue = dailyRevenue(paid, now, 30);
+  const revenue = dailyRevenue(report.orders, now, 30);
 
-  // Produk terlaris 30 hari (pesanan yang sudah dibayar dan tidak batal atau retur).
-  const best = await db
-    .select({ productId: schema.products.id, name: schema.products.name, slug: schema.products.slug, packaging: schema.products.packaging, brandColor: schema.brands.color, brandName: schema.brands.name, hex: sql<string>`min(${schema.variants.hex})`, qty: sql<number>`sum(${schema.orderItems.quantity})::int` })
-    .from(schema.orderItems)
-    .innerJoin(schema.orders, eq(schema.orderItems.orderId, schema.orders.id))
-    .innerJoin(schema.variants, eq(schema.orderItems.variantId, schema.variants.id))
-    .innerJoin(schema.products, eq(schema.variants.productId, schema.products.id))
-    .innerJoin(schema.brands, eq(schema.products.brandId, schema.brands.id))
-    .where(and(scope, isNotNull(schema.orders.paidAt), gte(schema.orders.paidAt, since30), notInArray(schema.orders.status, REVENUE_EXCLUDED)))
-    .groupBy(schema.products.id, schema.products.name, schema.products.slug, schema.products.packaging, schema.brands.color, schema.brands.name)
-    .orderBy(desc(sql`sum(${schema.orderItems.quantity})`))
-    .limit(5);
+  // Produk terlaris 30 hari (pesanan yang sudah dibayar dan tidak batal atau retur), urut unit terjual.
+  const best = topProducts(report, "quantity")
+    .slice(0, 5)
+    .map((p) => ({ productId: p.productId, name: p.label, slug: p.slug, packaging: p.packaging, brandColor: p.brandColor, brandName: p.brandName, hex: p.hex, qty: p.quantity }));
 
   // Stok menipis dan habis per cabang (lokasi yang diampu).
   const threshold = await lowStockThreshold(db);
@@ -140,13 +100,17 @@ export async function dashboardData(db: AnyDb, staff: StaffPrincipal, now: Date)
     }
   }
 
+  if (can(staff, "ulasan.kelola")) {
+    for (const r of await lowRatingUnreplied(db, 5)) actions.push({ kind: "ulasan_rendah", title: `Ulasan ${r.rating} bintang belum dibalas`, detail: `${r.authorName} untuk ${r.productName}`, href: `/admin/ulasan?belum=1&bintang=${r.rating}`, at: r.createdAt });
+  }
+
   const counts = Object.fromEntries(statusCounts.map((s) => [s.status, Number(s.n)])) as Partial<Record<OrderStatus, number>>;
   return {
     finance,
     revenue: finance ? revenue : null,
     paidOrders30: revenue.paidOrders,
     counts,
-    best: best.map((b) => ({ ...b, qty: Number(b.qty) })),
+    best,
     lowStock,
     threshold,
     actions,

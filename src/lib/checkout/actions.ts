@@ -22,6 +22,7 @@ import { locationFlags } from "@/lib/product/availability";
 import { regionName, zoneForRegency } from "@/lib/regions";
 import { couriers, etaLabel, instantAvailability, type CourierCode, type Zone } from "@/lib/shipping";
 import { siteUrl } from "@/lib/site";
+import { scheduleEmailDispatch } from "@/lib/email/schedule";
 
 export type CourierOption = { code: CourierCode; name: string; service: string; cost: number; payable: number; etaLabel: string; shipsToday: boolean; disabledNote: string | null };
 export type PickupOption = { slug: string; name: string; district: string; address: string; hoursLabel: string; enough: boolean; readyLabel: string };
@@ -156,6 +157,7 @@ export type PlaceOrderResponse =
   | { ok: false; message: string; field?: string; code?: string; pricing?: PricedCart };
 
 export async function placeOrderAction(raw: z.input<typeof placeSchema>): Promise<PlaceOrderResponse> {
+  scheduleEmailDispatch(); // kirim email dari outbox setelah respons
   const parsed = placeSchema.safeParse(raw);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];

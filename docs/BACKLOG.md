@@ -62,7 +62,13 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 - Ambang stok menipis di Pengaturan dipakai Dashboard dan matriks stok admin. Label "Stok terbatas" di toko masih memakai angka tetap 5. (Fase 6B)
 - Email pengirim di kotak Notifikasi pembeli masih teks tetap `halo@rona.demo`, belum membaca email di Profil toko. (Fase 6B)
 - Formulir produk dan pengaturan memuat ulang data dari server setelah simpan; perubahan yang dibuat staf lain di saat bersamaan menang terakhir (belum ada penguncian optimistis per baris). (Fase 6B)
-- Pencarian pelanggan di Cmd+K mengarah ke tabel pesanan bernomor WA itu karena halaman Pelanggan belum ada (dijadwalkan bersama Ulasan dan Laporan setelah 6B). (Fase 6A)
+
+- Laporan memuat seluruh pesanan dan item periode ke memori lalu diagregasi di aplikasi (satu sumber angka untuk layar dan Excel). Cukup untuk ribuan pesanan per tahun; untuk toko besar, pindahkan agregasi ke SQL dengan uji `reports.test.ts` sebagai spesifikasi. (Fase 6C)
+- Segmen pelanggan dihitung saat daftar dibuka (agregasi pesanan per pelanggan), belum disimpan. Untuk ribuan pelanggan, simpan segmen di kolom yang diperbarui berkala. (Fase 6C)
+- Nomor WA dan email di detail pesanan admin tetap utuh untuk semua staf yang boleh melihat pesanan (dibutuhkan untuk mengurus kiriman dan pengambilan); penyamaran hanya di halaman Pelanggan. (Fase 6C)
+- Ulasan seed tidak terhubung ke akun pembeli, jadi membalasnya tidak membuat notifikasi; hanya ulasan dari pembeli sungguhan yang memberi tahu. (Fase 6C)
+- Email: belum ada webhook status dari Resend (terpantul, ditandai spam). Status Terkirim berarti diterima Resend, belum tentu sampai kotak masuk. (Fase 6C)
+- Notifikasi yang dibuat saat halaman dibuka (kedaluwarsa bayar dan Selesai otomatis) baru terkirim pada aksi berikutnya atau cron harian. (Fase 6C)
 
 ## Deploy
 
@@ -79,6 +85,9 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 - `getBrands` di-cache dengan tag brands dan products karena memuat jumlah produk dan produk terlaris per merek; perubahan status produk di admin harus merevalidasi tag products. (Fase 2.1)
 
 ## Selesai
+
+- Kanban di HP membuka tab status aktif pertama yang berisi (urutan Dibayar, Diproses, Menunggu Pembayaran, Siap Diambil, Dikirim) dan mengingat pilihan tab per staf selama sesi; tab kosong berisi kalimat yang membantu. (Fase 6C)
+- Pencarian pelanggan di Cmd+K kini membuka detail pelanggan. (Fase 6C)
 
 - Konfirmasi reset demo, nonaktifkan staf, dan atur ulang kata sandi staf memakai dialog (`ConfirmDialog`), bukan lagi `window.prompt`. (Fase 6B)
 - Log aktivitas menyembunyikan login secara bawaan (centang "Tampilkan login"); login berulang staf yang sama dalam 10 menit digabung. (Fase 6B)

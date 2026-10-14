@@ -16,6 +16,7 @@ import { markAllRead, markRead } from "./notifications";
 import { saveSkinProfile, sanitizeSkinProfile, updateProfile } from "./profile";
 import { cancelRestock, requestRestockFor } from "./restock";
 import { setWishlisted, wishlistIds } from "./wishlist";
+import { scheduleEmailDispatch } from "@/lib/email/schedule";
 
 const LOGIN_FIRST = { ok: false as const, message: "Sesi berakhir. Masuk lagi, ya.", needLogin: true };
 
@@ -113,6 +114,7 @@ export async function cancelRestockAction(id: number): Promise<ActionResult> {
 }
 
 export async function confirmReceivedAction(number: string): Promise<ActionResult> {
+  scheduleEmailDispatch(); // kirim email dari outbox setelah respons
   const me = await currentCustomer();
   if (!me) return LOGIN_FIRST;
   if (typeof number !== "string" || number.length > 30) return { ok: false, message: "Pesanan tidak ditemukan." };

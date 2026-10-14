@@ -146,6 +146,11 @@ async function Content({ params }: Props) {
             <p className="text-sm text-abu-hangat">{o.phone}</p>
             {o.email ? <p className="text-sm text-abu-hangat">{o.email}</p> : null}
             <p className="mt-1 text-xs text-abu-hangat">{o.customerId ? "Punya akun Rona" : "Belanja sebagai tamu"}</p>
+            {o.customerId && can(me, "pelanggan.lihat") ? (
+              <Link href={`/admin/pelanggan/${o.customerId}`} className="mt-1 inline-block text-sm font-semibold text-rona hover:underline" data-testid="tautan-pelanggan">
+                Lihat detail pelanggan
+              </Link>
+            ) : null}
           </Panel>
           <Panel title={o.method === "kirim" ? "Alamat kirim" : "Cabang pengambilan"}>
             {o.method === "kirim" && o.address ? (

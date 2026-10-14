@@ -62,10 +62,12 @@ export const paymentStatusEnum = pgEnum("payment_status", [
 export const voucherTypeEnum = pgEnum("voucher_type", ["nominal", "persen", "ongkir"]);
 export const reviewStatusEnum = pgEnum("review_status", ["tampil", "sembunyi", "menunggu"]);
 export const notificationChannelEnum = pgEnum("notification_channel", ["wa", "email"]);
+// "antre" tampil sebagai Menunggu. "dilewati": email demo ke alamat di luar EMAIL_ALLOWLIST (Fase 6C).
 export const notificationStatusEnum = pgEnum("notification_status", [
   "antre",
   "terkirim",
   "gagal",
+  "dilewati",
 ]);
 export const restockStatusEnum = pgEnum("restock_status", ["menunggu", "terkirim"]);
 export const skinTypeValues = ["normal", "kering", "berminyak", "kombinasi", "sensitif"] as const;

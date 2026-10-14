@@ -51,3 +51,33 @@ export function availableActions(o: MoveContext): { to: OrderStatus; plan: Extra
   return out;
 }
 
+
+// Tab HP: urutan prioritas saat membuka papan.
+export const KANBAN_TAB_PRIORITY: OrderStatus[] = ["dibayar", "diproses", "menunggu_pembayaran", "siap_diambil", "dikirim"];
+export const KANBAN_TAB_COOKIE = "rona_kanban_tab";
+
+// Tab awal (murni): pilihan terakhir staf ini selama sesi bila masih ada, selain itu status aktif pertama yang berisi.
+export function initialKanbanTab(columns: { status: OrderStatus; total: number }[], remembered: OrderStatus | null): OrderStatus {
+  if (remembered && columns.some((c) => c.status === remembered)) return remembered;
+  for (const s of KANBAN_TAB_PRIORITY) if (columns.find((c) => c.status === s && c.total > 0)) return s;
+  return columns.find((c) => c.status === "dibayar")?.status ?? columns[0].status;
+}
+
+// Nilai cookie sesi "id-staf:status"; hanya berlaku untuk staf yang sama.
+export function parseKanbanTab(value: string | undefined, staffId: number): OrderStatus | null {
+  const m = /^(\d+):([a-z_]+)$/.exec(value ?? "");
+  if (!m || Number(m[1]) !== staffId) return null;
+  return KANBAN_COLUMNS.includes(m[2] as OrderStatus) ? (m[2] as OrderStatus) : null;
+}
+
+const EMPTY_HINT: Partial<Record<OrderStatus, string>> = {
+  menunggu_pembayaran: "Pesanan yang belum dibayar akan muncul di sini otomatis.",
+  dibayar: "Pesanan baru akan muncul di sini otomatis.",
+  diproses: "Pindahkan pesanan Dibayar ke sini saat mulai disiapkan.",
+  siap_diambil: "Pesanan Ambil di Toko yang sudah disiapkan akan muncul di sini.",
+  dikirim: "Pesanan yang sudah diberi resi akan muncul di sini.",
+};
+
+export function emptyColumnText(status: OrderStatus) {
+  return `Belum ada pesanan ${statusLabels[status]}. ${EMPTY_HINT[status] ?? "Pesanan akan muncul di sini otomatis."}`;
+}

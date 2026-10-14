@@ -236,6 +236,23 @@ export async function seedAll(db: AnyDb, now: Date): Promise<SeedSummary> {
         ratingAgg.set(productId, agg);
       }
     }
+    // Beberapa ulasan bintang 1 dan 2 (tetap, tanpa RNG) supaya moderasi dan "Perlu tindakan" punya contoh.
+    const LOW_REVIEWS = [
+      { rating: 2, author: "Rara P.", text: "Warnanya agak beda dengan foto, di kulitku jadi lebih gelap. Teksturnya oke, tapi aku berharap ada panduan shade yang lebih jelas.", reply: null },
+      { rating: 1, author: "Dimas S.", text: "Paketnya datang dengan tutup sedikit retak. Isinya aman, tapi kecewa dengan pengemasannya untuk harga segini.", reply: null },
+      { rating: 2, author: "Utami K.", text: "Di kulit berminyakku cepat luntur sebelum siang. Mungkin lebih cocok untuk kulit kering.", reply: null },
+      { rating: 2, author: "Wulan H.", text: "Aromanya terlalu kuat buatku. Produknya sendiri melembapkan.", reply: "Terima kasih masukannya, Kak Wulan. Untuk kulit yang peka aroma, coba varian tanpa pewangi di merek yang sama, ya." },
+    ];
+    const popular = [...productIds].sort((a, b) => productMeta.get(b)!.popularity - productMeta.get(a)!.popularity || a - b);
+    LOW_REVIEWS.forEach((lr, i) => {
+      const productId = popular[1 + i * 2];
+      const variant = variantsByProduct.get(productId)![0];
+      reviewValues.push({ productId, variantId: variant.id, authorName: lr.author, rating: lr.rating, body: lr.text, skinType: "berminyak", isVerified: true, status: "tampil", storeReply: lr.reply, repliedAt: lr.reply ? daysAgo(1, 10) : null, createdAt: daysAgo(2 + i, 11) });
+      const agg = ratingAgg.get(productId) ?? { sum: 0, count: 0 };
+      agg.sum += lr.rating;
+      agg.count += 1;
+      ratingAgg.set(productId, agg);
+    });
     for (const part of chunk(reviewValues, 200)) await db.insert(schema.reviews).values(part);
     // Rating rata-rata dan jumlah ulasan per produk dalam satu kueri.
     const ratingRows = [...ratingAgg.entries()].map(([productId, agg]) => sql`(${productId}::int, ${Math.round((agg.sum / agg.count) * 10) / 10}::float8, ${agg.count}::int)`);

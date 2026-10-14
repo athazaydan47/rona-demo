@@ -24,6 +24,9 @@ export const reviews = pgTable(
     status: reviewStatusEnum().notNull().default("tampil"),
     storeReply: text(),
     repliedAt: timestamp({ withTimezone: true }),
+    // Moderasi (Fase 6C): alasan wajib saat disembunyikan.
+    hiddenReason: text(),
+    hiddenAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

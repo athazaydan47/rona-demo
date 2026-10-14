@@ -16,7 +16,7 @@ export const metadata: Metadata = { title: "Log aktivitas" };
 type SP = { staf?: string; aksi?: string; objek?: string; cari?: string; dari?: string; sampai?: string; hal?: string; login?: string };
 type Props = { searchParams: Promise<SP> };
 
-const OBJECTS: Record<string, string> = { pesanan: "Pesanan", stok: "Stok", staf: "Staf", produk: "Produk", kategori: "Kategori", merek: "Merek", promo: "Promo", pengaturan: "Pengaturan", demo: "Demo" };
+const OBJECTS: Record<string, string> = { pesanan: "Pesanan", stok: "Stok", staf: "Staf", produk: "Produk", kategori: "Kategori", merek: "Merek", promo: "Promo", pengaturan: "Pengaturan", ulasan: "Ulasan", pelanggan: "Pelanggan", notifikasi: "Notifikasi", laporan: "Laporan", demo: "Demo" };
 const parseDay = (v?: string) => {
   const m = v?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return m ? wibDate(Number(m[1]), Number(m[2]), Number(m[3])) : null;

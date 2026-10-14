@@ -7,9 +7,11 @@ import { revalidateProducts } from "@/lib/orders/revalidate";
 import { markPaidAndPickedUp } from "@/lib/orders/service";
 import { rejectCrossOrigin } from "@/lib/security/origin";
 import { siteUrl } from "@/lib/site";
+import { scheduleEmailDispatch } from "@/lib/email/schedule";
 
 // Simulasi staf cabang: tandai lunas dan sudah diambil (pesanan Bayar di Toko).
 export async function POST(request: NextRequest) {
+  scheduleEmailDispatch(); // kirim email dari outbox setelah respons
   const blocked = demoOnly();
   if (blocked) return blocked;
   const crossOrigin = rejectCrossOrigin(request);

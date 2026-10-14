@@ -13,6 +13,8 @@ export const PERMISSIONS = [
   { key: "promo.kelola", label: "Kelola promo dan voucher", group: "Katalog" },
   { key: "ulasan.kelola", label: "Moderasi ulasan", group: "Katalog" },
   { key: "pelanggan.lihat", label: "Lihat pelanggan", group: "Pelanggan dan laporan" },
+  { key: "pelanggan.kontak", label: "Lihat nomor WA dan email pelanggan", group: "Pelanggan dan laporan" },
+  { key: "pelanggan.poin", label: "Sesuaikan poin pelanggan", group: "Pelanggan dan laporan" },
   { key: "laporan.lihat", label: "Lihat laporan", group: "Pelanggan dan laporan" },
   { key: "laporan.keuangan", label: "Lihat angka keuangan", group: "Pelanggan dan laporan" },
   { key: "pengaturan.kelola", label: "Kelola pengaturan toko", group: "Sistem" },
@@ -33,7 +35,7 @@ export const ROLE_TEMPLATES: Record<RoleSlug, { name: string; description: strin
   admin_online: {
     name: "Admin Online",
     description: "Pesanan online, produk, promo, voucher, ulasan.",
-    permissions: ["pesanan.lihat", "pesanan.ubah_status", "pesanan.batalkan", "pesanan.cetak", "stok.lihat", "produk.kelola", "kategori.kelola", "promo.kelola", "ulasan.kelola", "pelanggan.lihat", "laporan.lihat"],
+    permissions: ["pesanan.lihat", "pesanan.ubah_status", "pesanan.batalkan", "pesanan.cetak", "stok.lihat", "produk.kelola", "kategori.kelola", "promo.kelola", "ulasan.kelola", "pelanggan.lihat", "pelanggan.kontak", "laporan.lihat"],
     needsLocation: false,
   },
   staf_cabang: {

@@ -288,6 +288,25 @@ Aturan emas: **semua angka uang dan stok dihitung ulang di server**, tidak perna
 - Versi seed (`demo.versiSeed`) disimpan saat reset. Bila versi di kode lebih baru, Dashboard Owner menawarkan reset.
 - Migrasi database berjalan otomatis hanya di build produksi Vercel, dengan advisory lock; bila gagal, build gagal dan versi lama tetap tayang.
 
+### Tambahan aturan (Fase 6C)
+
+- Satu sumber angka laporan: Dashboard, halaman Laporan, unduhan Excel, dan asisten AI (Fase 7) memakai fungsi di `src/lib/reports`. Omzet tetap mengikuti definisi Fase 6A, per tanggal bayar WIB.
+- Periode laporan: hari ini, 7 hari, 30 hari, bulan ini, bulan lalu, atau kustom (maksimal 366 hari), dengan batas hari WIB. Pembanding = periode dengan panjang sama tepat sebelumnya.
+- Tingkat pembatalan = pesanan Dibatalkan dibagi pesanan yang dibuat dalam periode. Tingkat retur = pesanan Diretur dibagi pesanan yang dibayar dalam periode.
+- Rincian per merek, kategori, dan produk memakai penjualan barang (harga satuan dikali jumlah, sebelum voucher, ongkir, dan poin). Rincian per cabang dan kanal memakai omzet (total pesanan).
+- Pembeli baru: pesanan dalam omzet pertamanya (sepanjang masa) jatuh di periode itu; selain itu pembeli kembali. Tamu dihitung per nomor WA.
+- Angka rupiah laporan hanya untuk izin `laporan.keuangan`; tanpa izin itu hanya jumlah. Staf yang mengampu lokasi tertentu hanya melihat lokasinya. Excel tidak memuat nama, nomor, atau email pembeli.
+- Segmen pelanggan, dihitung dari waktu sekarang dan tanggal pesanan dibuat (batas inklusif):
+  - **Tidak aktif**: tidak ada pesanan (status apa pun) dalam 90 hari terakhir. Menang atas Setia.
+  - **Setia**: minimal 3 pesanan Selesai dalam 180 hari terakhir.
+  - **Baru**: baru punya 1 pesanan Selesai, dan pesanan itu dalam 30 hari terakhir.
+  - **Lainnya**: yang tidak masuk ketiganya.
+- Total belanja bersih pelanggan = jumlah nilai belanja bersih (rumus poin Fase 5) dari pesanan yang dibayar dan tidak batal atau retur.
+- Penyesuaian poin manual: izin `pelanggan.poin` (bawaan hanya Owner), alasan wajib, ditulis ke buku poin dengan kunci `manual:<acak>`, saldo tidak boleh negatif, tercatat di log.
+- Kontak pelanggan (nomor WA, email, alamat lengkap) hanya utuh untuk izin `pelanggan.kontak` (bawaan Owner dan Admin Online); selain itu disamarkan sebagian. Tidak ada ekspor data pelanggan.
+- Moderasi ulasan: menyembunyikan wajib alasan (minimal 5 karakter), rating dan jumlah ulasan produk dihitung ulang dari ulasan yang tampil. Balasan toko 5 sampai 1.000 karakter, bisa diubah dan dihapus; hanya balasan pertama yang memberi tahu pembeli. Ulasan bintang 1 atau 2 yang tampil dan belum dibalas masuk "Perlu tindakan".
+- Email transaksional: status Menunggu, Terkirim, Gagal, atau Dilewati. Saat DEMO_MODE=true hanya alamat di `EMAIL_ALLOWLIST` yang dikirimi. Dicoba ulang maksimal 3 kali; setiap notifikasi punya kunci idempoten sehingga tidak terkirim dua kali. Tanpa promosi.
+
 ### Profil kulit (bentuk data, Fase 5)
 
 Disimpan di `customers.skin_profile` (JSON). Formulir di /akun/profil-kulit mengisi sebagian; kuis kulit Fase 7 boleh mengisi semuanya. Semua kolom opsional:

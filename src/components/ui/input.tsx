@@ -6,7 +6,7 @@ export function Input({ className, type = "text", ...props }: React.ComponentPro
       type={type}
       data-slot="input"
       className={cn(
-        "h-11 w-full min-w-0 rounded-pill border border-garis bg-putih px-4 text-base text-kopi shadow-[inset_0_1px_2px_rgb(42_31_29/0.03)] outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-abu-hangat/80 hover:border-kopi/25 focus-visible:border-rona focus-visible:shadow-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-bahaya",
+        "h-11 w-full min-w-0 rounded-pill border border-garis bg-putih px-4 text-base text-kopi shadow-[inset_0_1px_2px_rgb(42_31_29/0.03)] outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-abu-hangat/80 hover:border-kopi/25 focus-visible:border-aksen focus-visible:shadow-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-bahaya",
         className,
       )}
       {...props}

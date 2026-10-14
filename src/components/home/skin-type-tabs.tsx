@@ -48,7 +48,7 @@ export function SkinTypeTabs({ data }: { data: Record<string, ProductCardData[]>
             </li>
           ))}
         </ScrollRow>
-        <Link href={`/c/semua?kulit=${active}`} className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-rona hover:underline">
+        <Link href={`/c/semua?kulit=${active}`} className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-aksen hover:underline">
           Semua produk untuk kulit {(skinTypeLabels[active] ?? active).toLowerCase()} <ArrowRight className="size-4" />
         </Link>
       </div>

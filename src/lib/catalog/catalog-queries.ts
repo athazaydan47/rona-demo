@@ -28,6 +28,7 @@ import {
   undertoneLabels,
 } from "./filters";
 import { now as clockNow } from "@/lib/clock";
+import { fiturAktif } from "@/config/fitur";
 
 // Dibungkus React cache supaya beberapa bagian beranda yang memakai cakupan sama hanya memicu satu kali baca.
 export const fetchCatalogItems = cache(async function fetchCatalogItems(scope: CatalogScope): Promise<CatalogItem[]> {
@@ -186,6 +187,7 @@ export type FlashSlotData = {
 export async function getFlashSlots(nowInput?: Date): Promise<FlashSlotData[]> {
   await connection();
   const now = nowInput ?? clockNow();
+  if (!fiturAktif("flashSale")) return [];
   await ensureFlashSaleSlots(db, { now });
   const horizon = new Date(now.getTime() + 4 * 86400000);
   const slots = await db

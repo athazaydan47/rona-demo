@@ -5,10 +5,15 @@ import { HelpPage } from "@/components/layout/help-page";
 import { StoreMap } from "@/components/store/store-map";
 import { Button } from "@/components/ui/button";
 import { DAY_ORDER, getStoreDetails, mapsRouteUrl } from "@/lib/content/toko";
+import { MEREK } from "@/config/merek";
+import { fiturAktif } from "@/config/fitur";
+import { notFound } from "next/navigation";
 
-export const metadata: Metadata = { title: "Toko kami", description: "Tiga cabang Rona Beauty di Malang: alamat, jam buka per hari, peta, dan rute Google Maps. Ambil di Toko tersedia." };
+export const metadata: Metadata = { title: "Toko kami", description: `Tiga cabang ${MEREK.namaLengkap} di Malang: alamat, jam buka per hari, peta, dan rute Google Maps. Ambil di Toko tersedia.` };
 
 export default async function TokoPage() {
+  // Fitur dimatikan di src/config/fitur.ts: halaman ini tidak ada.
+  if (!fiturAktif("multiCabang")) notFound();
   const all = await getStoreDetails();
   const stores = all.filter((s) => s.type === "toko");
   const warehouse = all.find((s) => s.type === "gudang");
@@ -66,7 +71,7 @@ export default async function TokoPage() {
           <Clock className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span>
             {warehouse.name}: {warehouse.hoursLabel}. Pesanan kirim yang lunas sebelum 15.00 WIB berangkat hari itu juga.{" "}
-            <Link href="/kebijakan/pengiriman" className="font-semibold text-rona hover:underline">
+            <Link href="/kebijakan/pengiriman" className="font-semibold text-aksen hover:underline">
               Tentang pengiriman
             </Link>
             .

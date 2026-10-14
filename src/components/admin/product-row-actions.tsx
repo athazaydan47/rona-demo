@@ -18,7 +18,7 @@ export function DuplicateProductButton({ id }: { id: number }) {
           if (r.ok) router.push(`/admin/produk/${r.id}?baru=salinan`);
         })
       }
-      className="inline-flex items-center gap-1 text-xs font-semibold text-rona hover:underline"
+      className="inline-flex items-center gap-1 text-xs font-semibold text-aksen hover:underline"
     >
       {pending ? <Loader2 className="size-3.5 animate-spin" /> : <Copy className="size-3.5" />} Duplikat
     </button>

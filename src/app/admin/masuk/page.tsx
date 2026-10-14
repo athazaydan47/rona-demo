@@ -7,6 +7,7 @@ import { DemoStaffButtons, StaffLoginForm } from "@/components/admin/login-form"
 import { currentStaff } from "@/lib/admin/current";
 import { DEMO_QUICK_LOGIN } from "@/lib/admin/staff";
 import { env } from "@/lib/env";
+import { MEREK } from "@/config/merek";
 
 export const metadata: Metadata = { title: "Masuk staf" };
 
@@ -45,8 +46,8 @@ export default function StaffLoginPage(props: Props) {
     <div className="grid min-h-dvh place-items-center px-4 py-10">
       <div className="w-full max-w-sm">
         <Link href="/" className="mb-6 flex items-baseline justify-center gap-2">
-          <span className="font-serif text-3xl text-kopi">Rona</span>
-          <span className="text-[10px] font-bold tracking-[0.24em] text-rona uppercase">Admin</span>
+          <span className="font-serif text-3xl text-kopi">{MEREK.nama}</span>
+          <span className="text-[10px] font-bold tracking-[0.24em] text-aksen uppercase">Admin</span>
         </Link>
         <div className="rounded-card border border-garis bg-putih p-6 shadow-soft">
           <h1 className="font-serif text-2xl text-kopi">Masuk staf</h1>

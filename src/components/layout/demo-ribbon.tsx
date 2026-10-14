@@ -4,9 +4,10 @@ import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { ListChecks, Sparkles, X } from "lucide-react";
 import { bacaPanduan, BUKA_EVENT, simpanPanduan } from "@/lib/demo/panduan";
+import { MEREK, kunciLokal, namaEvent } from "@/config/merek";
 
-const KEY = "rona.demo-ribbon.closed";
-const EVENT = "rona:demo-ribbon";
+const KEY = kunciLokal("demo-ribbon.closed");
+const EVENT = namaEvent("demo-ribbon");
 
 function subscribe(cb: () => void) {
   window.addEventListener(EVENT, cb);
@@ -37,12 +38,12 @@ export function DemoRibbon() {
   };
 
   return (
-    <div className="bg-kopi text-putih" role="note" aria-label="Pemberitahuan toko demo">
-      <div className="container-rona flex h-9 items-center justify-between gap-3 text-xs sm:text-sm">
+    <div className="bg-kopi text-putih" role="note" aria-label="Pemberitahuan toko demo" data-tanda-demo>
+      <div className="container-toko flex h-9 items-center justify-between gap-3 text-xs sm:text-sm">
         <p className="flex min-w-0 flex-1 items-center gap-2">
           <Sparkles className="size-3.5 shrink-0 text-emas" aria-hidden />
           <span className="min-w-0 truncate">
-            Toko demo: produk, harga, dan pesanan fiktif, direset tiap malam.{" "}
+            {MEREK.pitaDemo}{" "}
             <Link href="/tentang-demo" className="font-semibold text-emas underline-offset-2 hover:underline">
               Tentang demo
             </Link>

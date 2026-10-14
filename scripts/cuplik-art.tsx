@@ -18,9 +18,9 @@ function argValue(name: string) {
 }
 
 const CSS = `
-  :root { color-scheme: light; --font-jakarta: "Plus Jakarta Sans", -apple-system, "Helvetica Neue", Arial, sans-serif; }
+  :root { color-scheme: light; --font-teks: "Plus Jakarta Sans", -apple-system, "Helvetica Neue", Arial, sans-serif; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: #EFE8E4; color: #2A1F1D; font-family: var(--font-jakarta); }
+  body { margin: 0; background: #EFE8E4; color: #2A1F1D; font-family: var(--font-teks); }
   .sheet { width: ${WIDTH}px; padding: ${PAD}px; }
   header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 20px; }
   h1 { margin: 0; font: 600 26px/1.2 Georgia, "Times New Roman", serif; }

@@ -42,10 +42,10 @@ export function DescriptionWriter({ source, onAccept, initial = null, initialBy 
     });
 
   return (
-    <div className="rounded-xl border border-rona/25 bg-blush/20 p-4" data-testid="penulis-ai">
+    <div className="rounded-xl border border-aksen/25 bg-blush/20 p-4" data-testid="penulis-ai">
       <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center justify-between gap-2 text-left" aria-expanded={open}>
         <span className="flex items-center gap-2 text-sm font-semibold text-kopi">
-          <Sparkles className="size-4 text-rona" aria-hidden /> Bantu tulis dengan AI
+          <Sparkles className="size-4 text-aksen" aria-hidden /> Bantu tulis dengan AI
         </span>
         <span className="text-xs text-abu-hangat">{open ? "Tutup" : "Buka"}</span>
       </button>
@@ -55,11 +55,11 @@ export function DescriptionWriter({ source, onAccept, initial = null, initialBy 
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm">
               <span className="mb-1 block font-medium">Poin-poin (opsional)</span>
-              <textarea rows={4} value={points} onChange={(e) => setPoints(e.target.value.slice(0, 2000))} placeholder={"- ringan, cepat meresap\n- cocok di bawah makeup"} className="w-full rounded-lg border border-garis bg-putih px-3 py-2 text-sm outline-none focus-visible:border-rona" aria-label="Poin acuan" />
+              <textarea rows={4} value={points} onChange={(e) => setPoints(e.target.value.slice(0, 2000))} placeholder={"- ringan, cepat meresap\n- cocok di bawah makeup"} className="w-full rounded-lg border border-garis bg-putih px-3 py-2 text-sm outline-none focus-visible:border-aksen" aria-label="Poin acuan" />
             </label>
             <label className="text-sm">
               <span className="mb-1 block font-medium">Teks dari pemasok atau kemasan (opsional)</span>
-              <textarea rows={4} value={supplier} onChange={(e) => setSupplier(e.target.value.slice(0, 4000))} placeholder="Tempel teks dari pemasok atau kemasan" className="w-full rounded-lg border border-garis bg-putih px-3 py-2 text-sm outline-none focus-visible:border-rona" aria-label="Teks pemasok" />
+              <textarea rows={4} value={supplier} onChange={(e) => setSupplier(e.target.value.slice(0, 4000))} placeholder="Tempel teks dari pemasok atau kemasan" className="w-full rounded-lg border border-garis bg-putih px-3 py-2 text-sm outline-none focus-visible:border-aksen" aria-label="Teks pemasok" />
             </label>
           </div>
           <p className="text-xs text-abu-hangat">Data produk (bahan aktif, jenis kulit, finish, SPF, netto, BPOM) ikut dipakai. Usulan mengikuti panduan gaya bahasa di Pengaturan.</p>
@@ -120,7 +120,7 @@ export function DescriptionWriter({ source, onAccept, initial = null, initialBy 
                         <p className={cn("mt-0.5 text-sm whitespace-pre-line", source.current[f] ? "text-kopi/80" : "text-abu-hangat italic")}>{source.current[f] || "Kosong"}</p>
                       </div>
                       <div>
-                        <p className="text-[11px] font-semibold tracking-wide text-rona uppercase">Usulan AI</p>
+                        <p className="text-[11px] font-semibold tracking-wide text-aksen uppercase">Usulan AI</p>
                         <p className="mt-0.5 text-sm whitespace-pre-line text-kopi" data-testid="teks-usulan">{proposal}</p>
                         <p className="mt-0.5 text-[11px] text-abu-hangat tabular-nums">{proposal.length} karakter</p>
                       </div>
@@ -157,9 +157,9 @@ export function BulkDescriptionPanel({ products }: { products: { id: number; nam
   const [pending, run] = useTransition();
   if (!products.length) return null;
   return (
-    <section className="mb-4 rounded-xl border border-rona/25 bg-blush/20 p-4" data-testid="usulan-massal">
+    <section className="mb-4 rounded-xl border border-aksen/25 bg-blush/20 p-4" data-testid="usulan-massal">
       <h2 className="flex items-center gap-2 text-sm font-semibold text-kopi">
-        <Sparkles className="size-4 text-rona" aria-hidden /> Deskripsi pendek, bisa dibantu AI
+        <Sparkles className="size-4 text-aksen" aria-hidden /> Deskripsi pendek, bisa dibantu AI
       </h2>
       <p className="mt-0.5 text-xs text-abu-hangat">Pilih produk, buat usulan untuk semuanya, lalu tinjau dan simpan per produk. Tidak ada deskripsi yang berubah sebelum kamu menyimpan.</p>
       <ul className="mt-2 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
@@ -195,7 +195,7 @@ export function BulkDescriptionPanel({ products }: { products: { id: number; nam
           {done.map((d) => (
             <li key={d.id}>
               {d.ok ? (
-                <a href={`/admin/produk/${d.id}`} className="font-semibold text-rona hover:underline">
+                <a href={`/admin/produk/${d.id}`} className="font-semibold text-aksen hover:underline">
                   Tinjau usulan {d.name}
                 </a>
               ) : (

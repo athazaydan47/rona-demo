@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   const staff = await currentStaff();
   if (!staff) return NextResponse.json({ ok: false, alasan: "sesi", message: "Sesi berakhir. Masuk lagi ke panel admin, ya." }, { status: 401 });
   const cfg = aiConfig();
-  const model = aiModel(cfg);
+  const model = aiModel("asistenAdmin", cfg);
   if (!model) return NextResponse.json({ ok: false, alasan: "tidak_tersedia", message: "Asisten sedang tidak tersedia, coba lagi sebentar." }, { status: 503 });
   const body = (await request.json().catch(() => null)) as { pesan?: unknown } | null;
   const history = parseHistory(body?.pesan);

@@ -1,7 +1,8 @@
 import { alpha, darken, lighten, mix } from "@/lib/color";
 import { KOPI, type ArtCtx } from "./context";
+import { MEREK } from "@/config/merek";
 
-export const FONT = "var(--font-jakarta), ui-sans-serif, system-ui, sans-serif";
+export const FONT = "var(--font-teks), ui-sans-serif, system-ui, sans-serif";
 export const FLOOR_Y = 208;
 
 // Gradien silinder horizontal: gelap di tepi, terang di sisi cahaya (kiri-tengah).
@@ -21,8 +22,9 @@ export function CylGradient({ id, color }: { id: string; color: string }) {
 
 export function Defs({ ctx }: { ctx: ArtCtx }) {
   const { id } = ctx;
-  const bgTop = mix(mix(ctx.shade, "#FAF7F5", 0.84), "#FFFFFF", 0.35);
-  const bgBottom = mix(mix(ctx.shade, "#EFE6E1", 0.76), ctx.brand, 0.07);
+  // Gaya latar packshot dari konfigurasi merek (MEREK.productArt), dicampur dengan warna shade.
+  const bgTop = mix(mix(ctx.shade, MEREK.productArt.latarAtas, 0.84), "#FFFFFF", 0.35);
+  const bgBottom = mix(mix(ctx.shade, MEREK.productArt.latarBawah, 0.76), ctx.brand, 0.07);
   return (
     <defs>
       <radialGradient id={`${id}-bg`} cx="50%" cy="28%" r="80%">

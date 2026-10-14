@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HelpText, Input, Label } from "@/components/ui/input";
 import { trackOrderAction, type VerifyState } from "@/lib/orders/actions";
+import { contohNomorPesanan } from "@/config/merek";
 
 export function TrackForm({ number }: { number?: string }) {
   const [state, action, pending] = useActionState<VerifyState, FormData>(trackOrderAction, {});
@@ -12,7 +13,7 @@ export function TrackForm({ number }: { number?: string }) {
     <form action={action} className="space-y-4">
       <div>
         <Label htmlFor="lacak-nomor">Nomor pesanan</Label>
-        <Input id="lacak-nomor" name="nomor" defaultValue={number} readOnly={Boolean(number)} placeholder="RONA-2610-000123" autoCapitalize="characters" required />
+        <Input id="lacak-nomor" name="nomor" defaultValue={number} readOnly={Boolean(number)} placeholder={contohNomorPesanan()} autoCapitalize="characters" required />
       </div>
       <div>
         <Label htmlFor="lacak-wa">Nomor WhatsApp saat memesan</Label>

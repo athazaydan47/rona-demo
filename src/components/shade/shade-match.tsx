@@ -11,7 +11,7 @@ import { formatRupiah } from "@/lib/format";
 import { interpretShadeTextAction, shadeMatchAction, shadeSourcesAction, type ShadeSourceProduct } from "@/lib/skin/actions";
 import { cn } from "@/lib/utils";
 
-const field = "h-10 w-full rounded-lg border border-garis bg-putih px-3 text-sm text-kopi outline-none focus-visible:border-rona";
+const field = "h-10 w-full rounded-lg border border-garis bg-putih px-3 text-sm text-kopi outline-none focus-visible:border-aksen";
 
 export function ShadeMatchPanel({ group, targetProductId, excludeProductId, aiAvailable }: { group?: string; targetProductId?: number; excludeProductId?: number; aiAvailable: boolean }) {
   const [sources, setSources] = useState<ShadeSourceProduct[]>([]);
@@ -103,7 +103,7 @@ export function ShadeMatchPanel({ group, targetProductId, excludeProductId, aiAv
         >
           <label className="block text-sm">
             <span className="mb-1 flex items-center gap-1 font-medium">
-              <Sparkles className="size-3.5 text-rona" aria-hidden /> Atau ceritakan saja
+              <Sparkles className="size-3.5 text-aksen" aria-hidden /> Atau ceritakan saja
             </span>
             <input value={text} onChange={(e) => setText(e.target.value.slice(0, 160))} placeholder="Misal: aku pakai cushion Pualam shade 02" className={field} aria-label="Ceritakan shade yang kamu pakai" />
           </label>
@@ -161,7 +161,7 @@ export function ShadeMatchDialog({ group, productId, productName, aiAvailable }:
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
-        <button type="button" className={cn("inline-flex h-8 items-center gap-1.5 rounded-pill border border-garis bg-putih px-3 text-xs font-semibold text-kopi hover:border-rona/40")} data-testid="tombol-padanan">
+        <button type="button" className={cn("inline-flex h-8 items-center gap-1.5 rounded-pill border border-garis bg-putih px-3 text-xs font-semibold text-kopi hover:border-aksen/40")} data-testid="tombol-padanan">
           <Palette className="size-3.5" aria-hidden /> Cari padanan shade
         </button>
       </Dialog.Trigger>

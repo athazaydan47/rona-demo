@@ -4,13 +4,15 @@ import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from "pdf
 import QRCode from "qrcode";
 import { formatDateTimeWib } from "@/lib/format";
 import type { LabelData, PickRow } from "./labels";
+import { MEREK } from "@/config/merek";
 
 const MM = 72 / 25.4;
 export const A6 = [105 * MM, 148 * MM] as const;
 export const A4 = [210 * MM, 297 * MM] as const;
 const KOPI = rgb(0.165, 0.122, 0.114);
 const ABU = rgb(0.45, 0.4, 0.38);
-const RONA = rgb(0.72, 0.28, 0.36);
+const hexRgb = (hex: string) => rgb(...([1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [number, number, number]));
+const AKSEN = hexRgb(MEREK.palet.aksen);
 
 // Font standar PDF hanya mengenal WinAnsi; buang karakter di luar itu (spasi tak putus jadi spasi biasa).
 export const pdfSafe = (t: string) => String(t ?? "").replace(/\u00A0/g, " ").replace(/[\u2013\u2014]/g, "-").replace(/[^\x20-\x7E\xA0-\xFF\n]/g, "");
@@ -41,7 +43,7 @@ function drawQr(page: PDFPage, text: string, x: number, y: number, size: number)
 
 export async function labelsPdf(labels: LabelData[], generatedAt: Date) {
   const doc = await PDFDocument.create();
-  doc.setTitle(`Label kirim Rona Beauty (${labels.length})`);
+  doc.setTitle(`Label kirim ${MEREK.namaLengkap} (${labels.length})`);
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   for (const l of labels) {
@@ -52,7 +54,7 @@ export async function labelsPdf(labels: LabelData[], generatedAt: Date) {
     const text = (t: string, x: number, yy: number, size: number, f = font, color = KOPI) => page.drawText(pdfSafe(t), { x, y: yy, size, font: f, color });
     page.drawRectangle({ x: pad / 2, y: pad / 2, width: W - pad, height: A6[1] - pad, borderColor: KOPI, borderWidth: 1 });
     // Kepala: merek dan kurir.
-    text("Rona Beauty", pad, y - 12, 13, bold, RONA);
+    text(MEREK.namaLengkap, pad, y - 12, 13, bold, AKSEN);
     const courier = pdfSafe(`${l.courier}${l.service ? ` ${l.service}` : ""}`).slice(0, 28);
     const cw = bold.widthOfTextAtSize(courier, 10);
     page.drawRectangle({ x: W - pad - cw - 8, y: y - 16, width: cw + 8, height: 16, color: KOPI });
@@ -115,7 +117,7 @@ export async function labelsPdf(labels: LabelData[], generatedAt: Date) {
 
 export async function pickListPdf(rows: PickRow[], orders: string[], generatedAt: Date, staffName: string) {
   const doc = await PDFDocument.create();
-  doc.setTitle("Daftar ambil Rona Beauty");
+  doc.setTitle(`Daftar ambil ${MEREK.namaLengkap}`);
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const W = A4[0];
@@ -132,7 +134,7 @@ export async function pickListPdf(rows: PickRow[], orders: string[], generatedAt
   let y = A4[1] - pad;
   const text = (t: string, x: number, yy: number, size: number, f = font, color = KOPI) => page.drawText(pdfSafe(t), { x, y: yy, size, font: f, color });
   const header = () => {
-    text("Rona Beauty", pad, y - 14, 14, bold, RONA);
+    text(MEREK.namaLengkap, pad, y - 14, 14, bold, AKSEN);
     text("Daftar ambil", pad, y - 32, 18, bold);
     text(`Dibuat ${formatDateTimeWib(generatedAt)} oleh ${staffName}`, pad, y - 46, 9, font, ABU);
     let oy = y - 60;

@@ -71,7 +71,7 @@ export function OpnameSheet({ locationId, locationName, rows }: { locationId: nu
                     value={counts[r.variantId] ?? ""}
                     onChange={(e) => setCounts((c) => ({ ...c, [r.variantId]: e.target.value.replace(/\D/g, "").slice(0, 5) }))}
                     placeholder="Jumlah fisik"
-                    className="h-14 w-full rounded-xl border-2 border-garis px-4 text-center text-2xl font-semibold tabular-nums outline-none focus-visible:border-rona"
+                    className="h-14 w-full rounded-xl border-2 border-garis px-4 text-center text-2xl font-semibold tabular-nums outline-none focus-visible:border-aksen"
                   />
                 </label>
                 <span className={cn("w-16 text-right text-lg font-semibold tabular-nums", p && p.diff > 0 && "text-sukses", p && p.diff < 0 && "text-bahaya", !p && "text-abu-hangat")}>{p ? `${p.diff > 0 ? "+" : ""}${p.diff}` : "-"}</span>
@@ -117,7 +117,7 @@ export function OpnameSheet({ locationId, locationName, rows }: { locationId: nu
                       onChange={(e) => setCounts((c) => ({ ...c, [r.variantId]: e.target.value.replace(/\D/g, "").slice(0, 5) }))}
                       placeholder="-"
                       aria-label={`Jumlah fisik ${r.productName} ${r.shadeName}`}
-                      className="h-9 w-20 rounded-lg border border-garis px-2 text-right tabular-nums outline-none focus-visible:border-rona"
+                      className="h-9 w-20 rounded-lg border border-garis px-2 text-right tabular-nums outline-none focus-visible:border-aksen"
                     />
                   </td>
                   <td className={cn(tdClass, "text-right font-semibold tabular-nums", p && p.diff > 0 && "text-sukses", p && p.diff < 0 && "text-bahaya")} data-testid={`selisih-${r.variantId}`}>

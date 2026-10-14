@@ -119,7 +119,7 @@ export function LoginFlow({ kembali, demo, initialStep = "nomor" }: { kembali: s
             verify(code);
           }}
         >
-          <button type="button" onClick={() => setStep("nomor")} className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-rona hover:underline">
+          <button type="button" onClick={() => setStep("nomor")} className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-aksen hover:underline">
             <ArrowLeft className="size-4" /> Ganti nomor
           </button>
           <h1 className="font-serif text-3xl text-kopi">Masukkan kode</h1>
@@ -168,7 +168,7 @@ export function LoginFlow({ kembali, demo, initialStep = "nomor" }: { kembali: s
             {wait > 0 ? (
               <span className="tabular-nums">Kirim ulang dalam {wait} detik</span>
             ) : (
-              <button type="button" onClick={send} disabled={pending} className="font-semibold text-rona hover:underline">
+              <button type="button" onClick={send} disabled={pending} className="font-semibold text-aksen hover:underline">
                 Kirim ulang
               </button>
             )}

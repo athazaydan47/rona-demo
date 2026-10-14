@@ -15,6 +15,7 @@ import { normalizePhone } from "@/lib/orders/rules";
 import { districts, hasDistrictData, provinces, regencies } from "@/lib/regions";
 import { cn } from "@/lib/utils";
 import { OrderSummary } from "./order-summary";
+import { MEREK } from "@/config/merek";
 
 const MapPicker = dynamic(() => import("./map-picker").then((m) => m.MapPicker), { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-card bg-porselen" /> });
 
@@ -102,7 +103,7 @@ function StepNav({ onBack, back, backAsLink, children }: { onBack?: () => void; 
   );
 }
 
-const selectClass = "h-11 w-full rounded-pill border border-garis bg-putih px-4 text-base text-kopi outline-none focus-visible:border-rona focus-visible:shadow-ring aria-invalid:border-bahaya disabled:opacity-60";
+const selectClass = "h-11 w-full rounded-pill border border-garis bg-putih px-4 text-base text-kopi outline-none focus-visible:border-aksen focus-visible:shadow-ring aria-invalid:border-bahaya disabled:opacity-60";
 
 // Isian alamat dari alamat tersimpan, supaya zona ongkir dan ringkasan langkah 2 tetap bekerja.
 function fromSaved(a: CheckoutAccount["addresses"][number]): Partial<Form> {
@@ -183,6 +184,8 @@ export function CheckoutFlow({ initial, initialVoucher, account }: { initial: Ch
         usePoints: f.usePoints,
       });
       if (my === seq.current) setQuote(q);
+    } catch {
+      // Terlalu sering atau jaringan putus: ringkasan lama tetap tampil, total final tetap dicek server saat pesan.
     } finally {
       if (my === seq.current) setLoading(false);
     }
@@ -370,7 +373,7 @@ export function CheckoutFlow({ initial, initialVoucher, account }: { initial: Ch
                     onClick={() => set("method", value)}
                     className={cn("flex items-start gap-3 rounded-card border-2 p-4 text-left transition-colors", form.method === value ? "border-kopi bg-porselen" : "border-garis hover:border-kopi/30")}
                   >
-                    <Icon className="mt-0.5 size-5 shrink-0 text-rona" aria-hidden />
+                    <Icon className="mt-0.5 size-5 shrink-0 text-aksen" aria-hidden />
                     <span>
                       <span className="block text-sm font-semibold text-kopi">{label}</span>
                       <span className="block text-xs text-abu-hangat">{hint}</span>
@@ -395,7 +398,7 @@ export function CheckoutFlow({ initial, initialVoucher, account }: { initial: Ch
                         }}
                         className={cn("flex w-full items-start gap-3 rounded-card border-2 p-4 text-left transition-colors", form.addressId === a.id ? "border-kopi bg-porselen" : "border-garis hover:border-kopi/30")}
                       >
-                        <Home className="mt-0.5 size-5 shrink-0 text-rona" aria-hidden />
+                        <Home className="mt-0.5 size-5 shrink-0 text-aksen" aria-hidden />
                         <span className="min-w-0 flex-1">
                           <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-kopi">
                             {a.label}
@@ -415,7 +418,7 @@ export function CheckoutFlow({ initial, initialVoucher, account }: { initial: Ch
                       role="radio"
                       aria-checked={form.addressId == null}
                       onClick={() => setForm((f) => ({ ...f, addressId: null, provinceCode: "", regencyCode: "", districtCode: "", districtText: "", postalCode: "", street: "", lat: null, lng: null, courierCode: "", name: account.name, phone: account.phone }))}
-                      className={cn("flex w-full items-center gap-3 rounded-card border-2 p-4 text-left text-sm font-semibold transition-colors", form.addressId == null ? "border-kopi bg-porselen text-kopi" : "border-dashed border-garis text-rona hover:border-kopi/30")}
+                      className={cn("flex w-full items-center gap-3 rounded-card border-2 p-4 text-left text-sm font-semibold transition-colors", form.addressId == null ? "border-kopi bg-porselen text-kopi" : "border-dashed border-garis text-aksen hover:border-kopi/30")}
                     >
                       <Plus className="size-5 shrink-0" aria-hidden /> Alamat baru
                     </button>
@@ -489,7 +492,7 @@ export function CheckoutFlow({ initial, initialVoucher, account }: { initial: Ch
                         rows={3}
                         autoComplete="street-address"
                         aria-invalid={errors.street ? true : undefined}
-                        className="w-full rounded-[16px] border border-garis bg-putih px-4 py-3 text-base text-kopi outline-none focus-visible:border-rona focus-visible:shadow-ring aria-invalid:border-bahaya"
+                        className="w-full rounded-[16px] border border-garis bg-putih px-4 py-3 text-base text-kopi outline-none focus-visible:border-aksen focus-visible:shadow-ring aria-invalid:border-bahaya"
                       />
                     </Field>
                   </div>
@@ -507,7 +510,7 @@ export function CheckoutFlow({ initial, initialVoucher, account }: { initial: Ch
                         <p className="text-xs text-abu-hangat">{form.lat != null ? `Titik tersimpan: ${form.lat}, ${form.lng}` : "Ketuk peta atau geser pin ke lokasi rumahmu."}</p>
                       </div>
                     ) : (
-                      <button type="button" onClick={() => setShowMap(true)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-rona hover:underline">
+                      <button type="button" onClick={() => setShowMap(true)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-aksen hover:underline">
                         <MapPin className="size-4" /> Tandai lokasi di peta (opsional)
                       </button>
                     )}
@@ -515,7 +518,7 @@ export function CheckoutFlow({ initial, initialVoucher, account }: { initial: Ch
                   {account ? (
                     <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
                       <label className={cn("inline-flex items-center gap-2 text-sm text-kopi", !account.canSaveMore && "opacity-60")}>
-                        <input type="checkbox" className="size-4 accent-[var(--color-rona)]" checked={form.saveAddress && account.canSaveMore} disabled={!account.canSaveMore} onChange={(e) => set("saveAddress", e.target.checked)} />
+                        <input type="checkbox" className="size-4 accent-[var(--color-aksen)]" checked={form.saveAddress && account.canSaveMore} disabled={!account.canSaveMore} onChange={(e) => set("saveAddress", e.target.checked)} />
                         {account.canSaveMore ? "Simpan alamat ini ke akunku" : "Buku alamat penuh (maksimal 10)"}
                       </label>
                       {form.saveAddress && account.canSaveMore ? (
@@ -539,7 +542,7 @@ export function CheckoutFlow({ initial, initialVoucher, account }: { initial: Ch
                         onClick={() => set("pickupSlug", p.slug)}
                         className={cn("flex w-full items-start gap-3 rounded-card border-2 p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-55", form.pickupSlug === p.slug ? "border-kopi bg-porselen" : "border-garis hover:border-kopi/30")}
                       >
-                        <Store className="mt-0.5 size-5 shrink-0 text-rona" aria-hidden />
+                        <Store className="mt-0.5 size-5 shrink-0 text-aksen" aria-hidden />
                         <span className="min-w-0 flex-1">
                           <span className="block text-sm font-semibold text-kopi">{p.name}</span>
                           <span className="block text-xs text-abu-hangat">
@@ -593,7 +596,7 @@ export function CheckoutFlow({ initial, initialVoucher, account }: { initial: Ch
                         onClick={() => set("courierCode", c.code as CourierCode)}
                         className={cn("flex w-full items-center gap-3 rounded-card border-2 p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-55", form.courierCode === c.code ? "border-kopi bg-porselen" : "border-garis hover:border-kopi/30")}
                       >
-                        <Truck className="size-5 shrink-0 text-rona" aria-hidden />
+                        <Truck className="size-5 shrink-0 text-aksen" aria-hidden />
                         <span className="min-w-0 flex-1">
                           <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-kopi">
                             {c.name} {c.service}
@@ -630,7 +633,7 @@ export function CheckoutFlow({ initial, initialVoucher, account }: { initial: Ch
               )}
               <div className="mt-5">
                 <Field label="Catatan untuk penjual (opsional)" htmlFor="co-note">
-                  <textarea id="co-note" value={form.note} onChange={(e) => set("note", e.target.value.slice(0, 300))} rows={2} placeholder="Misal: tolong bungkus kado" className="w-full rounded-[16px] border border-garis bg-putih px-4 py-3 text-base text-kopi outline-none focus-visible:border-rona focus-visible:shadow-ring" />
+                  <textarea id="co-note" value={form.note} onChange={(e) => set("note", e.target.value.slice(0, 300))} rows={2} placeholder="Misal: tolong bungkus kado" className="w-full rounded-[16px] border border-garis bg-putih px-4 py-3 text-base text-kopi outline-none focus-visible:border-aksen focus-visible:shadow-ring" />
                 </Field>
               </div>
             </div>
@@ -659,7 +662,7 @@ export function CheckoutFlow({ initial, initialVoucher, account }: { initial: Ch
                     onClick={() => set("paymentMethod", p.value)}
                     className={cn("flex w-full items-center gap-3 rounded-card border-2 p-4 text-left transition-colors", form.paymentMethod === p.value ? "border-kopi bg-porselen" : "border-garis hover:border-kopi/30")}
                   >
-                    {p.value === "qris" ? <QrCode className="size-5 shrink-0 text-rona" aria-hidden /> : p.value === "bayar_di_toko" ? <Store className="size-5 shrink-0 text-rona" aria-hidden /> : <CreditCard className="size-5 shrink-0 text-rona" aria-hidden />}
+                    {p.value === "qris" ? <QrCode className="size-5 shrink-0 text-aksen" aria-hidden /> : p.value === "bayar_di_toko" ? <Store className="size-5 shrink-0 text-aksen" aria-hidden /> : <CreditCard className="size-5 shrink-0 text-aksen" aria-hidden />}
                     <span>
                       <span className="block text-sm font-semibold text-kopi">{p.label}</span>
                       <span className="block text-xs text-abu-hangat">{p.hint}</span>
@@ -715,7 +718,7 @@ export function CheckoutFlow({ initial, initialVoucher, account }: { initial: Ch
                 </label>
                 <div className="relative min-w-0 flex-1">
                   <Tag className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-abu-hangat" aria-hidden />
-                  <input id="co-voucher" value={voucherInput} onChange={(e) => setVoucherInput(e.target.value.toUpperCase())} placeholder="Kode voucher" autoComplete="off" className="h-11 w-full rounded-pill border border-garis bg-putih pr-3 pl-9 text-sm uppercase outline-none focus-visible:border-rona focus-visible:shadow-ring" />
+                  <input id="co-voucher" value={voucherInput} onChange={(e) => setVoucherInput(e.target.value.toUpperCase())} placeholder="Kode voucher" autoComplete="off" className="h-11 w-full rounded-pill border border-garis bg-putih pr-3 pl-9 text-sm uppercase outline-none focus-visible:border-aksen focus-visible:shadow-ring" />
                 </div>
                 {form.voucherCode ? (
                   <Button
@@ -756,7 +759,7 @@ export function CheckoutFlow({ initial, initialVoucher, account }: { initial: Ch
                 <span className="hidden sm:inline">, {formatRupiah(pricing.total)}</span>
               </Button>
             </StepNav>
-            <p className="text-xs text-abu-hangat">Dengan membuat pesanan, kamu setuju dengan syarat belanja dan kebijakan retur Rona. Ini toko demo: tidak ada uang yang berpindah.</p>
+            <p className="text-xs text-abu-hangat">Dengan membuat pesanan, kamu setuju dengan syarat belanja dan kebijakan retur {MEREK.nama}. Ini toko demo: tidak ada uang yang berpindah.</p>
           </section>
         ) : null}
       </div>

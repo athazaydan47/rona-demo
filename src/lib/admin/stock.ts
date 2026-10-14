@@ -201,6 +201,7 @@ export async function receiveStock(db: AnyDb, staff: StaffPrincipal, input: { lo
 }
 
 export async function transferStock(db: AnyDb, staff: StaffPrincipal, input: { fromId: number; toId: number; lines: StockLine[]; note?: string; now?: Date }): Promise<StockActionResult> {
+  if (!fiturAktif("multiCabang")) return { ok: false, message: "Transfer antar lokasi tidak aktif di toko ini." };
   if (input.fromId === input.toId) return { ok: false, message: "Lokasi asal dan tujuan tidak boleh sama." };
   if (!can(staff, "stok.transfer", { lokasiId: input.fromId }) || !can(staff, "stok.transfer", { lokasiId: input.toId })) return { ok: false, message: "Kamu tidak punya izin transfer untuk lokasi ini." };
   const n = normalizeLines(input.lines);
@@ -235,6 +236,7 @@ export async function transferStock(db: AnyDb, staff: StaffPrincipal, input: { f
 
 export { opnamePreview, type OpnamePreview, type OpnameRow } from "./opname";
 import { opnamePreview, type OpnamePreview } from "./opname";
+import { fiturAktif } from "@/config/fitur";
 
 export async function submitOpname(db: AnyDb, staff: StaffPrincipal, input: { locationId: number; counts: { variantId: number; counted: number }[]; note?: string; now?: Date }): Promise<StockActionResult & { preview?: OpnamePreview }> {
   if (!can(staff, "stok.opname", { lokasiId: input.locationId })) return { ok: false, message: "Kamu tidak punya izin opname di lokasi ini." };

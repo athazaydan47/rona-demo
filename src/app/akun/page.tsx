@@ -15,6 +15,7 @@ import { getProfile } from "@/lib/account/profile";
 import { wishlistIds } from "@/lib/account/wishlist";
 import { now } from "@/lib/clock";
 import { formatNumber, formatRupiah } from "@/lib/format";
+import { MEREK } from "@/config/merek";
 
 export const metadata: Metadata = { title: "Ringkasan" };
 
@@ -51,7 +52,7 @@ async function Summary() {
 
       <Link href="/akun/poin" className="block rounded-card bg-kopi p-5 text-putih shadow-soft transition-transform hover:-translate-y-0.5" data-testid="kartu-poin">
         <p className="flex items-center gap-2 text-sm text-putih/80">
-          <Sparkles className="size-4 text-emas" aria-hidden /> Poin Rona
+          <Sparkles className="size-4 text-emas" aria-hidden /> Poin {MEREK.nama}
         </p>
         <p className="mt-1 font-serif text-4xl tabular-nums" data-testid="saldo-poin">
           {formatNumber(profile?.points ?? 0)}
@@ -62,7 +63,7 @@ async function Summary() {
       <div>
         <div className="mb-3 flex items-baseline justify-between">
           <h2 className="font-serif text-xl text-kopi">Pesanan aktif</h2>
-          <Link href="/akun/pesanan" className="inline-flex min-h-9 items-center text-sm font-semibold text-rona hover:underline">
+          <Link href="/akun/pesanan" className="inline-flex min-h-9 items-center text-sm font-semibold text-aksen hover:underline">
             Semua pesanan
           </Link>
         </div>
@@ -80,7 +81,7 @@ async function Summary() {
       <div className="hidden gap-3 sm:grid sm:grid-cols-3 lg:grid-cols-5">
         {shortcuts.map((s) => (
           <Link key={s.href} href={s.href} className="rounded-card border border-garis bg-putih p-4 transition-colors hover:border-kopi/25">
-            <s.icon className="size-5 text-rona" aria-hidden />
+            <s.icon className="size-5 text-aksen" aria-hidden />
             <p className="mt-2 text-sm font-semibold text-kopi">{s.label}</p>
             <p className="text-xs text-abu-hangat">{s.note}</p>
           </Link>

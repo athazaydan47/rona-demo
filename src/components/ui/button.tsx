@@ -7,11 +7,11 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: "bg-rona text-putih shadow-soft hover:bg-rona-gelap active:bg-rona-gelap",
-        secondary: "bg-blush text-rona-gelap hover:bg-[#EFCDD2]",
+        primary: "bg-aksen text-putih shadow-soft hover:bg-aksen-gelap active:bg-aksen-gelap",
+        secondary: "bg-blush text-aksen-gelap hover:bg-[#EFCDD2]",
         outline: "border border-garis bg-putih text-kopi hover:border-kopi/30 hover:bg-porselen",
         ghost: "text-kopi hover:bg-blush/60",
-        link: "text-rona-gelap underline-offset-4 hover:underline px-0 h-auto",
+        link: "text-aksen-gelap underline-offset-4 hover:underline px-0 h-auto",
         dark: "bg-kopi text-putih hover:bg-kopi/90",
       },
       size: {

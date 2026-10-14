@@ -27,16 +27,6 @@ export async function listAudit(db: AnyDb, f: AuditFilters) {
   return { rows, total: Number(n), page, pageCount: Math.max(1, Math.ceil(Number(n) / pageSize)) };
 }
 
-// Beda sebelum dan sesudah per kunci, untuk tampilan yang mudah dibaca.
-export function auditDiff(before: unknown, after: unknown) {
-  const b = (before && typeof before === "object" ? before : {}) as Record<string, unknown>;
-  const a = (after && typeof after === "object" ? after : {}) as Record<string, unknown>;
-  const keys = [...new Set([...Object.keys(b), ...Object.keys(a)])];
-  return keys
-    .map((k) => ({ key: k, before: k in b ? b[k] : undefined, after: k in a ? a[k] : undefined }))
-    .filter((d) => JSON.stringify(d.before) !== JSON.stringify(d.after));
-}
-
 export type GroupedAudit<T> = T & { repeat: number; firstAt: Date };
 
 // Login berulang dari staf (atau email) yang sama dalam 10 menit digabung menjadi satu baris. Baris urut terbaru dulu.

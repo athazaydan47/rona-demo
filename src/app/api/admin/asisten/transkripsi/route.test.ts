@@ -10,7 +10,7 @@ vi.mock("@/lib/ai/usage", async (orig) => ({ ...(await orig<typeof import("@/lib
 vi.mock("@/lib/ai", async (orig) => {
   const real = await orig<typeof import("@/lib/ai")>();
   const { withStream } = await import("@/lib/ai/client");
-  return { ...real, aiModel: () => (modelRef.kind === "mock" ? real.aiModel({ ...real.aiConfig({ AI_PROVIDER: "mock" }) }) : withStream({ name: "rusak", generate: async () => Promise.reject(new Error("HTTP 503")) })) };
+  return { ...real, aiModel: () => (modelRef.kind === "mock" ? real.aiModel("asistenAdmin", { ...real.aiConfig({ AI_PROVIDER: "mock" }) }) : withStream({ name: "rusak", generate: async () => Promise.reject(new Error("HTTP 503")) })) };
 });
 
 const post = async (body?: FormData) => {

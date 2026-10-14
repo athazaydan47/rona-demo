@@ -29,7 +29,7 @@ async function Content({ searchParams }: { searchParams: Promise<SP> }) {
   return (
     <>
       <PageHead title="Kabar Harian" description="Ringkasan hari kemarin yang dibuat setiap pagi: omzet, terlaris, stok menipis, pesanan bermasalah, ulasan buruk, dan saran transfer. Angka dari fungsi laporan yang sama dengan halaman Laporan.">
-        {aiTersedia() ? <RegenerateBrief /> : null}
+        {aiTersedia("asistenAdmin") ? <RegenerateBrief /> : null}
       </PageHead>
       {!selected ? (
         <p className="rounded-xl border border-garis bg-putih p-6 text-sm text-abu-hangat">Belum ada Kabar Harian. Kabar dibuat otomatis oleh cron harian.</p>

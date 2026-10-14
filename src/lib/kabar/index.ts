@@ -14,6 +14,7 @@ import { transferSuggestions } from "@/lib/inventory/saran";
 import { dailySeries, percentChange, summarize, topProducts, wibDayKey, wibDayStart } from "@/lib/reports";
 import { loadReportData } from "@/lib/reports/load";
 import { loadSettings } from "@/lib/settings/db";
+import { MEREK } from "@/config/merek";
 
 const DAY = 86_400_000;
 export const BRIEF_HISTORY_DAYS = 14;
@@ -109,7 +110,7 @@ export function templateNarrative(d: BriefData) {
 // Teks WA (pratinjau gelembung dan tombol Salin untuk WA).
 export function briefWaText(d: BriefData, narrative: string) {
   const lines = [
-    "*Kabar Harian Rona Beauty*",
+    `*Kabar Harian ${MEREK.namaLengkap}*`,
     d.hari,
     "",
     narrative,
@@ -120,8 +121,8 @@ export function briefWaText(d: BriefData, narrative: string) {
   ];
   if (d.terlaris.length) lines.push("", "*Terlaris:*", ...d.terlaris.map((t, i) => `${i + 1}. ${t.produk} (${t.unit} pcs)`));
   const stok = d.stokMenipis.filter((s) => s.habis || s.menipis);
-  if (d.stokKritis?.length) lines.push("", `*Stok kritis* (5 teratas dari ${d.stokKritisTotal}):`, ...d.stokKritis.map((k) => `${k.produk} di ${k.lokasi.replace("Rona ", "")}: ${k.tersedia === 0 ? "habis" : `sisa ${k.tersedia}`}`));
-  if (stok.length) lines.push(`Per lokasi: ${stok.map((s) => `${s.lokasi.replace("Rona ", "")} ${s.habis} habis, ${s.menipis} menipis`).join("; ")}`);
+  if (d.stokKritis?.length) lines.push("", `*Stok kritis* (5 teratas dari ${d.stokKritisTotal}):`, ...d.stokKritis.map((k) => `${k.produk} di ${k.lokasi.replace(`${MEREK.nama} `, "")}: ${k.tersedia === 0 ? "habis" : `sisa ${k.tersedia}`}`));
+  if (stok.length) lines.push(`Per lokasi: ${stok.map((s) => `${s.lokasi.replace(`${MEREK.nama} `, "")} ${s.habis} habis, ${s.menipis} menipis`).join("; ")}`);
   const b = d.pesananBermasalah;
   lines.push("", `*Pesanan bermasalah:* ${b.kedaluwarsa} kedaluwarsa, ${b.dibatalkan} dibatalkan, ${b.menungguLama} menunggu diproses lebih dari sehari`);
   lines.push(`*Ulasan buruk belum dibalas:* ${d.ulasanBurukBelumDibalas}`);

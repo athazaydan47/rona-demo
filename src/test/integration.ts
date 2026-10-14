@@ -1,4 +1,4 @@
-// Alat bantu uji integrasi terhadap database lokal hasil npm run db:reset.
+// Alat bantu uji integrasi terhadap database uji (<database kerja>_uji) (disiapkan bersih oleh src/test/global-setup.ts).
 // Setiap berkas uji membuat pembeli, pesanan, dan stoknya sendiri lalu membersihkannya di akhir.
 import { randomInt } from "node:crypto";
 import { config } from "dotenv";
@@ -9,8 +9,10 @@ import * as schema from "@/db/schema";
 import { addItems, createCart } from "@/lib/cart/service";
 import { confirmPayment, placeOrder, type PlaceOrderInput } from "@/lib/orders/service";
 
-config({ path: ".env.local" });
+config({ path: ".env.local", quiet: true });
 export const dbUrl = process.env.DATABASE_URL;
+// Penjaga Fase 8B: uji integrasi hanya boleh menulis ke database uji (<database kerja>_uji dari vitest.config.ts).
+if (dbUrl && !/_uji(\?|$)/.test(dbUrl)) throw new Error("Uji integrasi menolak database kerja. Jalankan lewat npm run test supaya memakai database _uji.");
 
 export function integration() {
   const client = postgres(dbUrl ?? "", { max: 6, onnotice: () => {} });

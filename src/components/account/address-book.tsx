@@ -46,7 +46,7 @@ type Draft = {
   isPrimary: boolean;
 };
 
-const selectClass = "h-11 w-full rounded-pill border border-garis bg-putih px-4 text-base text-kopi outline-none focus-visible:border-rona focus-visible:shadow-ring aria-invalid:border-bahaya disabled:opacity-60";
+const selectClass = "h-11 w-full rounded-pill border border-garis bg-putih px-4 text-base text-kopi outline-none focus-visible:border-aksen focus-visible:shadow-ring aria-invalid:border-bahaya disabled:opacity-60";
 
 function toDraft(a: SavedAddress | null, defaults: { name: string; phone: string }): Draft {
   if (!a) return { label: "Rumah", recipient: defaults.name, phone: defaults.phone, provinceCode: "", regencyCode: "", districtCode: "", districtText: "", postalCode: "", street: "", lat: null, lng: null, isPrimary: false };
@@ -159,7 +159,7 @@ function AddressForm({ initial, id, onDone, onCancel, isOnly }: { initial: Draft
             onChange={(e) => set("street", e.target.value)}
             rows={3}
             aria-invalid={err("street") ? true : undefined}
-            className="w-full rounded-[16px] border border-garis bg-putih px-4 py-3 text-base text-kopi outline-none focus-visible:border-rona focus-visible:shadow-ring aria-invalid:border-bahaya"
+            className="w-full rounded-[16px] border border-garis bg-putih px-4 py-3 text-base text-kopi outline-none focus-visible:border-aksen focus-visible:shadow-ring aria-invalid:border-bahaya"
           />
           {err("street") ? <HelpText tone="error">{err("street")}</HelpText> : <HelpText>Nama jalan, nomor rumah, RT/RW, patokan.</HelpText>}
         </div>
@@ -174,14 +174,14 @@ function AddressForm({ initial, id, onDone, onCancel, isOnly }: { initial: Draft
               <p className="text-xs text-abu-hangat">{d.lat != null ? `Titik tersimpan: ${d.lat}, ${d.lng}` : "Ketuk peta atau geser pin ke lokasi rumahmu."}</p>
             </div>
           ) : (
-            <button type="button" onClick={() => setShowMap(true)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-rona hover:underline">
+            <button type="button" onClick={() => setShowMap(true)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-aksen hover:underline">
               <MapPin className="size-4" /> Tandai lokasi di peta (opsional)
             </button>
           )}
         </div>
         {!isOnly && !initial.isPrimary ? (
           <label className="inline-flex items-center gap-2 text-sm text-kopi sm:col-span-2">
-            <input type="checkbox" className="size-4 accent-[var(--color-rona)]" checked={d.isPrimary} onChange={(e) => set("isPrimary", e.target.checked)} /> Jadikan alamat utama
+            <input type="checkbox" className="size-4 accent-[var(--color-aksen)]" checked={d.isPrimary} onChange={(e) => set("isPrimary", e.target.checked)} /> Jadikan alamat utama
           </label>
         ) : null}
       </div>
@@ -232,7 +232,7 @@ export function AddressBook({ addresses, max, defaults }: { addresses: SavedAddr
         ) : (
           <article key={a.id} className={cn("rounded-card border bg-putih p-4", a.isPrimary ? "border-kopi/30" : "border-garis")} data-testid="kartu-alamat">
             <div className="flex items-start gap-3">
-              <Home className="mt-0.5 size-5 shrink-0 text-rona" aria-hidden />
+              <Home className="mt-0.5 size-5 shrink-0 text-aksen" aria-hidden />
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-kopi">
                   {a.label} {a.isPrimary ? <Badge variant="sukses">Utama</Badge> : null}

@@ -1,12 +1,10 @@
-import { useId } from "react";
+// Packshot ringan (Fase 8B): hanya <img> ke route /art dan label. Versi SVG inline (galeri, hero, OG) ada di
+// ./inline supaya kode gambar semua kemasan tidak ikut bundel klien halaman katalog dan beranda.
 import type { Packaging } from "@/db/schema/enums";
 import { cn } from "@/lib/utils";
-import { buildCtx, type ProductArtView } from "./context";
-import { Defs } from "./primitives";
-import { detailLabels, packagingLabels, shapes } from "./shapes";
+import { detailLabels, packagingLabels } from "./labels";
 
-export type { ProductArtView };
-export { ShadeSwatchArt, swatchTextureLabels, type SwatchTexture } from "./swatch-art";
+export type ProductArtView = "depan" | "detail";
 
 export type ProductArtProps = {
   packaging: Packaging;
@@ -45,46 +43,12 @@ export function ProductArt({ packaging, shade, brandColor, brandName, view = "de
       height={typeof width === "number" ? width * 1.2 : 240}
       loading={priority ? "eager" : "lazy"}
       fetchPriority={priority ? "high" : undefined}
-      decoding="async"
+      // Gambar prioritas (kandidat LCP) didekode biasa supaya langsung terlukis; sisanya asinkron.
+      decoding={priority ? "auto" : "async"}
       draggable={false}
       className={cn("block h-auto w-full select-none", className)}
       style={{ aspectRatio: "5 / 6" }}
     />
-  );
-}
-
-// Packshot SVG inline yang digambar dari data: dipakai galeri produk, hero, route /art dan OG, serta skrip lembar seni.
-export function ProductArtInline({
-  packaging,
-  shade,
-  brandColor,
-  brandName,
-  view = "depan",
-  background = "soft",
-  className,
-  title,
-  width,
-}: ProductArtProps) {
-  const rawId = useId();
-  const id = `pa${rawId.replace(/[^a-zA-Z0-9]/g, "")}`;
-  const ctx = buildCtx({ id, view, packaging, shade, brand: brandColor, brandName });
-  const draw = shapes[packaging] ?? shapes.cream_jar;
-  const label = artLabel({ packaging, brandName, view, title });
-  return (
-    <svg
-      viewBox="0 0 200 240"
-      width={width}
-      height={typeof width === "number" ? width * 1.2 : undefined}
-      role="img"
-      aria-label={label}
-      className={cn("block h-auto w-full select-none", className)}
-      style={{ aspectRatio: "5 / 6" }}
-    >
-      <title>{label}</title>
-      <Defs ctx={ctx} />
-      {background === "soft" ? <rect width="200" height="240" rx="16" fill={`url(#${id}-bg)`} /> : null}
-      {draw(ctx)}
-    </svg>
   );
 }
 

@@ -16,6 +16,7 @@ import { effectivePrice, type EffectivePrice } from "@/lib/pricing";
 import { locationFlags } from "./availability";
 import { pickSimilar, pickTogether } from "./related";
 import { now as clockNow } from "@/lib/clock";
+import { flashSaleGate } from "@/lib/flash/gate";
 
 const SHADE_PACKAGING = new Set<Packaging>(["lipstick", "lip_tint", "lip_cream", "cushion", "foundation_bottle"]);
 
@@ -241,7 +242,7 @@ export async function getProductLive(product: Pick<ProductDetail, "id" | "varian
       })
       .from(schema.flashSaleItems)
       .innerJoin(schema.flashSales, eq(schema.flashSaleItems.flashSaleId, schema.flashSales.id))
-      .where(and(inArray(schema.flashSaleItems.variantId, variantIds), eq(schema.flashSales.isActive, true), lte(schema.flashSales.startsAt, now), gt(schema.flashSales.endsAt, now)))
+      .where(and(inArray(schema.flashSaleItems.variantId, variantIds), eq(schema.flashSales.isActive, true), lte(schema.flashSales.startsAt, now), gt(schema.flashSales.endsAt, now), flashSaleGate()))
       // Slot admin diproses terakhir supaya menimpa slot otomatis (slot admin selalu menang).
       .orderBy(sql`case when ${schema.flashSales.source} = 'admin' then 1 else 0 end`, schema.flashSaleItems.id),
   ]);

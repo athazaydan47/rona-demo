@@ -17,27 +17,27 @@ function Items({ pathname }: { pathname: string | null }) {
   const account = useAccountBadge();
   const isActive = (href: string) => (pathname ? (href === "/" ? pathname === "/" : pathname.startsWith(href)) : false);
   return (
-    <div className="container-rona flex h-16 items-stretch gap-1">
-      <Link href="/" className={cn(itemClass, isActive("/") && "text-rona")} aria-current={isActive("/") ? "page" : undefined}>
+    <div className="container-toko flex h-16 items-stretch gap-1">
+      <Link href="/" className={cn(itemClass, isActive("/") && "text-aksen")} aria-current={isActive("/") ? "page" : undefined}>
         <Home className="size-5" />
         Beranda
       </Link>
-      <button type="button" onClick={() => setOpen(true)} className={cn(itemClass, open && "text-rona")}>
+      <button type="button" onClick={() => setOpen(true)} className={cn(itemClass, open && "text-aksen")}>
         <LayoutGrid className="size-5" />
         Kategori
       </button>
-      <Link href="/cari" className={cn(itemClass, isActive("/cari") && "text-rona")} aria-current={isActive("/cari") ? "page" : undefined}>
+      <Link href="/cari" className={cn(itemClass, isActive("/cari") && "text-aksen")} aria-current={isActive("/cari") ? "page" : undefined}>
         <Search className="size-5" />
         Cari
       </Link>
-      <Link href="/keranjang" className={cn(itemClass, isActive("/keranjang") && "text-rona")} aria-current={isActive("/keranjang") ? "page" : undefined}>
+      <Link href="/keranjang" className={cn(itemClass, isActive("/keranjang") && "text-aksen")} aria-current={isActive("/keranjang") ? "page" : undefined}>
         <span className="relative" data-cart-icon>
           <ShoppingBag className="size-5" />
-          <CartBadge className="absolute -top-1.5 -right-2 grid h-4 min-w-4 place-items-center rounded-full bg-rona px-1 text-[10px] font-bold text-putih tabular-nums" />
+          <CartBadge className="absolute -top-1.5 -right-2 grid h-4 min-w-4 place-items-center rounded-full bg-aksen px-1 text-[10px] font-bold text-putih tabular-nums" />
         </span>
         Keranjang
       </Link>
-      <Link href={account.loggedIn ? "/akun" : "/masuk"} className={cn(itemClass, (isActive("/akun") || isActive("/masuk")) && "text-rona")} aria-current={isActive("/akun") ? "page" : undefined}>
+      <Link href={account.loggedIn ? "/akun" : "/masuk"} className={cn(itemClass, (isActive("/akun") || isActive("/masuk")) && "text-aksen")} aria-current={isActive("/akun") ? "page" : undefined}>
         <span className="relative">
           <User className="size-5" />
           <UnreadBadge count={account.unread} className="absolute -top-1.5 -right-2 grid h-4 min-w-4 place-items-center rounded-full bg-emas px-1 text-[10px] font-bold text-kopi tabular-nums" />

@@ -9,6 +9,7 @@ import type { ImageInput } from "./images";
 import visionFixtures from "../../../evals/7c/sidik.json";
 import { mockDupeFromImages, mockSkinReading } from "./mock-vision";
 import { INJECTION, MEDICAL_INTENT, OFF_TOPIC, parseQueryRules, realBrandIn } from "./rules-parser";
+import { MEREK } from "@/config/merek";
 
 const estimateTokens = (s: string) => Math.ceil(s.length / 4);
 
@@ -63,9 +64,9 @@ function advisorTurn(req: GenRequest): GenResponse {
 
   // Putaran pertama (mode tool wajib): pilih tool dari kalimat pembeli.
   if (req.toolMode === "ANY") {
-    if (INJECTION.test(q)) return direct("Aku hanya bisa membantu soal produk dan perawatan kulit di Rona Beauty, dan aturanku tidak bisa diubah. Ada yang ingin kamu cari?");
+    if (INJECTION.test(q)) return direct(`Aku hanya bisa membantu soal produk dan perawatan kulit di ${MEREK.namaLengkap}, dan aturanku tidak bisa diubah. Ada yang ingin kamu cari?`);
     if (/diskon|ubah harga|harganya rp|jadi admin|sebagai admin/.test(q)) return direct("Maaf, aku tidak bisa mengubah harga atau memberi diskon. Harga dan promo resmi selalu tampil di halaman produk.");
-    if (OFF_TOPIC.test(q) && !/kulit|makeup|lipstik|skincare|sunscreen|produk/.test(q)) return direct("Maaf, aku khusus membantu belanja kosmetik dan perawatan kulit di Rona Beauty. Mau aku carikan sesuatu untuk kulitmu?");
+    if (OFF_TOPIC.test(q) && !/kulit|makeup|lipstik|skincare|sunscreen|produk/.test(q)) return direct(`Maaf, aku khusus membantu belanja kosmetik dan perawatan kulit di ${MEREK.namaLengkap}. Mau aku carikan sesuatu untuk kulitmu?`);
     if (MEDICAL_INTENT.test(q)) return direct(`Aku bukan tenaga medis, jadi tidak bisa menilai kondisi kulitmu. ${MEDICAL_REFERRAL} Setelah itu aku bisa bantu pilih pembersih yang lembut.`);
     if (/rutinitas|skincare routine|urutan skincare/.test(q)) return reply([call("susunRutinitas", { catatan: "Aku susun rutinitas dari profil kulitmu." })], req);
     const p = parseQueryRules(q);
@@ -86,12 +87,12 @@ function advisorTurn(req: GenRequest): GenResponse {
       if (!brand && words.length) args.teks = words.slice(0, 3).join(" ");
     }
     const what = categoryWords(args.kategori) || "produk";
-    args.catatan = `Aku carikan ${what}${args.jenisKulit ? ` untuk kulit ${args.jenisKulit}` : ""} di katalog Rona.`;
+    args.catatan = `Aku carikan ${what}${args.jenisKulit ? ` untuk kulit ${args.jenisKulit}` : ""} di katalog ${MEREK.nama}.`;
     return reply([call("cariProduk", args)], req);
   }
 
   // Putaran berikutnya: jawaban terstruktur dari hasil tool (nama dan harga tampil di kartu, bukan di teks).
-  if (!responses.length) return reply([json({ teks: "Maaf, aku ulangi: ini hanya produk yang ada di katalog Rona.", produk: [] })], req);
+  if (!responses.length) return reply([json({ teks: `Maaf, aku ulangi: ini hanya produk yang ada di katalog ${MEREK.nama}.`, produk: [] })], req);
   const r = responses[0].functionResponse!;
   const data = r.response as Record<string, unknown>;
   const args = lastCallArgs(req.contents);
@@ -102,13 +103,13 @@ function advisorTurn(req: GenRequest): GenResponse {
     return reply([json({ teks: `Ini rutinitas dari profil kulitmu, ${steps.length} langkah pagi dan malam. Lihat lengkapnya di halaman Rutinitas.`, produk: ids.map((id) => ({ id, alasan: steps.find((s) => s.id === id)?.langkah ?? "Bagian dari rutinitasmu" })) })], req);
   }
   const hasil = (((data.hasil as MockHit[]) ?? []).map((h) => ({ ...h, id: h.id ?? h.produkId }))).slice(0, 3);
-  const prefix = brand ? `Rona tidak menjual ${brand}, jadi aku tidak bisa merekomendasikannya. ` : "";
-  if (!hasil.length) return reply([json({ teks: `${prefix}Aku belum menemukan produk yang cocok di katalog Rona. Coba longgarkan budget atau kategorinya, ya.`, produk: [] })], req);
+  const prefix = brand ? `${MEREK.nama} tidak menjual ${brand}, jadi aku tidak bisa merekomendasikannya. ` : "";
+  if (!hasil.length) return reply([json({ teks: `${prefix}Aku belum menemukan produk yang cocok di katalog ${MEREK.nama}. Coba longgarkan budget atau kategorinya, ya.`, produk: [] })], req);
   const what = categoryWords(args.kategori) || "produk";
   const budget = typeof args.hargaMaks === "number" ? `, semuanya di bawah ${Math.round(args.hargaMaks / 1000)} ribu` : "";
   const skin = typeof args.jenisKulit === "string" ? ` untuk kulit ${args.jenisKulit}` : "";
   const loc = typeof args.lokasi === "string" ? " Semuanya ada stoknya di cabang itu." : "";
-  const teks = `${prefix}${brand ? "Sebagai gantinya, ini" : "Ini"} ${hasil.length} pilihan ${what}${skin} dari katalog Rona${budget}.${loc}`;
+  const teks = `${prefix}${brand ? "Sebagai gantinya, ini" : "Ini"} ${hasil.length} pilihan ${what}${skin} dari katalog ${MEREK.nama}${budget}.${loc}`;
   return reply([json({ teks, produk: hasil.map((h) => ({ id: h.id, alasan: reasonFor(h, args) })) })], req);
 }
 
@@ -136,7 +137,7 @@ async function jsonTask(req: GenRequest): Promise<GenResponse> {
     const skinText = skin && skin !== "tidak disebut" ? ` untuk kulit ${skin}` : "";
     const ringkas = `${name}${actives[0] ? ` dengan ${actives[0]}` : ""}${skinText}, ringan dan nyaman dipakai setiap hari.`;
     const manfaat = (points.length ? points.map((p) => `${p.charAt(0).toUpperCase()}${p.slice(1).replace(/\.$/, "")}.`) : ["Terasa ringan dan nyaman dipakai harian."]).slice(0, short ? 1 : 4).join(" ");
-    return reply([{ text: JSON.stringify({ ringkas, manfaat, kandungan: actives.length ? `Bahan aktif utama: ${actives.join(", ")}.` : "Komposisi lengkap ada di kemasan.", caraPakai: "Pakai secukupnya pada wajah yang bersih, lalu ratakan perlahan. Gunakan rutin pagi atau malam.", metaJudul: `${name} | Rona Beauty`.slice(0, 60), metaDeskripsi: ringkas.slice(0, 155) }) }], req);
+    return reply([{ text: JSON.stringify({ ringkas, manfaat, kandungan: actives.length ? `Bahan aktif utama: ${actives.join(", ")}.` : "Komposisi lengkap ada di kemasan.", caraPakai: "Pakai secukupnya pada wajah yang bersih, lalu ratakan perlahan. Gunakan rutin pagi atau malam.", metaJudul: `${name} | ${MEREK.namaLengkap}`.slice(0, 60), metaDeskripsi: ringkas.slice(0, 155) }) }], req);
   }
   if (task === "balas_ulasan") {
     const nama = greetingName(/Nama tampilan: (.+?)\. Bintang/.exec(prompt)?.[1] ?? "");
@@ -207,7 +208,7 @@ export function createMockModel(): AiModel {
   return withStream({
     name: "mock",
     async generate(req) {
-      if (req.system?.startsWith("Kamu Rona Advisor")) return advisorTurn(req);
+      if (req.system?.startsWith(`Kamu ${MEREK.asisten.nama}`)) return advisorTurn(req);
       if (req.system?.startsWith("Kamu Asisten Admin")) return adminMockTurn(req);
       return jsonTask(req);
     },

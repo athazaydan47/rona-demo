@@ -13,7 +13,7 @@ type ChipProps = React.ComponentProps<"button"> & {
 export function Chip({ className, selected = false, asChild = false, onRemove, children, type, ...props }: ChipProps) {
   const classes = cn(
     "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-pill border px-3.5 text-sm font-medium whitespace-nowrap transition-[background-color,border-color,color] duration-200 ease-soft",
-    selected ? "border-rona bg-blush text-rona-gelap" : "border-garis bg-putih text-kopi hover:border-kopi/30 hover:bg-porselen",
+    selected ? "border-aksen bg-blush text-aksen-gelap" : "border-garis bg-putih text-kopi hover:border-kopi/30 hover:bg-porselen",
     className,
   );
   if (asChild) {
@@ -42,7 +42,7 @@ export function Chip({ className, selected = false, asChild = false, onRemove, c
             e.stopPropagation();
             onRemove();
           }}
-          className="-mr-1 grid size-5 place-items-center rounded-full hover:bg-rona/15"
+          className="-mr-1 grid size-5 place-items-center rounded-full hover:bg-aksen/15"
         >
           <X className="size-3.5" />
         </span>

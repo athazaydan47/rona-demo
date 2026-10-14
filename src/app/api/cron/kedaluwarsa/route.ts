@@ -8,6 +8,10 @@ import { dispatchEmails } from "@/lib/email/dispatch";
 import { generateDailyBrief } from "@/lib/kabar";
 import { completeDueOrders, expireDueOrders } from "@/lib/orders/service";
 import { siteUrl } from "@/lib/site";
+import { bacaCronStatus, tulisCronStatus } from "@/lib/cron-status";
+import { laporGalat } from "@/lib/galat";
+import { logEvent } from "@/lib/log";
+import { cleanRateLimits } from "@/lib/security/rate-limit";
 
 // Reset demo bisa memakan beberapa detik di fungsi serverless.
 export const maxDuration = 60;
@@ -20,20 +24,43 @@ export const maxDuration = 60;
 // 4. Perbarui ringkasan ulasan AI yang daftar ulasannya berubah.
 // 5. Kabar Harian untuk hari kemarin (narasi AI bila tersedia, selain itu templat), sebelum reset supaya datanya utuh.
 //    Satu pesan WA ke nomor owner masuk antrean; gagalnya tidak menghentikan cron.
-// 6. Reset data demo, hanya bila DEMO_MODE=true dan DEMO_DAILY_RESET=true.
+// 6. Bersihkan jendela pembatas laju yang sudah lewat.
+// 7. Reset data demo, hanya bila DEMO_MODE=true dan DEMO_DAILY_RESET=true.
+// Hasil dan galatnya dicatat di settings cron.status (peringatan dashboard Owner) dan log terstruktur.
 async function handle(request: NextRequest) {
   if (!process.env.CRON_SECRET) return NextResponse.json({ ok: false, message: "CRON_SECRET belum diisi." }, { status: 503 });
   if (!isAuthorizedCron(request.headers.get("authorization"), process.env.CRON_SECRET)) {
     return NextResponse.json({ ok: false, message: "Tidak diizinkan." }, { status: 401 });
   }
+  const mulai = new Date();
+  const sebelumnya = (await bacaCronStatus(db).catch(() => ({ status: null }))).status;
+  logEvent("cron.mulai", {});
+  try {
+    const hasil = await jalankan();
+    const selesai = new Date();
+    await tulisCronStatus(db, { mulai: mulai.toISOString(), selesai: selesai.toISOString(), ok: true, galat: null, durasiMs: selesai.getTime() - mulai.getTime(), terakhirBerhasil: selesai.toISOString() }).catch(() => {});
+    logEvent("cron.selesai", { durasiMs: selesai.getTime() - mulai.getTime(), dibatalkan: hasil.cancelled, selesai: hasil.completed, reset: hasil.reset.ran });
+    return NextResponse.json({ ok: true, ...hasil });
+  } catch (e) {
+    const galat = e instanceof Error ? e.message.slice(0, 200) : "galat tidak dikenal";
+    await tulisCronStatus(db, { mulai: mulai.toISOString(), selesai: new Date().toISOString(), ok: false, galat, durasiMs: Date.now() - mulai.getTime(), terakhirBerhasil: sebelumnya?.terakhirBerhasil ?? null }).catch(() => {});
+    logEvent("cron.gagal", { galat }, "error");
+    await laporGalat(e, { tempat: "cron harian" });
+    return NextResponse.json({ ok: false, message: "Cron gagal. Lihat log server." }, { status: 500 });
+  }
+}
+
+async function jalankan() {
   const expired = await expireDueOrders(db, undefined, siteUrl());
   const completed = await completeDueOrders(db, undefined, siteUrl());
   // Kirim email yang menunggu dan coba ulang yang gagal (maksimal 3 percobaan) sebelum reset demo mengosongkan outbox.
   const email = await dispatchEmails(db, { site: siteUrl(), retry: true, limit: 200 }).catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
   // Ringkasan ulasan AI: dibuat ulang hanya untuk produk yang daftar ulasannya berubah.
-  const model = aiModel();
+  const model = aiModel("aiPembeli");
   const summaries = model ? await refreshAllReviewSummaries(db, model, new Date()).catch((e) => ({ error: e instanceof Error ? e.message : String(e) })) : { lewati: "AI tidak tersedia" };
-  const kabar = await generateDailyBrief(db, { now: new Date(), model, notify: true });
+  const kabar = await generateDailyBrief(db, { now: new Date(), model: aiModel("asistenAdmin"), notify: true });
+  // Jendela pembatas laju yang sudah lewat dibuang supaya tabel rate_limits tetap kecil.
+  const rateLimits = await cleanRateLimits(db).catch(() => 0);
   let reset: { ran: boolean; durationMs?: number; message?: string } = { ran: false };
   if (dailyResetOn(process.env)) {
     try {
@@ -43,7 +70,7 @@ async function handle(request: NextRequest) {
       reset = { ran: false, message: e instanceof DemoResetError ? e.message : "Reset data demo gagal." };
     }
   }
-  return NextResponse.json({ ok: true, ...expired, completed: completed.completed, completedChecked: completed.checked, email, summaries, kabar, reset });
+  return { ...expired, completed: completed.completed, completedChecked: completed.checked, email, summaries, kabar, rateLimits, reset };
 }
 
 export const GET = handle;

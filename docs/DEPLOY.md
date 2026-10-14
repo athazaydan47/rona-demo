@@ -32,6 +32,7 @@ Isi di Vercel (Settings, Environment Variables) untuk Production dan Preview. Un
 | `NEXT_PUBLIC_SITE_URL` | Disarankan | `https://rona-demo.vercel.app` | Tautan absolut di notifikasi, JSON-LD, gambar OG. Bila kosong, dipakai domain produksi Vercel otomatis. |
 | `STUDIO_NAME` | Opsional | `Ciptalogy` | Kredit "Dibangun oleh" di footer dan Tentang Demo. |
 | `STUDIO_URL` | Opsional | `https://contoh-studio.id` | Tautan kredit pembuat. |
+| `STUDIO_WA` | Opsional | `6281234567890` | Nomor WhatsApp studio untuk tombol "Ngobrol di WhatsApp" di Tentang Demo (Fase 8A). |
 | `PAYMENT_WEBHOOK_SECRET` | Opsional | string acak 32 karakter atau lebih | Route `/api/pembayaran/webhook` (HMAC). Tanpa ini route menjawab 503; tombol simulasi demo tetap jalan. |
 | `SESSION_SECRET` | Wajib di produksi | string acak 32 karakter atau lebih (`openssl rand -base64 36`) | Kunci HMAC untuk kode OTP dan alamat IP di rate limit masuk pembeli (Fase 5) dan staf (Fase 6A). Tanpa ini masuk staf dengan kata sandi juga ditolak. Tanpa ini di Vercel, halaman `/masuk` menampilkan "Masuk belum tersedia". Mengganti nilainya membuat kode OTP yang sedang berjalan tidak berlaku (sesi yang sudah masuk tetap aman). |
 | `BLOB_READ_WRITE_TOKEN` | Opsional | otomatis dari Vercel Blob | Penyimpanan foto ulasan (Fase 5). Tanpa token di Vercel, unggah foto dinonaktifkan dengan pesan ramah dan ulasan teks tetap bisa dikirim. Di lokal foto disimpan di `.data/uploads`. |
@@ -51,6 +52,9 @@ Isi di Vercel (Settings, Environment Variables) untuk Production dan Preview. Un
 | `AI_PROVIDER` | Jangan diisi di produksi | kosong | `mock` hanya untuk uji, Playwright, dan cuplik. |
 | `SKIP_BUILD_MIGRATION` | Jangan diisi, kecuali darurat | kosong | Isi `true` untuk melewati migrasi otomatis di build produksi (Fase 6B). |
 | `CONFIRM_RESET` | Hanya saat reset | `rona-demo` | Konfirmasi wajib untuk `db:reset` atau `db:seed` ke host selain localhost. Jangan disimpan di Vercel. |
+| `CSP_MODE` | Jangan diisi, kecuali audit | kosong | Kosong: CSP ditegakkan. `report-only`: pelanggaran hanya dilaporkan ke `/api/csp-laporan`. Dibaca saat build (Fase 8B). |
+| `SENTRY_DSN` | Opsional | DSN dari proyek Sentry | Pelacakan galat dengan nomor WA dan email disamarkan. Kosong: tidak ada yang dikirim (Fase 8B). |
+| `NEXT_PUBLIC_FITUR_NONAKTIF` | Opsional | kosong, atau misal `flashSale,poin` | Mematikan fitur tanpa mengubah kode. Dibaca saat build (Fase 8B, lihat docs/RESKIN.md). |
 
 Variabel AI (Fase 7A) dijelaskan di bagian Pembaruan ke Fase 7A.
 
@@ -344,6 +348,53 @@ Tidak ada env baru. Asisten Admin, Kabar Harian, penulis deskripsi, dan draf bal
 
 Tarif dan kurs ada di `src/lib/ai/pricing.ts` (kurs asumsi Rp 16.500 per US$1); mulai 1 Jan 2027 tarif naik dua kali lipat. Token masuk Asisten Admin terbesar untuk Owner karena semua 16 tool dideklarasikan; peran dengan tool lebih sedikit lebih murah. Batas: 80 pertanyaan dan 40 masukan suara per staf per hari, plus `AI_DAILY_CAP`.
 
+## Pembaruan ke Fase 8A (poles pengalaman, gerak, kecepatan, konten)
+
+Tidak ada migrasi. Seed naik ke versi 12 (stok cabang membedakan "tidak dijual" dari "habis", stok gudang sunscreen untuk skenario Advisor). Env baru opsional: `STUDIO_WA` (nomor WhatsApp studio untuk tombol di `/tentang-demo`).
+
+1. Isi `STUDIO_WA` di Vercel bila ingin tombol WhatsApp di halaman Tentang demo.
+2. **Push** ke `main`, lalu **reset data demo** dari Dashboard Owner (seed versi 12).
+3. Cek `/tentang-demo`, panduan demo 5 menit dari tombol Panduan di pita atas, halaman bantuan di footer, dan halaman 404.
+
+## Pembaruan ke Fase 8B (pengerasan, reskin, dokumentasi): rilis 1.0.0-demo
+
+Migrasi baru: `drizzle/0008_keamanan.sql`. Isinya hanya menambah tabel `rate_limits` (pembatas laju lacak pesanan, unggah foto, tafsiran shade, dan tebakan voucher). Aman dijalankan otomatis saat build selagi versi 8A masih tayang. Seed tetap versi 12, jadi tidak perlu reset.
+
+Env baru, semuanya opsional:
+
+| Nama | Bawaan | Kegunaan |
+| --- | --- | --- |
+| `CSP_MODE` | kosong (CSP ditegakkan) | Isi `report-only` hanya untuk mengaudit sumber baru. Dibaca saat build. |
+| `SENTRY_DSN` | kosong (tidak mengirim apa pun) | Pelacakan galat dengan data pribadi disamarkan. |
+| `NEXT_PUBLIC_FITUR_NONAKTIF` | kosong (semua fitur aktif) | Mematikan fitur tanpa mengubah kode, misal `flashSale,poin`. Dibaca saat build. |
+
+Perubahan perilaku yang perlu diketahui:
+
+- **Content Security Policy ditegakkan.** Skrip, gambar, dan koneksi hanya dari situs sendiri plus host yang terdaftar di `src/lib/security/csp.ts` (Vercel Blob, ubin OpenStreetMap, sampul TikTok dan YouTube). Bila nanti menambah layanan luar (misal skrip analitik), daftarkan dulu hostnya, atau sementara pakai `CSP_MODE=report-only` dan pantau `csp.pelanggaran` di log.
+- **`/api/sehat`** untuk pemantau uptime. Lihat docs/OPERASIONAL.md.
+- **Dashboard Owner** menampilkan peringatan bila cron harian gagal atau tidak berjalan lebih dari 26 jam.
+- **Log terstruktur**: satu baris JSON per kejadian penting, dengan nomor WA dan email disamarkan.
+
+### Urutan memperbarui produksi
+
+1. Bila ingin, isi `SENTRY_DSN` di Vercel.
+2. **Push** ke `main`. Log build harus menampilkan `Migrasi selesai: 0008_keamanan`.
+3. Cek kesehatan dan versi yang tayang:
+
+   ```bash
+   curl -s https://<domain-mu>/api/sehat
+   ```
+
+   `ok` true, `versi.commit` sama dengan commit terakhir, `seed.terpasang` 12, `dataUji` semuanya 0.
+4. Jalankan uji asap hanya-baca dari laptop:
+
+   ```bash
+   npm run uji:produksi -- --url=https://<domain-mu>
+   ```
+
+5. Pasang pemantau uptime gratis ke `https://<domain-mu>/api/sehat` (interval 5 menit, peringatan bila bukan 200).
+6. Cek manual di HP sungguhan: buka Advisor, peta di checkout, dan unggah foto ulasan. Buka konsol browser di desktop dan pastikan tidak ada pesan "Content Security Policy".
+
 ## 5. Bagian build yang butuh database
 
 `npm run build` (di Vercel produksi didahului migrasi otomatis) membaca database untuk memprarender data katalog yang di-cache. Build gagal bila `DATABASE_URL` tidak bisa dihubungi. Yang dibaca saat build:
@@ -380,13 +431,20 @@ Stok, harga efektif, flash sale, keranjang, dan pesanan tidak dibaca saat build;
    curl -s -o /dev/null -w "%{http_code}\n" https://<domain-mu>/api/cron/kedaluwarsa
    ```
 
+7. Sejak Fase 8B, langkah 4 sampai 6 juga dicakup satu perintah hanya-baca:
+
+   ```bash
+   npm run uji:produksi -- --url=https://<domain-mu>
+   ```
+
 ## Bila ada masalah
 
 - **Build gagal dengan `ENOTFOUND` atau timeout database**: `DATABASE_URL` di Vercel salah atau database Neon sedang tidur lama; buka console Neon untuk membangunkan, lalu redeploy.
 - **Error relasi atau kolom tidak ada**: migrasi belum dijalankan ke Neon. Cek log build produksi (bagian migrasi); bila dilewati, pastikan `SKIP_BUILD_MIGRATION` kosong lalu redeploy, atau jalankan `db:deploy` manual.
 - **Build gagal dengan `MIGRASI GAGAL`**: versi lama tetap tayang. Baca pesan di log build, perbaiki migrasinya, lalu push lagi. Build lain yang berjalan bersamaan menunggu kunci advisory, tidak ikut memigrasi.
 - **Tombol simulasi tidak muncul**: `DEMO_MODE` belum `true` di Vercel.
-- **Halaman masuk menampilkan "Masuk belum tersedia"**: `SESSION_SECRET` belum diisi (atau kurang dari 16 karakter) atau `DEMO_MODE` bukan `true`. Adapter WhatsApp sungguhan belum ada, jadi di luar mode demo masuk memang dinonaktifkan.
+- **Halaman masuk menampilkan "Masuk belum tersedia"**: `SESSION_SECRET` belum diisi (atau kurang dari 16 karakter; disarankan 32 karakter acak) atau `DEMO_MODE` bukan `true`. Adapter WhatsApp sungguhan belum ada, jadi di luar mode demo masuk memang dinonaktifkan.
 - **"Akun demo belum disiapkan"**: Neon hanya dimigrasi tanpa seed. Jalankan `db:reset` seperti di bagian Pembaruan ke Fase 5 atau 6A.
 - **Masuk staf menjawab "Terlalu banyak percobaan gagal"**: 5 kali salah untuk satu email mengunci email itu 15 menit (20 kali gagal per IP juga dikunci). Tunggu, atau pakai tombol masuk cepat di mode demo.
 - **Reset harian tidak jalan**: cek `DEMO_MODE=true` dan `DEMO_DAILY_RESET=true` di Vercel, lalu lihat Log aktivitas dengan filter aksi "Reset data demo".
+- **Sesuatu tidak tampil dan konsol menyebut Content Security Policy**: host baru belum terdaftar di `src/lib/security/csp.ts`. Daftarkan lalu redeploy. Panduan lain untuk gangguan, pemulihan database, dan rotasi rahasia ada di docs/OPERASIONAL.md.

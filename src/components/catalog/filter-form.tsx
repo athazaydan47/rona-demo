@@ -26,7 +26,7 @@ function Section({ title, children, count }: { title: string; children: React.Re
     <fieldset className="border-t border-garis py-4 first:border-t-0 first:pt-0">
       <legend className="float-left mb-2 flex w-full items-center justify-between text-sm font-semibold text-kopi">
         {title}
-        {count ? <span className="rounded-pill bg-blush px-2 py-0.5 text-[11px] font-semibold text-rona-gelap tabular-nums">{count}</span> : null}
+        {count ? <span className="rounded-pill bg-blush px-2 py-0.5 text-[11px] font-semibold text-aksen-gelap tabular-nums">{count}</span> : null}
       </legend>
       <div className="clear-both space-y-1.5">{children}</div>
     </fieldset>
@@ -36,8 +36,8 @@ function Section({ title, children, count }: { title: string; children: React.Re
 function Check({ label, count, checked, onChange, type = "checkbox", name }: { label: string; count?: number; checked: boolean; onChange: () => void; type?: "checkbox" | "radio"; name?: string }) {
   const id = useId();
   return (
-    <label htmlFor={id} className="flex cursor-pointer items-center gap-2.5 rounded-lg py-1 text-sm text-kopi hover:text-rona-gelap">
-      <input id={id} type={type} name={name} checked={checked} onChange={onChange} className="size-4 shrink-0 accent-rona" />
+    <label htmlFor={id} className="flex cursor-pointer items-center gap-2.5 rounded-lg py-1 text-sm text-kopi hover:text-aksen-gelap">
+      <input id={id} type={type} name={name} checked={checked} onChange={onChange} className="size-4 shrink-0 accent-aksen" />
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {count != null ? <span className="text-xs text-abu-hangat tabular-nums">{count}</span> : null}
     </label>
@@ -83,12 +83,12 @@ export function FilterForm({ filters, facets, labels, onChange, hide = [], dense
           <label className="sr-only" htmlFor={`${brandSearchId}-min`}>
             Harga minimal
           </label>
-          <input id={`${brandSearchId}-min`} inputMode="numeric" placeholder="Min" value={priceMin} onChange={(e) => setPriceMin(e.target.value.replace(/\D/g, ""))} onBlur={commitPrice} className="h-9 w-full min-w-0 rounded-lg border border-garis px-2.5 text-sm tabular-nums outline-none focus-visible:border-rona focus-visible:shadow-ring" />
+          <input id={`${brandSearchId}-min`} inputMode="numeric" placeholder="Min" value={priceMin} onChange={(e) => setPriceMin(e.target.value.replace(/\D/g, ""))} onBlur={commitPrice} className="h-9 w-full min-w-0 rounded-lg border border-garis px-2.5 text-sm tabular-nums outline-none focus-visible:border-aksen focus-visible:shadow-ring" />
           <span className="text-abu-hangat">sampai</span>
           <label className="sr-only" htmlFor={`${brandSearchId}-max`}>
             Harga maksimal
           </label>
-          <input id={`${brandSearchId}-max`} inputMode="numeric" placeholder="Maks" value={priceMax} onChange={(e) => setPriceMax(e.target.value.replace(/\D/g, ""))} onBlur={commitPrice} className="h-9 w-full min-w-0 rounded-lg border border-garis px-2.5 text-sm tabular-nums outline-none focus-visible:border-rona focus-visible:shadow-ring" />
+          <input id={`${brandSearchId}-max`} inputMode="numeric" placeholder="Maks" value={priceMax} onChange={(e) => setPriceMax(e.target.value.replace(/\D/g, ""))} onBlur={commitPrice} className="h-9 w-full min-w-0 rounded-lg border border-garis px-2.5 text-sm tabular-nums outline-none focus-visible:border-aksen focus-visible:shadow-ring" />
           <button type="submit" className="sr-only">
             Terapkan harga
           </button>
@@ -103,7 +103,7 @@ export function FilterForm({ filters, facets, labels, onChange, hide = [], dense
               <label htmlFor={brandSearchId} className="sr-only">
                 Cari merek
               </label>
-              <input id={brandSearchId} value={brandQuery} onChange={(e) => setBrandQuery(e.target.value)} placeholder="Cari merek" className="h-9 w-full rounded-lg border border-garis pl-8 pr-2.5 text-sm outline-none focus-visible:border-rona focus-visible:shadow-ring" />
+              <input id={brandSearchId} value={brandQuery} onChange={(e) => setBrandQuery(e.target.value)} placeholder="Cari merek" className="h-9 w-full rounded-lg border border-garis pl-8 pr-2.5 text-sm outline-none focus-visible:border-aksen focus-visible:shadow-ring" />
             </div>
           ) : null}
           <div className="max-h-56 overflow-y-auto pr-1">

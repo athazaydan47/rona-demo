@@ -7,8 +7,9 @@ import type { AnyDb } from "@/lib/db-types";
 import { writeAudit } from "./audit";
 import { DUMMY_HASH, verifyPassword } from "./password";
 import { isRoleSlug, type StaffPrincipal } from "./permissions";
+import { namaCookie } from "@/config/merek";
 
-export const STAFF_COOKIE = "rona_staf";
+export const STAFF_COOKIE = namaCookie("staf");
 export const STAFF_SESSION_TTL_MS = 12 * 60 * 60_000;
 export const LOGIN_LIMITS = { emailFailures: 5, ipFailures: 20, windowMs: 15 * 60_000, lockMs: 15 * 60_000 } as const;
 

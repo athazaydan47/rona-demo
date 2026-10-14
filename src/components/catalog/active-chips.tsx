@@ -19,7 +19,7 @@ export function ActiveChips({ filters, labels, basePath, locked = [], prefix }: 
         </Chip>
       ))}
       {countActiveFilters(filters) > 1 ? (
-        <button type="button" onClick={() => apply(clearFilters(filters))} className="text-sm font-semibold text-rona hover:underline">
+        <button type="button" onClick={() => apply(clearFilters(filters))} className="text-sm font-semibold text-aksen hover:underline">
           Hapus semua
         </button>
       ) : null}

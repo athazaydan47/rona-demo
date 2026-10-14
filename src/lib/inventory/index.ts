@@ -3,6 +3,7 @@
 import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import type { AnyDb } from "@/lib/db-types";
+import { pesanStokKembali } from "@/lib/content/notifikasi";
 
 export type InventoryKey = { variantId: number; locationId: number };
 export type LockedRow = { id: number; variantId: number; locationId: number; onHand: number; reserved: number };
@@ -98,8 +99,7 @@ async function notifyRestockIfOnline(tx: AnyDb, r: LockedRow, at?: Date) {
         kind: "stok_kembali",
         channel: email ? ("email" as const) : ("wa" as const),
         recipient: c?.phone ?? w.contact,
-        subject: `${label} tersedia lagi`,
-        body: `${greet}, kabar baik: ${label} sudah tersedia lagi di Rona Beauty. Stoknya terbatas, jadi cek sekarang di /p/${v?.slug ?? ""}`,
+        ...pesanStokKembali(greet, label, v?.slug ?? ""),
         createdAt: when,
       };
     }),

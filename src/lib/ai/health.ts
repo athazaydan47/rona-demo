@@ -6,9 +6,10 @@ import type { AnyDb } from "@/lib/db-types";
 import { wibDayStart } from "@/lib/reports";
 import type { AiConfig } from "./client";
 import { costIdr, IDR_RATE_NOTE } from "./pricing";
+import { MEREK } from "@/config/merek";
 
 export const FEATURE_LABELS: Record<string, string> = {
-  advisor: "Rona Advisor",
+  advisor: MEREK.asisten.nama,
   tafsir_cari: "Tafsiran pencarian",
   jelaskan_rutinitas: "Penjelasan rutinitas",
   padanan_teks: "Padanan shade dari teks",

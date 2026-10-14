@@ -7,6 +7,8 @@
 // jadi pengecekan keberadaan produk dilakukan di sini sebelum routing, lalu direwrite ke rute 404 statis.
 import { NextResponse, type NextRequest } from "next/server";
 import postgres from "postgres";
+import { namaCookie } from "@/config/merek";
+import { cookieSecure } from "@/lib/cookie-secure";
 
 const TTL_MS = 60_000;
 // Hasil "tidak ada" hanya diingat sebentar supaya produk yang baru diaktifkan admin segera bisa dibuka.
@@ -39,15 +41,15 @@ async function productExists(slug: string) {
   }
 }
 
-const SESSION_COOKIE = "rona_sesi";
-const STAFF_COOKIE = "rona_staf";
-const SESSION_FRESH_COOKIE = "rona_sesi_segar";
+const SESSION_COOKIE = namaCookie("sesi");
+const STAFF_COOKIE = namaCookie("staf");
+const SESSION_FRESH_COOKIE = namaCookie("sesi_segar");
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 
 function refreshSession(request: NextRequest, response: NextResponse) {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (!token || request.cookies.get(SESSION_FRESH_COOKIE)) return response;
-  const opts = { httpOnly: true, sameSite: "lax" as const, secure: process.env.NODE_ENV === "production", path: "/" };
+  const opts = { httpOnly: true, sameSite: "lax" as const, secure: cookieSecure(), path: "/" };
   response.cookies.set(SESSION_COOKIE, token, { ...opts, maxAge: SESSION_MAX_AGE });
   response.cookies.set(SESSION_FRESH_COOKIE, "1", { ...opts, maxAge: 24 * 60 * 60 });
   return response;
@@ -79,10 +81,10 @@ export async function proxy(request: NextRequest) {
 }
 
 // Id pengunjung acak (bukan data pribadi) untuk batas pemakaian AI per pengunjung; disimpan sebagai hash di ai_logs.
-const VISITOR_COOKIE = "rona_pengunjung";
+const VISITOR_COOKIE = namaCookie("pengunjung");
 function withVisitorId(request: NextRequest, res: NextResponse) {
   if (!request.cookies.get(VISITOR_COOKIE)) {
-    res.cookies.set(VISITOR_COOKIE, crypto.randomUUID(), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 24 * 365 });
+    res.cookies.set(VISITOR_COOKIE, crypto.randomUUID(), { httpOnly: true, sameSite: "lax", secure: cookieSecure(), path: "/", maxAge: 60 * 60 * 24 * 365 });
   }
   return res;
 }

@@ -17,6 +17,7 @@ import { saveSkinProfile, sanitizeSkinProfile, updateProfile } from "./profile";
 import { cancelRestock, requestRestockFor } from "./restock";
 import { setWishlisted, wishlistIds } from "./wishlist";
 import { scheduleEmailDispatch } from "@/lib/email/schedule";
+import { cocok, skema } from "@/lib/validasi";
 
 const LOGIN_FIRST = { ok: false as const, message: "Sesi berakhir. Masuk lagi, ya.", needLogin: true };
 
@@ -60,14 +61,17 @@ export async function setPrimaryAddressAction(id: number): Promise<ActionResult>
 export async function updateProfileAction(input: { name: string; email: string }): Promise<ActionResult> {
   const me = await currentCustomer();
   if (!me) return LOGIN_FIRST;
-  return updateProfile(db, me.customerId, { name: String(input?.name ?? ""), email: String(input?.email ?? "") });
+  const data = cocok(skema.profil, input);
+  if (!data) return { ok: false, message: "Data tidak valid." };
+  return updateProfile(db, me.customerId, data);
 }
 
 export async function saveSkinProfileAction(raw: Record<string, unknown>): Promise<ActionResult> {
   const me = await currentCustomer();
   if (!me) return LOGIN_FIRST;
-  if (!raw || typeof raw !== "object") return { ok: false, message: "Data tidak valid." };
-  await saveSkinProfile(db, me.customerId, sanitizeSkinProfile(raw, "formulir", now()));
+  const data = cocok(skema.profilKulit, raw);
+  if (!data) return { ok: false, message: "Data tidak valid." };
+  await saveSkinProfile(db, me.customerId, sanitizeSkinProfile(data, "formulir", now()));
   return { ok: true };
 }
 

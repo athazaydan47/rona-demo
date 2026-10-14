@@ -99,13 +99,13 @@ export async function saveFlashItem(db: AnyDb, staff: StaffPrincipal, input: { s
 
 export async function removeFlashItem(db: AnyDb, staff: StaffPrincipal, itemId: number, opts: { now?: Date; confirmRunning?: boolean } = {}): Promise<PromoResult> {
   if (!can(staff, "promo.kelola")) return DENIED;
-  const [it] = await db.select({ item: schema.flashSaleItems, slot: schema.flashSales }).from(schema.flashSaleItems).innerJoin(schema.flashSales, eq(schema.flashSaleItems.flashSaleId, schema.flashSales.id)).where(eq(schema.flashSaleItems.id, itemId)).limit(1);
+  const [it] = await db.select({ item: schema.flashSaleItems, slot: schema.flashSales, sku: schema.variants.sku }).from(schema.flashSaleItems).innerJoin(schema.flashSales, eq(schema.flashSaleItems.flashSaleId, schema.flashSales.id)).innerJoin(schema.variants, eq(schema.flashSaleItems.variantId, schema.variants.id)).where(eq(schema.flashSaleItems.id, itemId)).limit(1);
   if (!it) return { ok: false, message: "Item tidak ditemukan." };
   if (it.item.sold > 0) return { ok: false, message: "Item ini sudah terjual di slot, jadi tidak bisa dihapus. Turunkan kuotanya saja." };
   const at = opts.now ?? new Date();
   if (it.slot.startsAt.getTime() <= at.getTime() && it.slot.endsAt.getTime() > at.getTime() && !opts.confirmRunning) return { ok: false, needsConfirm: true, message: "Slot ini sedang berjalan. Konfirmasi dulu." };
   await db.delete(schema.flashSaleItems).where(eq(schema.flashSaleItems.id, itemId));
-  await writeAudit(db, { staff, action: "promo.flash_item", objectType: "promo", objectId: String(it.slot.id), summary: `Hapus varian ${it.item.variantId} dari slot ${it.slot.name}`, before: { harga: it.item.flashPrice, kuota: it.item.quota }, at });
+  await writeAudit(db, { staff, action: "promo.flash_item", objectType: "promo", objectId: String(it.slot.id), summary: `Hapus ${it.sku} dari slot ${it.slot.name}`, before: { harga: it.item.flashPrice, kuota: it.item.quota }, at });
   return { ok: true, tags: ["products"] };
 }
 

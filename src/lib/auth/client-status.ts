@@ -3,8 +3,9 @@
 // Status akun di header (masuk atau belum, jumlah notifikasi belum dibaca). Diperbarui saat pindah halaman.
 import { useSyncExternalStore } from "react";
 import { accountStatusAction, type AccountStatus } from "./actions";
+import { namaEvent } from "@/config/merek";
 
-const EVENT = "rona:akun";
+const EVENT = namaEvent("akun");
 let status: AccountStatus | null = null;
 let inflight: Promise<void> | null = null;
 let lastAt = 0;

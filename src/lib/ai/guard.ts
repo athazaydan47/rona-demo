@@ -1,4 +1,4 @@
-// Pagar pengaman keluaran Rona Advisor (murni): id produk wajib berasal dari hasil tool di percakapan ini, nama
+// Pagar pengaman keluaran Advisor pembeli (murni): id produk wajib berasal dari hasil tool di percakapan ini, nama
 // produk katalog yang tidak ada di hasil tool ditolak, dan kata klaim medis dilarang.
 
 export const MAX_RECOMMENDED = 4;

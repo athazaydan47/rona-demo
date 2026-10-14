@@ -1,4 +1,4 @@
-// Isi notifikasi menyimpan tautan relatif (misal /pesanan/RONA-2610-000001?t=...). Alamat situs ditambahkan
+// Isi notifikasi menyimpan tautan relatif (misal /pesanan/<nomor>?t=...). Alamat situs ditambahkan
 // saat pesan ditampilkan atau dikirim, supaya data seed tidak membawa alamat mesin yang membuatnya.
 // Data lama yang terlanjur berisi http://localhost:3000 juga ikut dibetulkan.
 const LOCAL = /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?=\/)/g;

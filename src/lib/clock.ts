@@ -4,13 +4,13 @@
 type ClockState = { fixed: number | null; offsetMs: number };
 
 declare global {
-  var __ronaClock: ClockState | undefined;
+  var __tokoClock: ClockState | undefined;
 }
 
 // Disimpan di globalThis supaya semua bundel route di proses yang sama berbagi satu jam.
 function state(): ClockState {
-  if (!globalThis.__ronaClock) globalThis.__ronaClock = { fixed: null, offsetMs: 0 };
-  return globalThis.__ronaClock;
+  if (!globalThis.__tokoClock) globalThis.__tokoClock = { fixed: null, offsetMs: 0 };
+  return globalThis.__tokoClock;
 }
 
 export function now(): Date {

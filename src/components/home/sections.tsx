@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { ArrowRight, Clock, MapPin, MessageCircleHeart, Sparkles } from "lucide-react";
-import type { Packaging } from "@/db/schema/enums";
 import { Button } from "@/components/ui/button";
 import { ProductArt } from "@/components/product-art";
 import { ProductCard, ProductCardSkeleton, type CardBadge } from "@/components/product-card";
@@ -16,6 +15,9 @@ import { readableOn } from "@/lib/color";
 import { SkinTypeTabs } from "./skin-type-tabs";
 import { ScrollRow } from "@/components/ui/scroll-row";
 import { now as clockNow } from "@/lib/clock";
+import { MEREK } from "@/config/merek";
+import { fiturAktif } from "@/config/fitur";
+import { artKategori } from "@/lib/content/visual";
 
 export function SectionHeading({ title, subtitle, href, hrefLabel = "Lihat semua" }: { title: string; subtitle?: string; href?: string; hrefLabel?: string }) {
   return (
@@ -35,26 +37,16 @@ export function SectionHeading({ title, subtitle, href, hrefLabel = "Lihat semua
   );
 }
 
-const categoryArt: Record<string, { packaging: Packaging; shade: string; brand: string; brandName: string }> = {
-  skincare: { packaging: "serum_dropper", shade: "#D9EBE7", brand: "#2F5D62", brandName: "Kirana Lab" },
-  "makeup-wajah": { packaging: "cushion", shade: "#DAB085", brand: "#B98A6A", brandName: "Pualam" },
-  "makeup-mata": { packaging: "mascara", shade: "#1B1818", brand: "#3B3A4A", brandName: "Dayu Cosmetics" },
-  bibir: { packaging: "lipstick", shade: "#B8475D", brand: "#C2416B", brandName: "Lumi" },
-  "sun-care": { packaging: "sunscreen_tube", shade: "#FBE7B8", brand: "#E0A227", brandName: "Surya Shield" },
-  "body-dan-hair": { packaging: "lotion_pump", shade: "#F3ECE4", brand: "#D98E8E", brandName: "Mekar" },
-  fragrance: { packaging: "perfume_bottle", shade: "#E8F0DE", brand: "#7A4E8C", brandName: "Arunika" },
-  pria: { packaging: "cream_jar", shade: "#C9B07A", brand: "#2E4057", brandName: "Nara Men" },
-};
 
 export function CategoryCircles({ categories }: { categories: CategoryNode[] }) {
   return (
-    <section className="container-rona py-7 md:py-14" aria-labelledby="kategori-heading">
+    <section className="container-toko py-7 md:py-14" aria-labelledby="kategori-heading">
       <h2 id="kategori-heading" className="sr-only">
         Kategori
       </h2>
       <ul className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 scrollbar-none sm:mx-0 sm:grid sm:grid-cols-4 sm:px-0 lg:grid-cols-8">
         {categories.map((c) => {
-          const art = categoryArt[c.slug] ?? categoryArt.skincare;
+          const art = artKategori(c.slug);
           return (
             <li key={c.id} className="w-24 shrink-0 sm:w-auto">
               <Link href={`/c/${c.slug}`} className="group flex flex-col items-center gap-2 text-center">
@@ -63,7 +55,7 @@ export function CategoryCircles({ categories }: { categories: CategoryNode[] }) 
                     <ProductArt packaging={art.packaging} shade={art.shade} brandColor={art.brand} brandName={art.brandName} background="none" title={`Ilustrasi ${c.name}`} />
                   </span>
                 </span>
-                <span className="text-xs font-semibold text-kopi group-hover:text-rona-gelap md:text-sm">{c.name}</span>
+                <span className="text-xs font-semibold text-kopi group-hover:text-aksen-gelap md:text-sm">{c.name}</span>
               </Link>
             </li>
           );
@@ -85,7 +77,7 @@ export async function FlashSaleSection() {
   const items = slot.items.slice(0, 6);
   return (
     <section className="bg-kopi text-putih" aria-labelledby="flash-heading">
-      <div className="container-rona py-7 md:py-14">
+      <div className="container-toko py-7 md:py-14">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="inline-flex items-center gap-1.5 rounded-pill bg-emas/15 px-3 py-1 text-xs font-semibold tracking-wide text-emas uppercase">
@@ -133,14 +125,14 @@ export async function FlashSaleSection() {
 
 export function AdvisorCta() {
   return (
-    <section className="container-rona py-7 md:py-14">
+    <section className="container-toko py-7 md:py-14">
       <ScrollRow ariaLabel="Bantuan memilih produk" desktop="md:grid-cols-2" gap="gap-3 md:gap-4" itemWidth="w-[84vw]">
         <li className="min-w-0">
         <Link href="/kuis-kulit" className="group relative flex h-full flex-col overflow-hidden rounded-card border border-garis bg-[linear-gradient(135deg,#FFFFFF,#F4DCDF)] p-5 shadow-soft transition-[transform,box-shadow] duration-250 ease-soft hover:-translate-y-0.5 hover:shadow-lift md:p-8">
-          <p className="text-xs font-semibold tracking-wide text-rona uppercase">Belum tahu cocok yang mana?</p>
+          <p className="text-xs font-semibold tracking-wide text-aksen uppercase">Belum tahu cocok yang mana?</p>
           <h3 className="mt-2 font-serif text-2xl text-kopi md:text-3xl">Kuis Kulit 2 menit</h3>
           <p className="mt-2 max-w-sm text-sm text-abu-hangat">Enam pertanyaan bergambar untuk tahu jenis kulit, undertone, dan rutinitas yang pas untukmu.</p>
-          <span className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-rona group-hover:underline">
+          <span className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-aksen group-hover:underline">
             Mulai kuis <ArrowRight className="size-4" />
           </span>
           <div className="pointer-events-none absolute -right-6 -bottom-8 w-40 opacity-90 md:w-48">
@@ -148,10 +140,11 @@ export function AdvisorCta() {
           </div>
         </Link>
         </li>
+        {fiturAktif("aiPembeli") ? (
         <li className="min-w-0">
         <Link href="/advisor" className="group relative flex h-full flex-col overflow-hidden rounded-card bg-kopi p-5 text-putih shadow-soft transition-[transform,box-shadow] duration-250 ease-soft hover:-translate-y-0.5 hover:shadow-lift md:p-8">
           <p className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide text-emas uppercase">
-            <MessageCircleHeart className="size-3.5" /> Rona Advisor
+            <MessageCircleHeart className="size-3.5" /> {MEREK.asisten.nama}
           </p>
           <h3 className="mt-2 font-serif text-2xl md:text-3xl">Tanya apa saja soal kulitmu</h3>
           <p className="mt-2 max-w-sm text-sm text-putih/75">&ldquo;Kulitku berminyak dan gampang jerawat, sunscreen apa?&rdquo; Jawabannya hanya dari produk yang ada di katalog kami.</p>
@@ -163,6 +156,7 @@ export function AdvisorCta() {
           </div>
         </Link>
         </li>
+        ) : null}
       </ScrollRow>
     </section>
   );
@@ -171,7 +165,7 @@ export function AdvisorCta() {
 export async function ProductRow({ title, subtitle, href, sort, limit = 8, hideBadges }: { title: string; subtitle?: string; href: string; sort: "terlaris" | "terbaru"; limit?: number; hideBadges?: CardBadge[] }) {
   const products = await getProductCards({ kind: "all" }, sort, limit);
   return (
-    <section className="container-rona py-7 md:py-14">
+    <section className="container-toko py-7 md:py-14">
       <SectionHeading title={title} subtitle={subtitle} href={href} />
       <ScrollRow ariaLabel={title} desktop="md:grid-cols-3 lg:grid-cols-4">
         {products.map((p) => (
@@ -186,7 +180,7 @@ export async function ProductRow({ title, subtitle, href, sort, limit = 8, hideB
 
 export function ProductRowSkeleton({ title, count = 8 }: { title: string; count?: number }) {
   return (
-    <section className="container-rona py-7 md:py-14" aria-busy>
+    <section className="container-toko py-7 md:py-14" aria-busy>
       <SectionHeading title={title} />
       <ScrollRow ariaLabel={title} desktop="md:grid-cols-3 lg:grid-cols-4">
         {Array.from({ length: count }).map((_, i) => (
@@ -202,7 +196,7 @@ export function ProductRowSkeleton({ title, count = 8 }: { title: string; count?
 export async function SkinTypeSection() {
   const data = await getProductCardsForSkinTypes(4);
   return (
-    <section className="container-rona py-7 md:py-14">
+    <section className="container-toko py-7 md:py-14">
       <SectionHeading title="Pilihan per jenis kulit" subtitle="Produk terlaris yang cocok untuk jenis kulitmu." />
       <SkinTypeTabs data={data} />
     </section>
@@ -211,7 +205,7 @@ export async function SkinTypeSection() {
 
 export function BrandShowcase({ brands }: { brands: BrandSummary[] }) {
   return (
-    <section className="container-rona py-7 md:py-14">
+    <section className="container-toko py-7 md:py-14">
       <SectionHeading title="Etalase merek" subtitle="Dua belas merek fiktif, masing-masing punya karakter sendiri." href="/merek" hrefLabel="Semua merek" />
       <ScrollRow ariaLabel="Etalase merek" desktop="md:grid-cols-4 lg:grid-cols-6" itemWidth="w-[40vw]">
         {brands.map((b) => (
@@ -244,9 +238,9 @@ export function BrandShowcase({ brands }: { brands: BrandSummary[] }) {
 
 export function JournalSection({ articles }: { articles: ArticleSummary[] }) {
   return (
-    <section className="container-rona py-7 md:py-14">
-      <SectionHeading title="Jurnal Rona" subtitle="Tips singkat dari tim kami." href="/jurnal" hrefLabel="Semua artikel" />
-      <ScrollRow ariaLabel="Jurnal Rona" desktop="md:grid-cols-3" gap="gap-3 md:gap-4" itemWidth="w-[76vw]">
+    <section className="container-toko py-7 md:py-14">
+      <SectionHeading title={`Jurnal ${MEREK.nama}`} subtitle="Tips singkat dari tim kami." href="/jurnal" hrefLabel="Semua artikel" />
+      <ScrollRow ariaLabel={`Jurnal ${MEREK.nama}`} desktop="md:grid-cols-3" gap="gap-3 md:gap-4" itemWidth="w-[76vw]">
         {articles.slice(0, 3).map((a, i) => (
           <li key={a.id} className="min-w-0">
             <Link href={`/jurnal/${a.slug}`} className="group flex h-full flex-col rounded-card border border-garis bg-putih shadow-soft transition-[transform,box-shadow] duration-250 ease-soft hover:-translate-y-0.5 hover:shadow-lift">
@@ -257,7 +251,7 @@ export function JournalSection({ articles }: { articles: ArticleSummary[] }) {
               </div>
               <div className="flex flex-1 flex-col p-5">
                 <p className="text-xs text-abu-hangat">{a.publishedAt ? formatDateWib(a.publishedAt) : ""}</p>
-                <h3 className="mt-1 font-serif text-xl leading-snug text-kopi group-hover:text-rona-gelap">{a.title}</h3>
+                <h3 className="mt-1 font-serif text-xl leading-snug text-kopi group-hover:text-aksen-gelap">{a.title}</h3>
                 <p className="mt-2 line-clamp-2 text-sm text-abu-hangat">{a.excerpt}</p>
               </div>
             </Link>
@@ -271,10 +265,10 @@ export function JournalSection({ articles }: { articles: ArticleSummary[] }) {
 export function StoresSection({ locations }: { locations: StoreLocation[] }) {
   const stores = locations.filter((l) => l.type === "toko");
   return (
-    <section className="container-rona pt-8 md:pt-14">
+    <section className="container-toko pt-8 md:pt-14">
       <div className="rounded-card bg-blush/60 p-5 md:p-8">
         <SectionHeading title="Ambil hari ini di toko terdekat" subtitle="Pesan sebelum 16.00 WIB, ambil di cabang yang stoknya ada." href="/toko" hrefLabel="Lihat peta" />
-        <ScrollRow ariaLabel="Cabang Rona" desktop="md:grid-cols-3" gap="gap-3" itemWidth="w-[70vw]">
+        <ScrollRow ariaLabel={`Cabang ${MEREK.nama}`} desktop="md:grid-cols-3" gap="gap-3" itemWidth="w-[70vw]">
           {stores.map((s) => (
             <li key={s.id} className="min-w-0 rounded-card border border-garis bg-putih p-4">
               <p className="font-serif text-lg text-kopi">{s.name}</p>

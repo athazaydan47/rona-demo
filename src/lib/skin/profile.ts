@@ -2,8 +2,9 @@
 // Murni (tanpa Next dan database) supaya bisa diuji.
 import type { SkinProfile } from "@/db/schema/customers";
 import { sanitizeSkinProfile } from "@/lib/account/profile";
+import { namaCookie } from "@/config/merek";
 
-export const PROFILE_COOKIE = "rona_profil_kulit";
+export const PROFILE_COOKIE = namaCookie("profil_kulit");
 export const PROFILE_COOKIE_MAX_AGE = 60 * 60 * 24 * 180; // 180 hari
 
 export { BUDGET_OPTIONS, ROUTINE_OPTIONS } from "./options";

@@ -29,12 +29,12 @@ async function Content({ params, searchParams }: Props) {
   if (!can(me, "produk.kelola")) return <Denied />;
   const found = await getProductForEdit(db, Number.parseInt(id, 10) || 0);
   if (!found) return <Denied message="Produk tidak ditemukan." />;
-  const [{ brands, categories }, summary, aiDraft] = await Promise.all([productFormData(), getReviewSummary(db, found.product.id), aiTersedia() ? loadDescriptionDraft(found.product.slug) : null]);
+  const [{ brands, categories }, summary, aiDraft] = await Promise.all([productFormData(), getReviewSummary(db, found.product.id), aiTersedia("asistenAdmin") ? loadDescriptionDraft(found.product.slug) : null]);
   return (
     <>
       <PageHead title={found.product.name} description={sp.baru === "salinan" ? "Salinan dibuat sebagai draf. Ubah nama dan SKU sebelum mengaktifkan." : sp.baru ? "Produk tersimpan." : `Status ${found.product.status}. ${found.hasOrders ? "Sudah pernah dipesan, jadi hanya bisa diarsipkan." : "Belum pernah dipesan."}`} />
-      {aiTersedia() ? <SummaryRefresh productId={found.product.id} info={summary ? `Ringkasan ulasan AI dari ${summary.reviewCount} ulasan, diperbarui ${formatDateTimeWib(summary.updatedAt)}.` : "Belum ada ringkasan ulasan AI (butuh minimal 5 ulasan tampil)."} /> : null}
-      <ProductForm key={found.product.updatedAt.toISOString()} id={found.product.id} initial={toFormValue(found)} brands={brands} categories={categories} hasOrders={found.hasOrders} siteUrl={siteUrl()} photosEnabled={storageKind() !== "nonaktif"} initialMessage={sp.disimpan ? "Produk tersimpan." : undefined} aiWriter={aiTersedia()} aiDraft={aiDraft} />
+      {aiTersedia("aiPembeli") ? <SummaryRefresh productId={found.product.id} info={summary ? `Ringkasan ulasan AI dari ${summary.reviewCount} ulasan, diperbarui ${formatDateTimeWib(summary.updatedAt)}.` : "Belum ada ringkasan ulasan AI (butuh minimal 5 ulasan tampil)."} /> : null}
+      <ProductForm key={found.product.updatedAt.toISOString()} id={found.product.id} initial={toFormValue(found)} brands={brands} categories={categories} hasOrders={found.hasOrders} siteUrl={siteUrl()} photosEnabled={storageKind() !== "nonaktif"} initialMessage={sp.disimpan ? "Produk tersimpan." : undefined} aiWriter={aiTersedia("asistenAdmin")} aiDraft={aiDraft} />
     </>
   );
 }
@@ -42,7 +42,7 @@ async function Content({ params, searchParams }: Props) {
 export default function EditProductPage(props: Props) {
   return (
     <>
-      <Link href="/admin/produk" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-rona hover:underline">
+      <Link href="/admin/produk" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-aksen hover:underline">
         <ArrowLeft className="size-4" aria-hidden /> Produk
       </Link>
       <Suspense fallback={<Skeleton rows={3} />}>

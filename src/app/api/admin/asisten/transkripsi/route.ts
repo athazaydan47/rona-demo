@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   if (!staff) return NextResponse.json({ ok: false, message: "Sesi berakhir. Masuk lagi ke panel admin, ya." }, { status: 401 });
   try {
     const cfg = aiConfig();
-    const model = aiModel(cfg);
+    const model = aiModel("asistenAdmin", cfg);
     if (!model) return NextResponse.json({ ok: false, message: "Masukan suara sedang tidak tersedia. Ketik pertanyaanmu, ya." }, { status: 503 });
     const at = now();
     const limit = await checkDailyFeatureLimit(db, cfg, `staf:${staff.id}`, "transkripsi", LIMITS.transcribePerDay, at, "masukan suara");

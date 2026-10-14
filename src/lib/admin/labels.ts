@@ -4,6 +4,7 @@ import * as schema from "@/db/schema";
 import type { AnyDb } from "@/lib/db-types";
 import { courierLabel } from "@/lib/orders/service";
 import { can, type StaffPrincipal } from "./permissions";
+import { MEREK, POLA_NOMOR_PESANAN } from "@/config/merek";
 
 export type LabelData = {
   number: string;
@@ -20,7 +21,7 @@ export type LabelData = {
 };
 
 export async function labelData(db: AnyDb, staff: StaffPrincipal, numbers: string[]): Promise<{ labels: LabelData[]; denied: string[] }> {
-  const list = [...new Set(numbers.map((n) => n.trim().toUpperCase()).filter((n) => /^RONA-\d{4}-\d{6,}$/.test(n)))].slice(0, 100);
+  const list = [...new Set(numbers.map((n) => n.trim().toUpperCase()).filter((n) => POLA_NOMOR_PESANAN.test(n)))].slice(0, 100);
   if (!list.length) return { labels: [], denied: [] };
   const orders = await db
     .select({ order: schema.orders, location: schema.locations })
@@ -47,7 +48,7 @@ export async function labelData(db: AnyDb, staff: StaffPrincipal, numbers: strin
       return {
         number: order.number,
         method: order.method,
-        sender: { name: "Rona Beauty", place: location.name, address: [location.address, location.district, location.city].filter(Boolean).join(", "), phone: location.phone || "0812 0000 0000" },
+        sender: { name: MEREK.namaLengkap, place: location.name, address: [location.address, location.district, location.city].filter(Boolean).join(", "), phone: location.phone || "0812 0000 0000" },
         recipient: a
           ? { name: a.recipient, phone: a.phone, lines: [a.street, `${a.district}, ${a.city}`, `${a.province} ${a.postalCode}`] }
           : { name: order.guestName ?? "Pembeli", phone: order.guestPhone ?? "", lines: [`Ambil di ${location.name}`, location.address] },

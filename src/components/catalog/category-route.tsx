@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { CatalogPage } from "@/components/catalog/catalog-page";
 import { parseCatalogParams, type RawParams } from "@/lib/catalog/filters";
 import { getCategoryInfo, getCategoryTree } from "@/lib/catalog/queries";
+import { MEREK } from "@/config/merek";
 
 // Isi halaman /c/[kategori] dan /c/[kategori]/[sub]. Dipanggil di dalam Suspense karena membaca searchParams.
 export async function CategoryRoute({ params, searchParams }: { params: Promise<{ kategori: string; sub?: string }>; searchParams: Promise<RawParams> }) {
@@ -15,7 +16,7 @@ export async function CategoryRoute({ params, searchParams }: { params: Promise<
         filters={filters}
         basePath="/c/semua"
         title="Semua produk"
-        description="Seluruh katalog Rona Beauty. Pakai filter untuk mempersempit."
+        description={`Seluruh katalog ${MEREK.namaLengkap}. Pakai filter untuk mempersempit.`}
         breadcrumb={[{ label: "Semua produk" }]}
       />
     );

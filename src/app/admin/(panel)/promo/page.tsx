@@ -17,16 +17,19 @@ import { toWibInput, toWibParts, wibDate } from "@/lib/format";
 import { storageKind } from "@/lib/reviews/storage";
 import { loadSettings } from "@/lib/settings/db";
 import { cn } from "@/lib/utils";
+import { fiturAktif } from "@/config/fitur";
 
 export const metadata: Metadata = { title: "Promo" };
 
-const TABS = [
+const SEMUA_TAB = [
   { key: "flash", label: "Flash sale" },
   { key: "harga", label: "Harga promo" },
   { key: "voucher", label: "Voucher" },
   { key: "banner", label: "Banner dan PromoBar" },
 ] as const;
-type Tab = (typeof TABS)[number]["key"];
+type Tab = (typeof SEMUA_TAB)[number]["key"];
+// Tab Flash sale tersembunyi bila fiturnya dimatikan (src/config/fitur.ts).
+const TABS = SEMUA_TAB.filter((t) => t.key !== "flash" || fiturAktif("flashSale"));
 type SP = { tab?: string; minggu?: string; slot?: string; dibuat?: string; draf?: string };
 
 // Senin 00.00 WIB dari minggu yang memuat tanggal tertentu.
@@ -69,7 +72,7 @@ async function Content({ searchParams }: { searchParams: Promise<SP> }) {
   const me = await requireStaff("/admin/promo");
   if (!can(me, "promo.kelola")) return <Denied />;
   const sp = await searchParams;
-  const tab: Tab = TABS.some((t) => t.key === sp.tab) ? (sp.tab as Tab) : "flash";
+  const tab: Tab = TABS.some((t) => t.key === sp.tab) ? (sp.tab as Tab) : TABS[0].key;
   const at = now();
   const nowIso = at.toISOString();
 

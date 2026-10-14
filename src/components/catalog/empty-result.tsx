@@ -6,6 +6,7 @@ import type { ProductCardData } from "@/lib/catalog/catalog-queries";
 import { activeFilterChips, clearFilters, serializeCatalogParams, type CatalogFilters } from "@/lib/catalog/filters";
 import type { FilterLabels } from "./active-chips";
 import Link from "next/link";
+import { MEREK } from "@/config/merek";
 
 type Props = {
   filters: CatalogFilters;
@@ -27,7 +28,7 @@ export function EmptyResult({ filters, labels, basePath, bestsellers, scopeTotal
     <div>
       <div className="flex flex-col items-center rounded-card border border-dashed border-garis bg-putih px-6 py-10 text-center">
         <div className="w-28">
-          <ProductArt packaging="sheet_mask" shade="#F4DCDF" brandColor="#B8475D" brandName="Rona" title="Ilustrasi hasil kosong" view="detail" />
+          <ProductArt packaging="sheet_mask" shade="#F4DCDF" brandColor="#B8475D" brandName={MEREK.nama} title="Ilustrasi hasil kosong" view="detail" />
         </div>
         <h2 className="mt-4 font-serif text-2xl text-kopi">
           {filters.q ? <>Tidak ada hasil untuk &ldquo;{filters.q}&rdquo;</> : "Belum ada produk yang cocok"}

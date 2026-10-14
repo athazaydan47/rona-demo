@@ -18,6 +18,7 @@ import { createFlashSlot, deleteBanner, searchPromoVariants, moveBanner, removeF
 import { saveLocation, saveSettings, type LocationForm } from "./settings";
 import { storedMediaKey } from "@/lib/reviews/storage";
 import { deleteBrand, deleteCategory, moveCategoryProducts, reorderCategories, saveBrand, saveCategory } from "./taxonomy";
+import { TIDAK_VALID, cocok, skema, skemaId } from "@/lib/validasi";
 
 const DENIED = { ok: false as const, message: "Sesi staf berakhir. Masuk lagi, ya." };
 const date = (v: unknown) => (typeof v === "string" && v ? new Date(v) : v instanceof Date ? v : null);
@@ -104,10 +105,12 @@ export async function searchVariantsForPromoAction(q: string) {
 
 // ---------- Kategori dan merek ----------
 
-export async function saveCategoryAction(input: { id?: number | null; name: string; parentId: number | null; description?: string; force?: boolean }) {
+export async function saveCategoryAction(raw: { id?: number | null; name: string; parentId: number | null; description?: string; force?: boolean }) {
   const me = await currentStaff();
   if (!me) return DENIED;
-  const r = await saveCategory(db, me, { ...input, parentId: input.parentId == null ? null : Number(input.parentId) }, { now: now() });
+  const input = cocok(skema.kategori, raw);
+  if (!input) return TIDAK_VALID;
+  const r = await saveCategory(db, me, { ...input, parentId: input.parentId ?? null }, { now: now() });
   if (r.ok) updateCatalogNow(r.tags);
   return r;
 }
@@ -115,8 +118,9 @@ export async function saveCategoryAction(input: { id?: number | null; name: stri
 export async function reorderCategoriesAction(layout: { id: number; parentId: number | null; sortOrder: number }[]) {
   const me = await currentStaff();
   if (!me) return DENIED;
-  if (!Array.isArray(layout) || layout.length > 200) return { ok: false as const, message: "Susunan tidak valid." };
-  const r = await reorderCategories(db, me, layout.map((l) => ({ id: Number(l.id), parentId: l.parentId == null ? null : Number(l.parentId), sortOrder: Number(l.sortOrder) })), { now: now() });
+  const rows = cocok(skema.susunanKategori, layout);
+  if (!rows) return { ok: false as const, message: "Susunan tidak valid." };
+  const r = await reorderCategories(db, me, rows.map((l) => ({ id: l.id, parentId: l.parentId ?? null, sortOrder: l.sortOrder })), { now: now() });
   if (r.ok) updateCatalogNow(r.tags);
   return r;
 }
@@ -137,9 +141,11 @@ export async function deleteCategoryAction(id: number) {
   return r;
 }
 
-export async function saveBrandAction(input: { id?: number | null; name: string; slug?: string; color: string; tagline?: string; description?: string; force?: boolean }) {
+export async function saveBrandAction(raw: { id?: number | null; name: string; slug?: string; color: string; tagline?: string; description?: string; force?: boolean }) {
   const me = await currentStaff();
   if (!me) return DENIED;
+  const input = cocok(skema.merek, raw);
+  if (!input) return TIDAK_VALID;
   const r = await saveBrand(db, me, input, { now: now() });
   if (r.ok) updateCatalogNow(r.tags);
   return r;
@@ -155,18 +161,22 @@ export async function deleteBrandAction(id: number) {
 
 // ---------- Promo ----------
 
-export async function createFlashSlotAction(input: { name: string; startsAt: string; endsAt: string }) {
+export async function createFlashSlotAction(raw: { name: string; startsAt: string; endsAt: string }) {
   const me = await currentStaff();
   if (!me) return DENIED;
+  const input = cocok(skema.slotFlash, raw);
+  if (!input) return TIDAK_VALID;
   const r = await createFlashSlot(db, me, { name: input.name, startsAt: new Date(input.startsAt), endsAt: new Date(input.endsAt) }, { now: now() });
   if (r.ok) updateCatalogNow(r.tags);
   return r;
 }
 
-export async function saveFlashItemAction(input: { slotId: number; variantId: number; flashPrice: number; quota: number; maxPerCustomer: number; confirmRunning?: boolean }) {
+export async function saveFlashItemAction(raw: { slotId: number; variantId: number; flashPrice: number; quota: number; maxPerCustomer: number; confirmRunning?: boolean }) {
   const me = await currentStaff();
   if (!me) return DENIED;
-  const r = await saveFlashItem(db, me, { slotId: Number(input.slotId), variantId: Number(input.variantId), flashPrice: Number(input.flashPrice), quota: Number(input.quota), maxPerCustomer: Number(input.maxPerCustomer), confirmRunning: Boolean(input.confirmRunning) }, { now: now() });
+  const input = cocok(skema.itemFlash, raw);
+  if (!input) return TIDAK_VALID;
+  const r = await saveFlashItem(db, me, { ...input, confirmRunning: Boolean(input.confirmRunning) }, { now: now() });
   if (r.ok) updateCatalogNow(r.tags.filter(Boolean));
   return r;
 }
@@ -187,10 +197,12 @@ export async function setFlashSlotActiveAction(slotId: number, active: boolean, 
   return r;
 }
 
-export async function setVariantPromoAction(input: { variantId: number; promoPrice: number | null; startsAt: string | null; endsAt: string | null }) {
+export async function setVariantPromoAction(raw: { variantId: number; promoPrice: number | null; startsAt: string | null; endsAt: string | null }) {
   const me = await currentStaff();
   if (!me) return DENIED;
-  const r = await setVariantPromo(db, me, { variantId: Number(input.variantId), promoPrice: input.promoPrice == null ? null : Number(input.promoPrice), startsAt: date(input.startsAt), endsAt: date(input.endsAt) }, { now: now() });
+  const input = cocok(skema.promoVarian, raw);
+  if (!input) return TIDAK_VALID;
+  const r = await setVariantPromo(db, me, { variantId: input.variantId, promoPrice: input.promoPrice, startsAt: date(input.startsAt), endsAt: date(input.endsAt) }, { now: now() });
   if (r.ok) updateCatalogNow([cacheTags.products(), cacheTags.product(r.slug)]);
   return r;
 }
@@ -235,26 +247,30 @@ export async function deleteBannerAction(id: number) {
 export async function savePromoBarAction(messages: string[]) {
   const me = await currentStaff();
   if (!me) return DENIED;
-  if (!Array.isArray(messages)) return { ok: false as const, message: "Data tidak valid." };
-  const r = await savePromoBar(db, me, messages, { now: now() });
+  const list = cocok(skema.promoBar, messages);
+  if (!list) return TIDAK_VALID;
+  const r = await savePromoBar(db, me, list, { now: now() });
   if (r.ok) updateCatalogNow([cacheTags.settings()]);
   return r;
 }
 
 // ---------- Pengaturan ----------
 
-export async function saveSettingsAction(input: StoreSettings) {
+export async function saveSettingsAction(raw: StoreSettings) {
   const me = await currentStaff();
   if (!me) return DENIED;
-  const r = await saveSettings(db, me, input, { now: now() });
+  if (!cocok(skema.pengaturan, raw)) return TIDAK_VALID;
+  const r = await saveSettings(db, me, raw, { now: now() });
   if (r.ok) updateCatalogNow([cacheTags.settings()]);
   return { ...r, demoMode: env.demoMode };
 }
 
-export async function saveLocationAction(id: number, input: LocationForm) {
+export async function saveLocationAction(id: number, raw: LocationForm) {
   const me = await currentStaff();
   if (!me) return DENIED;
-  const r = await saveLocation(db, me, Number(id), input, { now: now() });
+  const lokasiId = cocok(skemaId, id);
+  if (!lokasiId || !cocok(skema.cabang, raw)) return TIDAK_VALID;
+  const r = await saveLocation(db, me, lokasiId, raw, { now: now() });
   if (r.ok) updateCatalogNow([cacheTags.locations()]);
   return r;
 }
@@ -265,7 +281,7 @@ export async function refreshReviewSummaryAction(productId: number) {
   const me = await currentStaff();
   if (!me) return DENIED;
   if (!can(me, "produk.kelola") && !can(me, "ulasan.kelola")) return { ok: false as const, message: "Kamu tidak punya izin." };
-  const model = aiModel();
+  const model = aiModel("aiPembeli");
   if (!model) return { ok: false as const, message: "AI belum tersedia di server ini." };
   const r = await refreshReviewSummary(db, model, Number(productId), now());
   const messages: Record<string, string> = { dibuat: "Ringkasan diperbarui.", sama: "Ulasan belum berubah, ringkasan tetap.", terlalu_sedikit: "Butuh minimal 5 ulasan tampil.", dihapus: "Ulasan kurang dari 5, ringkasan dihapus.", gagal: "AI gagal meringkas. Coba lagi nanti." };

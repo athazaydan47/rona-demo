@@ -1,4 +1,4 @@
-// Token gerak Rona (Fase 8A). Satu sumber untuk Motion dan CSS (lihat globals.css: --durasi-* dan --ease-*).
+// Token gerak toko (Fase 8A). Satu sumber untuk Motion dan CSS (lihat globals.css: --durasi-* dan --ease-*).
 // Durasi: cepat untuk umpan balik sentuhan (hover, tekan, badge), sedang untuk pergantian isi (crossfade, kartu masuk),
 // lambat untuk elemen besar (laci, sheet, angka naik). Pegas "tenang" tidak memantul; "kenyal" memantul sedikit.
 import type { Transition } from "motion/react";

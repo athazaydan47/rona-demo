@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Keluaran skrip lokal (cuplik, aset portofolio, laporan cakupan), tidak ikut repo.
+    "_review/**",
+    "_portofolio/**",
+    "coverage/**",
   ]),
 ]);
 

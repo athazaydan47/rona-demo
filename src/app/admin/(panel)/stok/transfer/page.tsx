@@ -10,6 +10,8 @@ import { db, schema } from "@/db/client";
 import { requireStaff } from "@/lib/admin/current";
 import { can } from "@/lib/admin/permissions";
 import { MAX_LINES, MAX_QTY, visibleLocations } from "@/lib/admin/stock";
+import { fiturAktif } from "@/config/fitur";
+import { notFound } from "next/navigation";
 
 export const metadata: Metadata = { title: "Transfer stok" };
 
@@ -62,9 +64,10 @@ async function Content({ searchParams }: { searchParams: Promise<SP> }) {
 }
 
 export default function TransferPage({ searchParams }: { searchParams: Promise<SP> }) {
+  if (!fiturAktif("multiCabang")) notFound();
   return (
     <>
-      <Link href="/admin/stok" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-rona hover:underline">
+      <Link href="/admin/stok" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-aksen hover:underline">
         <ArrowLeft className="size-4" aria-hidden /> Stok
       </Link>
       <PageHead title="Transfer antar lokasi" description="Satu transaksi: stok keluar dari asal dan masuk ke tujuan dengan referensi yang sama. Jumlah tidak boleh melebihi stok tersedia di asal." />

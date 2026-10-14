@@ -1,16 +1,11 @@
-"use client";
-
-import { motion, useReducedMotion } from "motion/react";
-import { lembut } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
-// Gelembung obrolan masuk dengan geser halus; tanpa gerak transform saat kurangi gerakan.
+// Gelembung obrolan masuk dengan geser halus (CSS); kurangi gerakan mematikannya lewat globals.css.
 export function Bubble({ children, className, side = "kiri", testId }: { children: React.ReactNode; className?: string; side?: "kiri" | "kanan"; testId?: string }) {
-  const reduce = useReducedMotion();
   return (
-    <motion.div initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={lembut()} className={cn(side === "kanan" && "ml-auto", className)} data-testid={testId}>
+    <div className={cn("animate-muncul", side === "kanan" && "ml-auto", className)} data-testid={testId}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 

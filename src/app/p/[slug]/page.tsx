@@ -25,6 +25,9 @@ import { currentSkinProfile } from "@/lib/skin/current";
 import { isProfileUsable } from "@/lib/skin/profile";
 import { fitForProfile } from "@/lib/skin/rules";
 import { SHADE_GROUPS } from "@/lib/skin/shade";
+import { MEREK } from "@/config/merek";
+import { Breadcrumb } from "@/components/catalog/breadcrumb";
+import { ProductArt } from "@/components/product-art";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ shade?: string }> };
 
@@ -53,7 +56,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   return {
     title,
     description,
-    openGraph: { title: `${title} | Rona Beauty`, description, images: [{ url: og, width: 1200, height: 630 }], type: "website" },
+    openGraph: { title: `${title} | ${MEREK.namaLengkap}`, description, images: [{ url: og, width: 1200, height: 630 }], type: "website" },
     twitter: { card: "summary_large_image", title, description, images: [og] },
   };
 }
@@ -61,7 +64,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 async function ProductRoute({ product, searchParams }: { product: ProductDetail; searchParams: Props["searchParams"] }) {
   const sp = await searchParams;
   const [live, reviews, related, skin, summary] = await Promise.all([getProductLive(product), getProductReviews(product.id), getRelatedProducts(product), currentSkinProfile(), getReviewSummary(db, product.id)]);
-  const aiOn = aiTersedia();
+  const aiOn = aiTersedia("aiPembeli");
   const fit = isProfileUsable(skin)
     ? fitForProfile(skin, { categorySlug: product.category.slug, parentSlug: product.parent?.slug ?? product.category.slug, skinTypes: product.skinTypes, concerns: product.concerns, finish: product.finish, activeIngredients: product.activeIngredients, ingredients: product.ingredients, variants: product.variants })
     : null;
@@ -111,7 +114,7 @@ async function ProductRoute({ product, searchParams }: { product: ProductDetail;
         }
       />
 
-      <div className="container-rona grid grid-cols-1 gap-6 pb-8 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
+      <div className="container-toko grid grid-cols-1 gap-6 pb-8 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
         <div className="min-w-0 space-y-6">
           <ProductTabs product={product} variantWeight={selected.weightGram} />
           {product.skinTypes.length > 0 || product.concerns.length > 0 ? (
@@ -139,7 +142,7 @@ async function ProductRoute({ product, searchParams }: { product: ProductDetail;
         </div>
       </div>
 
-      <div className="container-rona space-y-12 pb-10">
+      <div className="container-toko space-y-12 pb-10">
         <ReviewsSection reviews={reviews} ratingAvg={product.ratingAvg} summary={summary ? { ...summary.summary, reviewCount: summary.reviewCount } : null} />
         <FrequentlyBought current={{ name: product.name, variantId: selected.id, price: live.prices[selected.id]?.price ?? selected.salePrice, packaging: product.packaging, hex: selected.hex, brandColor: product.brand.color, brandName: product.brand.name, shadeName: product.variants.length > 1 ? selected.shadeName : "" }} items={related.together} />
         {related.similar.length > 0 ? (
@@ -164,16 +167,26 @@ async function ProductRoute({ product, searchParams }: { product: ProductDetail;
   );
 }
 
-function ProductSkeleton() {
+// Kerangka halaman produk (Fase 8B) memakai data katalog yang sudah di-cache: jejak navigasi, merek, nama, dan packshot
+// tampil di kerangka statis, jadi elemen terbesar (judul atau gambar) terlukis sebelum harga dan stok selesai dimuat.
+function ProductSkeleton({ product }: { product: ProductDetail }) {
+  const v = product.variants[0];
   return (
-    <div className="container-rona py-5 md:py-8" aria-busy aria-label="Memuat produk">
-      <div className="mb-4 h-4 w-56 animate-pulse rounded bg-garis/70" />
+    <div className="container-toko py-5 md:py-8" aria-busy aria-label="Memuat harga dan stok">
+      <Breadcrumb
+        items={[...(product.parent ? [{ label: product.parent.name, href: `/c/${product.parent.slug}` }] : []), { label: product.category.name, href: product.parent ? `/c/${product.parent.slug}/${product.category.slug}` : `/c/${product.category.slug}` }, { label: product.name }]}
+        className="mb-4"
+      />
       <div className="grid gap-8 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
-        <div className="animate-pulse rounded-card bg-porselen" style={{ aspectRatio: "5 / 6" }} />
-        <div className="space-y-4">
-          <div className="h-3 w-20 animate-pulse rounded bg-garis/70" />
-          <div className="h-9 w-4/5 animate-pulse rounded bg-garis/70" />
-          <div className="h-4 w-40 animate-pulse rounded bg-garis/70" />
+        <div className="overflow-hidden rounded-card bg-porselen md:ml-[92px]" style={{ aspectRatio: "5 / 6" }}>
+          <ProductArt packaging={product.packaging} shade={v.hex} brandColor={product.brand.color} brandName={product.brand.name} title={product.name} priority />
+        </div>
+        <div className="min-w-0 space-y-4">
+          <div>
+            <p className="text-xs font-semibold tracking-wide text-aksen uppercase">{product.brand.name}</p>
+            <h1 className="mt-1 font-serif text-3xl font-medium text-balance text-kopi md:text-4xl">{product.name}</h1>
+          </div>
+          <p className="text-sm text-abu-hangat">{product.shortDescription}</p>
           <div className="h-20 animate-pulse rounded-card bg-garis/50" />
           <div className="h-40 animate-pulse rounded-card bg-garis/50" />
           <div className="h-12 animate-pulse rounded-pill bg-garis/70" />
@@ -193,7 +206,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
   const product = await getProductDetail(slug);
   if (!product || product.status !== "aktif" || product.variants.length === 0) notFound();
   return (
-    <Suspense fallback={<ProductSkeleton />}>
+    <Suspense fallback={<ProductSkeleton product={product} />}>
       <ProductRoute product={product} searchParams={searchParams} />
     </Suspense>
   );

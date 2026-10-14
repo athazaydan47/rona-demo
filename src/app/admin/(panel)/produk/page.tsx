@@ -38,7 +38,7 @@ async function Content({ searchParams }: Props) {
     rootCategories(db),
   ]);
   // Produk berdeskripsi pendek (tab Manfaat di bawah 200 karakter) untuk usulan massal penulis AI.
-  const short = aiTersedia()
+  const short = aiTersedia("asistenAdmin")
     ? await db
         .select({ id: schema.products.id, name: schema.products.name, length: sql<number>`(length(${schema.products.benefits}) + length(${schema.products.shortDescription}))::int` })
         .from(schema.products)

@@ -98,7 +98,7 @@ function StatusDialog({ change, busy, error, onClose, onSubmit }: { change: Pend
             ) : (
               <div>
                 <Label htmlFor="ubah-alasan">Alasan</Label>
-                <textarea id="ubah-alasan" value={reason} onChange={(e) => setReason(e.target.value.slice(0, 300))} rows={3} autoFocus placeholder="Misal: pembeli minta batal lewat WhatsApp" className="w-full rounded-[14px] border border-garis bg-putih px-4 py-3 text-base text-kopi outline-none focus-visible:border-rona" />
+                <textarea id="ubah-alasan" value={reason} onChange={(e) => setReason(e.target.value.slice(0, 300))} rows={3} autoFocus placeholder="Misal: pembeli minta batal lewat WhatsApp" className="w-full rounded-[14px] border border-garis bg-putih px-4 py-3 text-base text-kopi outline-none focus-visible:border-aksen" />
                 <HelpText>{change?.to === "dibatalkan" ? "Stok, kuota flash sale, voucher, dan poin dikembalikan otomatis. Pembeli dikabari." : "Dicatat di riwayat pesanan."}</HelpText>
               </div>
             )}

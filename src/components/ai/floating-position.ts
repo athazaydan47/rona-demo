@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type RefObject } from "react";
 
-// Aturan global tombol melayang (Tanya Rona):
+// Aturan global tombol melayang (tombol Advisor):
 // 1. Selalu naik di atas bilah bawah yang menempel. Bilah ditandai atribut data-bilah-bawah (menu bawah, bilah beli
 //    di HP, bilah Tambah semua di rutinitas). Tinggi bilah diukur langsung, jadi bilah baru cukup diberi atribut.
 // 2. Tidak pernah menutupi tombol aksi utama (atribut data-aksi-utama) yang ikut bergulir di halaman: selama

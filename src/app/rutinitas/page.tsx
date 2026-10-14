@@ -17,15 +17,16 @@ import { formatRupiah } from "@/lib/format";
 import { currentSkinProfile } from "@/lib/skin/current";
 import { isProfileUsable } from "@/lib/skin/profile";
 import type { Routine, RoutineStep } from "@/lib/skin/routine";
+import { MEREK } from "@/config/merek";
 
-export const metadata: Metadata = { title: "Rutinitas", description: "Rutinitas pagi dan malam dari katalog Rona sesuai profil kulit dan budgetmu." };
+export const metadata: Metadata = { title: "Rutinitas", description: `Rutinitas pagi dan malam dari katalog ${MEREK.nama} sesuai profil kulit dan budgetmu.` };
 
 const toView = (steps: RoutineStep[]): RoutineStepView[] => steps.map((s) => ({ key: s.key, label: s.label, options: [s.main, ...s.alternatives].map((p) => ({ productId: p.productId, variantId: p.variantId, slug: p.slug, name: p.name, brandName: p.brandName, brandColor: p.brandColor, packaging: p.packaging as RoutineStepView["options"][number]["packaging"], hex: p.hex, price: p.price, normalPrice: p.normalPrice, onlineStock: p.onlineStock })) }));
 
 // Penjelasan AI dimuat terpisah supaya rutinitas berbasis aturan tampil tanpa menunggu AI.
 async function Explanation({ profile, routine }: { profile: SkinProfile; routine: Routine }) {
   const cfg = aiConfig();
-  const model = aiModel(cfg);
+  const model = aiModel("aiPembeli", cfg);
   if (!model) return null;
   const at = now();
   if (await globalCapReached(db, cfg, at).catch(() => true)) return null;
@@ -33,7 +34,7 @@ async function Explanation({ profile, routine }: { profile: SkinProfile; routine
   if (!text) return null;
   return (
     <div className="rounded-xl border border-garis bg-putih p-4 text-sm" data-testid="penjelasan-ai">
-      <p className="flex items-center gap-1.5 text-xs font-semibold text-rona">
+      <p className="flex items-center gap-1.5 text-xs font-semibold text-aksen">
         <Sparkles className="size-3.5" aria-hidden /> Penjelasan AI (bisa keliru)
       </p>
       <p className="mt-1 text-kopi">{text}</p>
@@ -60,7 +61,7 @@ async function Content() {
       <p className="text-sm text-abu-hangat">
         Untuk kulit {skinTypeLabels[profile.skinType!]?.toLowerCase()}
         {profile.concerns?.length ? `, fokus ${profile.concerns.map((c) => concernLabels[c]?.toLowerCase() ?? c).join(" dan ")}` : ""}, budget sampai {formatRupiah(routine.budget)} per produk.{" "}
-        <Link href="/kuis-kulit" className="font-semibold text-rona hover:underline">
+        <Link href="/kuis-kulit" className="font-semibold text-aksen hover:underline">
           Ubah jawaban kuis
         </Link>
       </p>
@@ -76,15 +77,15 @@ async function Content() {
         // Yang baru mulai merawat kulit langsung melihat 3 langkah inti; rutinitas lengkap tetap satu klik.
         defaultMode={profile.routine === "belum" ? "inti" : "lengkap"}
       />
-      <p className="text-[11px] text-abu-hangat">Disusun berbasis aturan dari katalog Rona, bukan diagnosis. Untuk keluhan kulit serius, periksa ke dokter kulit.</p>
+      <p className="text-[11px] text-abu-hangat">Disusun berbasis aturan dari katalog {MEREK.nama}, bukan diagnosis. Untuk keluhan kulit serius, periksa ke dokter kulit.</p>
     </div>
   );
 }
 
 export default function RoutinePage() {
   return (
-    <section className="container-rona py-8 md:py-12">
-      <p className="text-xs font-semibold tracking-wide text-rona uppercase">Rutinitas</p>
+    <section className="container-toko py-8 md:py-12">
+      <p className="text-xs font-semibold tracking-wide text-aksen uppercase">Rutinitas</p>
       <h1 className="mt-1 mb-4 font-serif text-3xl font-medium text-kopi md:text-4xl">Rutinitas pagi dan malammu</h1>
       <Suspense fallback={<div className="h-96 animate-pulse rounded-card bg-garis/40" />}>
         <Content />

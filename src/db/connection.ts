@@ -1,4 +1,5 @@
 // Aturan koneksi database untuk skrip (migrasi, seed, reset) dan penjaga reset. Murni, diuji di connection.test.ts.
+import { MEREK } from "../config/merek";
 
 // Skrip migrasi memakai koneksi langsung (direct, tanpa pooler) bila tersedia; bila tidak, DATABASE_URL.
 export function directUrl(env: Record<string, string | undefined> = process.env) {
@@ -19,9 +20,9 @@ export function isLocalDatabase(url: string) {
   return LOCAL_HOSTS.has(databaseHost(url));
 }
 
-export const RESET_CONFIRMATION = "rona-demo";
+export const RESET_CONFIRMATION = `${MEREK.kunci}-demo`;
 
-// db:reset menghapus seluruh data. Ke host selain localhost atau 127.0.0.1 wajib konfirmasi CONFIRM_RESET=rona-demo.
+// db:reset menghapus seluruh data. Ke host selain localhost atau 127.0.0.1 wajib konfirmasi CONFIRM_RESET (lihat RESET_CONFIRMATION).
 export function assertResetAllowed(url: string, env: Record<string, string | undefined> = process.env, command = "db:reset") {
   if (!url) throw new Error("DATABASE_URL belum diisi. Salin .env.example ke .env.local.");
   if (isLocalDatabase(url)) return;

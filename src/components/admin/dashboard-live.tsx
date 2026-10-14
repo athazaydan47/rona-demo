@@ -15,6 +15,7 @@ import { formatDateTimeWib, formatNumber, formatRupiah, formatTimeWib } from "@/
 import { statusLabels, type OrderStatus } from "@/lib/orders/status";
 import type { Packaging } from "@/db/schema/enums";
 import { cn } from "@/lib/utils";
+import { MEREK } from "@/config/merek";
 
 const REFRESH_MS = 30_000;
 const STATUS_ORDER: OrderStatus[] = ["menunggu_pembayaran", "dibayar", "diproses", "siap_diambil", "dikirim", "selesai", "dibatalkan", "diretur"];
@@ -48,7 +49,7 @@ function RevenueChart({ series }: { series: { day: string; revenue: number; orde
           const today = i === series.length - 1;
           return (
             <g key={d.day}>
-              <rect x={i * bw + 2} y={H - h} width={bw - 4} height={h} rx={2} fill={today ? "var(--color-rona)" : "var(--color-kopi)"} opacity={today ? 1 : 0.75}>
+              <rect x={i * bw + 2} y={H - h} width={bw - 4} height={h} rx={2} fill={today ? "var(--color-aksen)" : "var(--color-kopi)"} opacity={today ? 1 : 0.75}>
                 <title>{`${d.day}: ${formatRupiah(d.revenue)}, ${d.orders} pesanan`}</title>
               </rect>
               {i % 5 === 4 || today ? (
@@ -72,7 +73,7 @@ function DemoReset({ seedVersion, installedVersion }: { seedVersion: number; ins
     <div className="rounded-xl border border-dashed border-emas/70 bg-[#FBF4E6] p-4" data-testid="kartu-reset-demo">
       <p className="text-sm font-semibold text-[#7A5A1E]">Mode demo</p>
       {newer ? (
-        <p className="mt-1 rounded-lg bg-putih/80 px-2 py-1.5 text-xs font-semibold text-rona" role="status" data-testid="versi-seed-baru">
+        <p className="mt-1 rounded-lg bg-putih/80 px-2 py-1.5 text-xs font-semibold text-aksen" role="status" data-testid="versi-seed-baru">
           Data demo versi baru tersedia, reset sekarang? (terpasang versi {installedVersion}, kode versi {seedVersion})
         </p>
       ) : (
@@ -147,7 +148,7 @@ export function DashboardLive({ initial, canReset, seedVersion = 0, installedVer
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3 text-xs text-abu-hangat">
         <span>Diperbarui {formatTimeWib(new Date(data.generatedAt))}, otomatis tiap 30 detik.</span>
-        <button type="button" onClick={() => void refresh()} className="inline-flex items-center gap-1 font-semibold text-rona hover:underline" disabled={refreshing}>
+        <button type="button" onClick={() => void refresh()} className="inline-flex items-center gap-1 font-semibold text-aksen hover:underline" disabled={refreshing}>
           <RefreshCw className={cn("size-3.5", refreshing && "animate-spin")} aria-hidden /> Muat ulang
         </button>
       </div>
@@ -197,7 +198,7 @@ export function DashboardLive({ initial, canReset, seedVersion = 0, installedVer
                 <li key={o.id} className={cn("rounded-lg", fresh.has(o.id) && "animate-cahaya")} data-baru={fresh.has(o.id) ? "1" : undefined}>
                   <Link href={`/admin/pesanan/${o.number}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm hover:bg-porselen">
                     <span className="font-semibold tabular-nums">{o.number}</span>
-                    {fresh.has(o.id) ? <span className="rounded-full bg-rona px-2 text-[10px] font-bold text-putih">Baru</span> : null}
+                    {fresh.has(o.id) ? <span className="rounded-full bg-aksen px-2 text-[10px] font-bold text-putih">Baru</span> : null}
                     <Badge variant={statusTone[o.status as OrderStatus]}>{statusLabels[o.status as OrderStatus]}</Badge>
                     <span className="min-w-0 flex-1 truncate text-abu-hangat">
                       {o.name ?? "Tamu"} · {o.method === "ambil" ? `Ambil di ${o.locationName}` : "Kirim"}
@@ -242,7 +243,7 @@ export function DashboardLive({ initial, canReset, seedVersion = 0, installedVer
                 return (
                   <li key={`${a.kind}-${i}`}>
                     <Link href={a.href} className="flex gap-3 px-4 py-2.5 hover:bg-porselen">
-                      <Icon className="mt-0.5 size-4 shrink-0 text-rona" aria-hidden />
+                      <Icon className="mt-0.5 size-4 shrink-0 text-aksen" aria-hidden />
                       <span className="min-w-0">
                         <span className="block text-sm text-kopi">{a.title}</span>
                         <span className="block text-xs text-abu-hangat">{a.detail}</span>
@@ -284,10 +285,10 @@ export function DashboardLive({ initial, canReset, seedVersion = 0, installedVer
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-garis px-4 py-2 text-[11px] text-abu-hangat">
               {data.lowStock.map((l) => (
                 <span key={l.location.id} className="tabular-nums">
-                  {l.location.name.replace("Rona ", "")}: {l.out} habis, {l.low} menipis
+                  {l.location.name.replace(`${MEREK.nama} `, "")}: {l.out} habis, {l.low} menipis
                 </span>
               ))}
-              <Link href="/admin/stok?status=menipis" className="ml-auto font-semibold text-rona hover:underline">
+              <Link href="/admin/stok?status=menipis" className="ml-auto font-semibold text-aksen hover:underline">
                 Lihat semua
               </Link>
             </div>

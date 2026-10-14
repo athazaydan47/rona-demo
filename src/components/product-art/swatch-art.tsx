@@ -1,6 +1,7 @@
 import { useId } from "react";
 import { alpha, darken, lighten } from "@/lib/color";
 import { cn } from "@/lib/utils";
+import { MEREK } from "@/config/merek";
 
 export type SwatchTexture = "krim" | "cair" | "bubuk" | "satin";
 
@@ -77,7 +78,7 @@ export function ShadeSwatchArt({ shade, texture = "krim", className, title, back
           <path d={d} />
         </clipPath>
       </defs>
-      {background === "soft" ? <rect width="200" height="140" rx="16" fill={`url(#${id}-bg)`} /> : null}
+      {background === "soft" ? <rect width="200" height="140" rx={MEREK.productArt.sudut} fill={`url(#${id}-bg)`} /> : null}
       {/* Bayangan jatuh */}
       <path d={d} fill={alpha(KOPI, 0.22)} transform="translate(2 5)" filter={`url(#${id}-blur)`} />
       {/* Badan olesan */}

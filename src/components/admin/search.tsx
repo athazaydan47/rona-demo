@@ -7,8 +7,9 @@ import { ClipboardList, Loader2, Package, Search, User } from "lucide-react";
 import { adminSearchAction } from "@/lib/admin/actions";
 import type { SearchHit } from "@/lib/admin/search";
 import { cn } from "@/lib/utils";
+import { namaEvent } from "@/config/merek";
 
-const EVENT = "rona:admin-cari";
+const EVENT = namaEvent("admin-cari");
 let open = false;
 const set = (v: boolean) => {
   open = v;
@@ -95,7 +96,7 @@ export function AdminSearch() {
                 <li key={`${h.kind}-${h.href}-${i}`}>
                   {first ? <p className="px-2 pt-2 pb-1 text-[11px] font-semibold tracking-wide text-abu-hangat uppercase">{GROUP[h.kind]}</p> : null}
                   <button type="button" role="option" aria-selected={i === active} onMouseEnter={() => setActive(i)} onClick={() => go(h)} className={cn("flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left", i === active ? "bg-blush/60" : "")}>
-                    <Icon className="size-4 shrink-0 text-rona" aria-hidden />
+                    <Icon className="size-4 shrink-0 text-aksen" aria-hidden />
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium text-kopi">{h.title}</span>
                       <span className="block truncate text-xs text-abu-hangat">{h.subtitle}</span>

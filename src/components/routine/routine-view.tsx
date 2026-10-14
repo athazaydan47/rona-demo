@@ -70,7 +70,7 @@ export function RoutineView({ pagi, malam, warnings, inti, intiWarnings, default
     <section>
       <div className="mb-2 flex items-baseline justify-between gap-2">
         <h2 className="flex items-center gap-2 font-serif text-2xl text-kopi">
-          {time === "pagi" ? <Sun className="size-5 text-emas" aria-hidden /> : time === "malam" ? <Moon className="size-5 text-kopi" aria-hidden /> : <Sparkle className="size-5 text-rona" aria-hidden />}{" "}
+          {time === "pagi" ? <Sun className="size-5 text-emas" aria-hidden /> : time === "malam" ? <Moon className="size-5 text-kopi" aria-hidden /> : <Sparkle className="size-5 text-aksen" aria-hidden />}{" "}
           {time === "pagi" ? "Pagi" : time === "malam" ? "Malam" : "Inti, pagi dan malam"}
         </h2>
         <p className="text-sm text-abu-hangat tabular-nums" data-testid={`subtotal-${time}`}>

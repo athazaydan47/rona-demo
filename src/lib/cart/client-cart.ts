@@ -3,11 +3,12 @@
 // Jembatan klien ke keranjang server: jumlah item untuk badge, tambah ke keranjang, buka laci.
 import { useSyncExternalStore } from "react";
 import { addToCartAction, cartCountAction, importLocalCartAction } from "./actions";
+import { kunciLokal, namaEvent } from "@/config/merek";
 
-const COUNT_EVENT = "rona:cart";
-export const OPEN_EVENT = "rona:cart-open";
-const LEGACY_KEY = "rona.cart";
-const LEGACY_COUNT_KEY = "rona.cart.count";
+const COUNT_EVENT = namaEvent("cart");
+export const OPEN_EVENT = namaEvent("cart-open");
+const LEGACY_KEY = kunciLokal("cart");
+const LEGACY_COUNT_KEY = kunciLokal("cart.count");
 
 let count = 0;
 

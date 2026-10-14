@@ -104,8 +104,8 @@ export function VariantPromoManager({ rows }: { rows: VariantPromoRow[] }) {
             {promo > 0 ? (
               <p className="mt-2 flex flex-wrap items-baseline gap-2 text-sm">
                 <span className="text-abu-hangat line-through tabular-nums">{formatRupiah(draft.normalPrice)}</span>
-                <span className="font-semibold text-rona tabular-nums">{formatRupiah(promo)}</span>
-                <span className="rounded bg-rona px-1.5 text-xs font-semibold text-putih">-{discountPercent(draft.normalPrice, promo)}%</span>
+                <span className="font-semibold text-aksen tabular-nums">{formatRupiah(promo)}</span>
+                <span className="rounded bg-aksen px-1.5 text-xs font-semibold text-putih">-{discountPercent(draft.normalPrice, promo)}%</span>
                 {promo !== Number(draft.price) ? <span className="text-xs text-abu-hangat">dibulatkan dari {formatRupiah(Number(draft.price))}</span> : null}
                 {promo >= draft.salePrice ? <span className="text-xs text-bahaya">Harus di bawah harga jual.</span> : null}
               </p>
@@ -150,7 +150,7 @@ export function VariantPromoManager({ rows }: { rows: VariantPromoRow[] }) {
                   </span>
                 </td>
                 <td className="px-3 py-2 tabular-nums">
-                  <span className="block font-semibold text-rona">{formatRupiah(r.promoPrice ?? 0)}</span>
+                  <span className="block font-semibold text-aksen">{formatRupiah(r.promoPrice ?? 0)}</span>
                   <span className="text-xs text-abu-hangat line-through">{formatRupiah(r.normalPrice)}</span>
                 </td>
                 <td className="px-3 py-2 text-xs">
@@ -354,10 +354,10 @@ export function VoucherManager({ vouchers, brands, categories, nowIso }: { vouch
               </div>
             </fieldset>
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={draft.stackWithFlash} onChange={(e) => setDraft({ ...draft, stackWithFlash: e.target.checked })} className="size-4 accent-rona" /> Boleh dipakai bersama flash sale
+              <input type="checkbox" checked={draft.stackWithFlash} onChange={(e) => setDraft({ ...draft, stackWithFlash: e.target.checked })} className="size-4 accent-aksen" /> Boleh dipakai bersama flash sale
             </label>
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={draft.isActive} onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })} className="size-4 accent-rona" /> Aktif
+              <input type="checkbox" checked={draft.isActive} onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })} className="size-4 accent-aksen" /> Aktif
             </label>
             {error ? (
               <p className="text-sm text-bahaya sm:col-span-2" role="alert">
@@ -591,7 +591,7 @@ export function BannerManager({ banners, photosEnabled, nowIso }: { banners: Ban
               )}
             </fieldset>
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={draft.isActive} onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })} className="size-4 accent-rona" /> Aktif
+              <input type="checkbox" checked={draft.isActive} onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })} className="size-4 accent-aksen" /> Aktif
             </label>
             {error ? (
               <p className="text-sm text-bahaya" role="alert">

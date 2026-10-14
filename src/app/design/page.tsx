@@ -10,29 +10,33 @@ import { HelpText, Input, Label } from "@/components/ui/input";
 import { PriceTag } from "@/components/ui/price-tag";
 import { RatingStars } from "@/components/ui/rating-stars";
 import { SwatchDots } from "@/components/ui/swatch-dots";
-import { ProductArt, ShadeSwatchArt, detailLabels, packagingLabels, swatchTextureLabels, type SwatchTexture } from "@/components/product-art";
+import { ProductArt, detailLabels, packagingLabels } from "@/components/product-art";
+import { ShadeSwatchArt, swatchTextureLabels, type SwatchTexture } from "@/components/product-art/inline";
 import { ChipDemo } from "./chip-demo";
+import { MEREK, TOKEN_WARNA, type Palet } from "@/config/merek";
 
 export const metadata: Metadata = { title: "Design system" };
 
-const colors = [
-  { token: "porselen", hex: "#FAF7F5", use: "Latar halaman" },
-  { token: "putih", hex: "#FFFFFF", use: "Kartu, laci, dialog" },
-  { token: "kopi", hex: "#2A1F1D", use: "Teks utama" },
-  { token: "abu-hangat", hex: "#6E615D", use: "Teks sekunder" },
-  { token: "garis", hex: "#EAE2DE", use: "Garis pemisah, border" },
-  { token: "rona", hex: "#B8475D", use: "Aksen utama: tombol, tautan aktif" },
-  { token: "rona-gelap", hex: "#93364A", use: "Tombol saat ditekan" },
-  { token: "blush", hex: "#F4DCDF", use: "Latar lembut, chip terpilih" },
-  { token: "sage", hex: "#8FA58E", use: "Label aman untuk kulit sensitif" },
-  { token: "emas", hex: "#C9A35C", use: "Badge flash sale dan Terlaris" },
-  { token: "sukses", hex: "#2F7A55", use: "Status berhasil" },
-  { token: "peringatan", hex: "#C77D1A", use: "Stok menipis, batas waktu" },
-  { token: "bahaya", hex: "#B3261E", use: "Error, habis" },
-];
+// Warna dari konfigurasi merek (src/config/merek.ts), urutan dan kegunaan sesuai design system.
+const USE: Partial<Record<keyof Palet, string>> = {
+  porselen: "Latar halaman",
+  putih: "Kartu, laci, dialog",
+  kopi: "Teks utama",
+  abuHangat: "Teks sekunder",
+  garis: "Garis pemisah, border",
+  aksen: "Aksen utama: tombol, tautan aktif",
+  aksenGelap: "Tombol saat ditekan, teks aksen kecil",
+  blush: "Latar lembut, chip terpilih",
+  sage: "Label aman untuk kulit sensitif",
+  emas: "Badge flash sale dan Terlaris",
+  sukses: "Status berhasil",
+  peringatan: "Stok menipis, batas waktu",
+  bahaya: "Error, habis",
+};
+const colors = (Object.keys(USE) as (keyof Palet)[]).map((k) => ({ token: TOKEN_WARNA[k], hex: MEREK.palet[k].toUpperCase(), use: USE[k]! }));
 
 const typeScale = [
-  { cls: "text-4xl", px: 48, sample: "Temukan rona terbaikmu" },
+  { cls: "text-4xl", px: 48, sample: MEREK.tagline.replace(/\.$/, "") },
   { cls: "text-3xl", px: 36, sample: "Terlaris minggu ini" },
   { cls: "text-2xl", px: 28, sample: "Pualam Velvet Matte Cushion" },
   { cls: "text-xl", px: 22, sample: "Shade yang pas untuk kulitmu" },
@@ -61,10 +65,10 @@ function Section({ id, title, intro, children }: { id: string; title: string; in
 
 export default function DesignPage() {
   return (
-    <div className="container-rona py-10">
+    <div className="container-toko py-10">
       <header className="mb-4">
-        <p className="text-xs font-semibold tracking-wide text-rona uppercase">Halaman internal</p>
-        <h1 className="mt-2 font-serif text-4xl font-medium text-kopi">Design system Rona</h1>
+        <p className="text-xs font-semibold tracking-wide text-aksen uppercase">Halaman internal</p>
+        <h1 className="mt-2 font-serif text-4xl font-medium text-kopi">Design system {MEREK.nama}</h1>
         <p className="mt-3 max-w-2xl text-abu-hangat">
           Editorial kecantikan yang hangat: latar porselen, mawar tua sebagai aksen, judul serif Fraunces, teks Plus Jakarta Sans, dan banyak ruang
           kosong.
@@ -181,7 +185,7 @@ export default function DesignPage() {
             "Admin: kartu kanban terangkat saat diseret dan bergoyang kembali bila kolom tidak sah; angka dashboard naik bertahap; pesanan baru disorot.",
           ].map((t) => (
             <li key={t} className="flex gap-2">
-              <span className="mt-2 size-1.5 shrink-0 rounded-full bg-rona" aria-hidden /> {t}
+              <span className="mt-2 size-1.5 shrink-0 rounded-full bg-aksen" aria-hidden /> {t}
             </li>
           ))}
         </ul>
@@ -227,7 +231,7 @@ export default function DesignPage() {
           </div>
           <div>
             <Label htmlFor="d-disabled">Kode voucher</Label>
-            <Input id="d-disabled" placeholder="RONABARU" disabled />
+            <Input id="d-disabled" placeholder="KODEPROMO" disabled />
           </div>
         </div>
       </Section>
@@ -254,7 +258,7 @@ export default function DesignPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Card>
             <CardHeader>
-              <CardTitle>Rona Dinoyo</CardTitle>
+              <CardTitle>Cabang Dinoyo</CardTitle>
               <CardDescription>Jl. MT Haryono No. 45 (fiktif)</CardDescription>
             </CardHeader>
             <CardContent className="text-sm text-kopi">Buka 09.00 sampai 21.00 WIB. Stok shade ini: 4, bisa diambil hari ini.</CardContent>

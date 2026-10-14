@@ -29,6 +29,7 @@ export type ReviewableItem = {
 
 // Nama tampil di ulasan: nama depan dan inisial nama belakang, misal "Nadia P.".
 import { reviewerDisplayName } from "./display-name";
+import { fiturAktif } from "@/config/fitur";
 export { reviewerDisplayName };
 
 // Item yang bisa (atau sudah) diulas dari satu pesanan Selesai milik pembeli. Kosong bila bukan miliknya.
@@ -143,14 +144,17 @@ export async function createReview(db: AnyDb, input: CreateReviewInput): Promise
       .onConflictDoNothing({ target: schema.reviews.orderItemId })
       .returning({ id: schema.reviews.id });
     if (!inserted[0]) return { ok: false as const, code: "sudah_diulas" as const, message: "Item ini sudah kamu ulas. Terima kasih!" };
-    const bonus = await movePoints(tx, {
-      customerId: input.customerId,
-      amount: FIRST_REVIEW_BONUS,
-      reason: "Bonus ulasan pertama",
-      reference: `ulasan:${inserted[0].id}`,
-      key: pointKeys.firstReview(input.customerId),
-      at: input.now,
-    });
+    // Bonus ulasan pertama hanya bila fitur poin aktif (src/config/fitur.ts).
+    const bonus = fiturAktif("poin")
+      ? await movePoints(tx, {
+          customerId: input.customerId,
+          amount: FIRST_REVIEW_BONUS,
+          reason: "Bonus ulasan pertama",
+          reference: `ulasan:${inserted[0].id}`,
+          key: pointKeys.firstReview(input.customerId),
+          at: input.now,
+        })
+      : { applied: 0 };
     await recomputeProductRating(tx, item.productId);
     return { ok: true as const, reviewId: inserted[0].id, productId: item.productId, productSlug: item.productSlug, bonus: bonus.applied };
   });

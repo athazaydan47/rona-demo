@@ -1,6 +1,6 @@
 {
   "name": "rona-demo",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -23,7 +23,12 @@
     "eval:ai": "tsx scripts/eval-ai.ts",
     "ai:ringkasan": "tsx scripts/ringkas-ulasan.ts",
     "eval:asisten": "tsx scripts/eval-asisten.ts",
-    "eval:deskripsi": "tsx scripts/eval-deskripsi.ts"
+    "eval:deskripsi": "tsx scripts/eval-deskripsi.ts",
+    "impor:katalog": "tsx scripts/impor-katalog.ts",
+    "cek:rahasia": "node scripts/cek-rahasia.mjs",
+    "uji:produksi": "node scripts/uji-produksi.mjs",
+    "test:cakupan": "vitest run --coverage",
+    "aset:portofolio": "node scripts/aset-portofolio.mjs"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
@@ -55,6 +60,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^5.0.4",
     "dotenv": "^18.0.7",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
@@ -71,5 +77,8 @@
     "esbuild@0.18.20": true,
     "unrs-resolver@1.12.2": true,
     "@resvg/resvg-js@2.6.2": true
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   }
 }

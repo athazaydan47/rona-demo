@@ -9,8 +9,10 @@ import { ProductArt } from "@/components/product-art";
 import { formatRupiah } from "@/lib/format";
 import type { SearchSuggestions } from "@/lib/catalog/catalog-queries";
 import { cn } from "@/lib/utils";
+import { kunciLokal } from "@/config/merek";
+import { fiturAktif } from "@/config/fitur";
 
-const RECENT_KEY = "rona.search.recent";
+const RECENT_KEY = kunciLokal("search.recent");
 const POPULAR = ["cushion", "sunscreen", "lip tint", "serum niacinamide", "parfum"];
 
 type Item = { kind: "produk" | "merek" | "kategori" | "riwayat" | "populer" | "cari"; label: string; href: string; meta?: string; art?: SearchSuggestions["products"][number] };
@@ -184,7 +186,7 @@ export function SearchBox({ className, autoFocus = false, initialQuery = "" }: {
         aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
         aria-autocomplete="list"
         placeholder="Cari cushion, serum, lip tint..."
-        className="h-11 w-full rounded-pill border border-garis bg-porselen pr-10 pl-11 text-sm text-kopi outline-none transition-[border-color,box-shadow,background-color] duration-200 placeholder:text-abu-hangat/80 hover:border-kopi/25 focus:border-rona focus:bg-putih focus:shadow-ring [&::-webkit-search-cancel-button]:hidden"
+        className="h-11 w-full rounded-pill border border-garis bg-porselen pr-10 pl-11 text-sm text-kopi outline-none transition-[border-color,box-shadow,background-color] duration-200 placeholder:text-abu-hangat/80 hover:border-kopi/25 focus:border-aksen focus:bg-putih focus:shadow-ring [&::-webkit-search-cancel-button]:hidden"
       />
       {q ? (
         <button
@@ -198,10 +200,10 @@ export function SearchBox({ className, autoFocus = false, initialQuery = "" }: {
         >
           <X className="size-4" />
         </button>
-      ) : ai.tersedia ? (
+      ) : ai.tersedia && fiturAktif("aiFotoLink") ? (
         <Link
           href="/cari-dari-video"
-          className="absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-abu-hangat hover:bg-porselen hover:text-rona"
+          className="absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-abu-hangat hover:bg-porselen hover:text-aksen"
           aria-label="Cari dari video atau screenshot (opsional)"
           title="Cari dari video atau screenshot"
           data-testid="ikon-cari-video"
@@ -232,7 +234,7 @@ export function SearchBox({ className, autoFocus = false, initialQuery = "" }: {
                               e.preventDefault();
                               go(it.href, it.kind === "riwayat" || it.kind === "populer" ? it.label : it.kind === "cari" ? term : undefined);
                             }}
-                            className={cn("flex items-center gap-3 px-4 py-2 text-sm text-kopi", selected ? "bg-blush/60" : "hover:bg-porselen", it.kind === "cari" && "mt-1 border-t border-garis pt-3 font-semibold text-rona")}
+                            className={cn("flex items-center gap-3 px-4 py-2 text-sm text-kopi", selected ? "bg-blush/60" : "hover:bg-porselen", it.kind === "cari" && "mt-1 border-t border-garis pt-3 font-semibold text-aksen")}
                             tabIndex={-1}
                           >
                             {it.kind === "produk" && it.art ? (

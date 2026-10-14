@@ -155,14 +155,14 @@ export function ReviewForm({ item, defaultSkin, photosEnabled }: { item: Item; d
           onChange={(e) => setBody(e.target.value.slice(0, 1500))}
           rows={5}
           placeholder="Teksturnya, ketahanannya, cocok tidak di kulitmu..."
-          className="w-full rounded-[16px] border border-garis bg-putih px-4 py-3 text-base text-kopi outline-none focus-visible:border-rona focus-visible:shadow-ring"
+          className="w-full rounded-[16px] border border-garis bg-putih px-4 py-3 text-base text-kopi outline-none focus-visible:border-aksen focus-visible:shadow-ring"
         />
         <HelpText className="tabular-nums">{tooShort ? `Minimal ${MIN_LENGTH} karakter (${body.trim().length}/${MIN_LENGTH}).` : `${body.trim().length} karakter.`}</HelpText>
       </div>
 
       <div>
         <Label htmlFor="ul-kulit">Jenis kulitmu</Label>
-        <select id="ul-kulit" value={skin} onChange={(e) => setSkin(e.target.value)} className="h-11 w-full max-w-xs rounded-pill border border-garis bg-putih px-4 text-base text-kopi outline-none focus-visible:border-rona focus-visible:shadow-ring">
+        <select id="ul-kulit" value={skin} onChange={(e) => setSkin(e.target.value)} className="h-11 w-full max-w-xs rounded-pill border border-garis bg-putih px-4 text-base text-kopi outline-none focus-visible:border-aksen focus-visible:shadow-ring">
           <option value="">Tidak disebutkan</option>
           {SKIN.map(([v, l]) => (
             <option key={v} value={v}>

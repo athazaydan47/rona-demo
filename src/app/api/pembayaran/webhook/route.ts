@@ -5,17 +5,20 @@ import { revalidateProducts } from "@/lib/orders/revalidate";
 import { confirmPayment } from "@/lib/orders/service";
 import { siteUrl } from "@/lib/site";
 import { scheduleEmailDispatch } from "@/lib/email/schedule";
+import { MEREK } from "@/config/merek";
+
+const HEADER_TANDA_TANGAN = `x-${MEREK.kunci}-signature`;
 
 // Satu pintu konfirmasi pembayaran bergaya webhook payment gateway.
 // Body JSON: { "idempotency_key": "...", "amount": 123000, "status": "settlement" }
-// Header: x-rona-signature = HMAC-SHA256(body mentah, PAYMENT_WEBHOOK_SECRET) dalam hex.
+// Header: x-<kunci merek>-signature (misal dari MEREK.kunci) = HMAC-SHA256(body mentah, PAYMENT_WEBHOOK_SECRET) dalam hex.
 // Aman dipanggil berkali-kali: panggilan kedua untuk kunci yang sama tidak memproses ulang.
 export async function POST(request: NextRequest) {
   scheduleEmailDispatch(); // kirim email dari outbox setelah respons
   const secret = process.env.PAYMENT_WEBHOOK_SECRET;
   if (!secret) return NextResponse.json({ ok: false, message: "Webhook belum dikonfigurasi." }, { status: 503 });
   const raw = await request.text();
-  const given = request.headers.get("x-rona-signature") ?? "";
+  const given = request.headers.get(HEADER_TANDA_TANGAN) ?? "";
   const expected = createHmac("sha256", secret).update(raw).digest("hex");
   if (given.length !== expected.length || !timingSafeEqual(Buffer.from(given), Buffer.from(expected))) {
     return NextResponse.json({ ok: false, message: "Tanda tangan tidak valid." }, { status: 401 });

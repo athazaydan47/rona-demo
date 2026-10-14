@@ -27,7 +27,7 @@ async function main() {
     console.log("Evaluasi dilewati: AI_GATEWAY_URL dan GEMINI_API_KEY belum diisi.");
     process.exit(0);
   }
-  const model = aiModel(cfg)!;
+  const model = aiModel("asistenAdmin", cfg)!;
   const want = Number(arg("jumlah") ?? 11);
 
   const all = await db.select({ id: schema.products.id, slug: schema.products.slug, name: schema.products.name, brandId: schema.products.brandId, categoryId: schema.products.categoryId, activeIngredients: schema.products.activeIngredients, skinTypes: schema.products.skinTypes, finish: schema.products.finish, spf: schema.products.spf, netto: schema.products.netto, bpom: schema.products.bpom, benefits: schema.products.benefits, howToUse: schema.products.howToUse, shortDescription: schema.products.shortDescription }).from(schema.products).orderBy(schema.products.id);

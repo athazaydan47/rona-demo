@@ -30,7 +30,7 @@ export function BrandDirectory({ brands }: { brands: BrandSummary[] }) {
         <label htmlFor="brand-search" className="sr-only">
           Cari merek
         </label>
-        <input id="brand-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari merek" className="h-11 w-full rounded-pill border border-garis bg-putih pr-4 pl-11 text-sm outline-none focus-visible:border-rona focus-visible:shadow-ring" />
+        <input id="brand-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari merek" className="h-11 w-full rounded-pill border border-garis bg-putih pr-4 pl-11 text-sm outline-none focus-visible:border-aksen focus-visible:shadow-ring" />
       </div>
       <nav aria-label="Lompat ke huruf" className="mt-5">
         <ul className="flex flex-wrap gap-1">
@@ -54,7 +54,7 @@ export function BrandDirectory({ brands }: { brands: BrandSummary[] }) {
       <div className="mt-6 md:columns-2 md:gap-6 lg:columns-3">
         {groups.map(([letter, list]) => (
           <section key={letter} id={`merek-${letter}`} className="mb-8 scroll-mt-32 break-inside-avoid">
-            <h2 className="mb-3 font-serif text-2xl text-rona">{letter}</h2>
+            <h2 className="mb-3 font-serif text-2xl text-aksen">{letter}</h2>
             <ul className="grid gap-3">
               {list.map((b) => (
                 <li key={b.id} className="min-w-0">
@@ -63,7 +63,7 @@ export function BrandDirectory({ brands }: { brands: BrandSummary[] }) {
                       {b.name[0]}
                     </span>
                     <span className="min-w-0">
-                      <span className="block font-serif text-lg text-kopi group-hover:text-rona-gelap">{b.name}</span>
+                      <span className="block font-serif text-lg text-kopi group-hover:text-aksen-gelap">{b.name}</span>
                       <span className="block truncate text-xs text-abu-hangat">{b.tagline}</span>
                       <span className="block truncate text-xs text-abu-hangat tabular-nums">
                         {b.productCount} produk · {formatRupiah(b.priceMin)} sampai {formatRupiah(b.priceMax)}

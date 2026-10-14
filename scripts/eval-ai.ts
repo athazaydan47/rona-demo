@@ -45,7 +45,7 @@ async function main() {
     console.log("Evaluasi dilewati: AI_GATEWAY_URL dan GEMINI_API_KEY belum diisi.");
     process.exit(0);
   }
-  const model = aiModel(cfg)!;
+  const model = aiModel("aiPembeli", cfg)!;
   const parts = (arg("bagian") ?? "advisor,tafsir,7c").split(",");
   const only = arg("hanya")?.split(",");
   const now = new Date();

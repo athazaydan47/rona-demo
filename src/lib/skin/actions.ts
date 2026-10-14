@@ -11,15 +11,22 @@ import { now } from "@/lib/clock";
 import { currentSkinProfile, storeSkinProfile } from "./current";
 import { quizToProfile, withShade, type QuizAnswers } from "./profile";
 import { SHADE_GROUPS } from "./shade";
+import { MEREK } from "@/config/merek";
+import { BATAS, clientIp, hashKey, rateLimit } from "@/lib/security/rate-limit";
+import { headers } from "next/headers";
+import { cocok, skema } from "@/lib/validasi";
 
 export async function saveQuizAction(answers: QuizAnswers): Promise<{ ok: boolean; where?: "akun" | "cookie"; message?: string }> {
-  const profile = quizToProfile(answers ?? {}, now());
+  if (!cocok(skema.kuis, answers)) return { ok: false, message: "Jawaban kuis tidak valid." };
+  const profile = quizToProfile(answers, now());
   if (!profile.skinType) return { ok: false, message: "Pilih jenis kulitmu dulu, ya." };
   return { ok: true, where: await storeSkinProfile(profile) };
 }
 
-export async function saveShadeProfileAction(input: { depth: number; undertone: string }) {
-  const p = withShade(await currentSkinProfile(), { depth: Number(input?.depth), undertone: String(input?.undertone ?? "") }, now());
+export async function saveShadeProfileAction(raw: { depth: number; undertone: string }) {
+  const input = cocok(skema.profilShade, raw);
+  if (!input) return { ok: false };
+  const p = withShade(await currentSkinProfile(), input, now());
   await storeSkinProfile(p);
   return { ok: true };
 }
@@ -58,11 +65,14 @@ export async function shadeMatchAction(variantId: number, targetProductId?: numb
 // "aku pakai cushion Pualam shade 02" menjadi varian yang tepat (AI), lalu dihitung oleh algoritma padanan.
 export async function interpretShadeTextAction(text: string): Promise<{ ok: true; varianId: number; label: string } | { ok: false; message: string }> {
   const cfg = aiConfig();
-  const model = aiModel(cfg);
+  const model = aiModel("aiPembeli", cfg);
   const q = String(text ?? "").trim().slice(0, 160);
   if (!model) return { ok: false, message: "Fitur ini butuh AI yang sedang tidak tersedia. Pilih produk dan shade dari daftar, ya." };
   if (q.length < 4) return { ok: false, message: "Tulis produk dan shade yang biasa kamu pakai." };
   const at = now();
+  const batas = BATAS.tafsirShadePerPengunjung;
+  const rl = await rateLimit(db, `tafsir-shade:${hashKey(clientIp(await headers()))}`, batas.limit, batas.windowMs, at);
+  if (!rl.ok) return { ok: false, message: "Batas tafsiran hari ini sudah tercapai. Pilih produk dan shade dari daftar, ya." };
   if (await globalCapReached(db, cfg, at).catch(() => true)) return { ok: false, message: "Sedang istirahat, coba lagi besok. Kamu tetap bisa memilih dari daftar." };
   const sources = await shadeSourcesAction();
   const options = sources.flatMap((p) => p.variants.map((v) => ({ id: v.id, label: `${p.brandName} ${p.name}, shade ${v.shadeName}` })));
@@ -80,7 +90,7 @@ export async function interpretShadeTextAction(text: string): Promise<{ ok: true
     const id = Number((JSON.parse(res.text || "{}") as { varianId?: unknown }).varianId);
     const hit = options.find((o) => o.id === id);
     await logAi(db, { feature: "padanan_shade", model: res.model, inputTokens: res.usage.input, outputTokens: res.usage.output, latencyMs: Date.now() - t0, ok: Boolean(hit), visitorHash: await currentVisitorHash(), at });
-    return hit ? { ok: true, varianId: hit.id, label: hit.label } : { ok: false, message: "Produk itu belum kami temukan di katalog Rona. Coba pilih dari daftar, ya." };
+    return hit ? { ok: true, varianId: hit.id, label: hit.label } : { ok: false, message: `Produk itu belum kami temukan di katalog ${MEREK.nama}. Coba pilih dari daftar, ya.` };
   } catch (e) {
     await logAi(db, { feature: "padanan_shade", model: model.name, latencyMs: Date.now() - t0, ok: false, error: e instanceof Error ? e.message : String(e), visitorHash: await currentVisitorHash(), at }).catch(() => {});
     return { ok: false, message: "AI sedang tidak bisa dihubungi. Pilih produk dan shade dari daftar, ya." };

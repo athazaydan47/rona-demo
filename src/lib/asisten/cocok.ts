@@ -5,11 +5,12 @@
 import { and, asc, eq, ilike, or, sql } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import type { AnyDb } from "@/lib/db-types";
+import { MEREK } from "@/config/merek";
 
 export type Candidate<T = unknown> = { id: number; name: string; aliases?: string[]; data?: T };
 export type MatchResult<T = unknown> = { status: "cocok"; item: Candidate<T> } | { status: "ambigu"; kandidat: Candidate<T>[] } | { status: "tidak_ditemukan" };
 
-const FILLER = new Set(["shade", "warna", "varian", "yang", "ukuran", "produk", "merek", "brand", "cabang", "toko", "rona", "di", "the"]);
+const FILLER = new Set(["shade", "warna", "varian", "yang", "ukuran", "produk", "merek", "brand", "cabang", "toko", MEREK.kunci, "di", "the"]);
 
 export function normalizeName(s: string) {
   return s
@@ -83,7 +84,7 @@ export async function categoryCandidates(db: AnyDb): Promise<Candidate<{ slug: s
 
 export async function locationCandidates(db: AnyDb): Promise<Candidate<{ slug: string; type: string }>[]> {
   const rows = await db.select({ id: schema.locations.id, name: schema.locations.name, slug: schema.locations.slug, type: schema.locations.type }).from(schema.locations).where(eq(schema.locations.isActive, true)).orderBy(asc(schema.locations.sortOrder));
-  return rows.map((r) => ({ id: r.id, name: r.name, aliases: [r.slug.replace(/-/g, " "), r.name.replace(/^Rona /, "")], data: { slug: r.slug, type: r.type } }));
+  return rows.map((r) => ({ id: r.id, name: r.name, aliases: [r.slug.replace(/-/g, " "), r.name.replace(new RegExp(`^${MEREK.nama} `), "")], data: { slug: r.slug, type: r.type } }));
 }
 
 export async function productCandidates(db: AnyDb): Promise<Candidate<{ slug: string; brand: string }>[]> {

@@ -48,7 +48,7 @@ export function PhotoAssist({ onApply, onManual }: { onApply: (s: QuizSuggestion
       <div className="space-y-4" data-testid="persetujuan-foto">
         <div className="rounded-xl border border-garis bg-putih p-4 text-sm text-kopi">
           <p className="flex items-center gap-2 font-semibold">
-            <ShieldCheck className="size-4 text-rona" aria-hidden /> Sebelum kamu kirim foto
+            <ShieldCheck className="size-4 text-aksen" aria-hidden /> Sebelum kamu kirim foto
           </p>
           <ul className="mt-2 list-inside list-disc space-y-1 text-kopi/90">
             <li>Foto hanya dipakai untuk memperkirakan kondisi kulit yang terlihat.</li>
@@ -58,7 +58,7 @@ export function PhotoAssist({ onApply, onManual }: { onApply: (s: QuizSuggestion
           </ul>
           <p className="mt-2 text-xs text-abu-hangat">
             Baca juga{" "}
-            <Link href="/kebijakan/privasi#foto" className="font-semibold text-rona hover:underline">
+            <Link href="/kebijakan/privasi#foto" className="font-semibold text-aksen hover:underline">
               kebijakan privasi soal foto
             </Link>
             .

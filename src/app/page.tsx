@@ -10,6 +10,9 @@ import { BannerCarousel } from "@/components/home/banner-carousel";
 import { liveBanners } from "@/lib/catalog/banners";
 import { getArticles, getBrands, getCategoryTree, getHeroBanners, getLocations } from "@/lib/catalog/queries";
 import { now } from "@/lib/clock";
+import { MEREK } from "@/config/merek";
+import { fiturAktif } from "@/config/fitur";
+import { HERO_HP } from "@/lib/content/visual";
 
 // Banner promo dari admin. Jadwal tayang disaring per request, daftar banner sendiri di-cache dengan tag banners.
 async function HomeBanners() {
@@ -24,13 +27,13 @@ export default async function HomePage() {
   return (
     <>
       <section className="relative overflow-hidden bg-[linear-gradient(135deg,#FAF7F5_0%,#F4DCDF_100%)]">
-        <div className="container-rona grid items-center gap-8 py-10 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:gap-10 md:py-16 lg:gap-16 lg:py-20">
+        <div className="container-toko grid items-center gap-8 py-10 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:gap-10 md:py-16 lg:gap-16 lg:py-20">
           <div className="max-w-xl">
-            <p className="inline-flex items-center gap-2 rounded-pill bg-putih/70 px-3 py-1 text-xs font-semibold tracking-wide text-rona uppercase">
+            <p className="inline-flex items-center gap-2 rounded-pill bg-putih/70 px-3 py-1 text-xs font-semibold tracking-wide text-aksen uppercase">
               <Sparkles className="size-3.5" /> Cocok dulu, baru beli
             </p>
             <h1 className="mt-5 font-serif text-4xl leading-[1.05] font-medium text-balance text-kopi md:text-[56px] md:leading-[1.02] lg:text-[68px]">
-              Temukan rona terbaikmu.
+              {MEREK.tagline}
             </h1>
             <p className="mt-5 max-w-md text-lg text-abu-hangat">
               Satu produk, banyak shade. Stok terlihat per cabang. Rekomendasi yang hanya datang dari katalog kami sendiri.
@@ -47,42 +50,40 @@ export default async function HomePage() {
             </div>
             <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-abu-hangat">
               <li className="flex items-center gap-2">
-                <Truck className="size-4 text-rona" /> Pesan sebelum 15.00, dikirim hari ini
+                <Truck className="size-4 text-aksen" /> Pesan sebelum 15.00, dikirim hari ini
               </li>
               <li className="flex items-center gap-2">
-                <Store className="size-4 text-rona" /> Ambil di 3 cabang Malang
+                <Store className="size-4 text-aksen" /> Ambil di 3 cabang Malang
               </li>
             </ul>
           </div>
           <div className="relative mx-auto grid w-full max-w-sm grid-cols-3 items-end gap-3 md:hidden">
-            <div className="translate-y-3">
-              <ProductArt packaging="serum_dropper" shade="#D9EBE7" brandColor="#2F5D62" brandName="Kirana Lab" title="Ilustrasi serum" />
-            </div>
-            <div className="-translate-y-2">
-              <ProductArt packaging="cushion" shade="#DAB085" brandColor="#B98A6A" brandName="Pualam" title="Ilustrasi cushion" />
-            </div>
-            <div className="translate-y-4">
-              <ProductArt packaging="lipstick" shade="#B8475D" brandColor="#C2416B" brandName="Lumi" title="Ilustrasi lipstick" />
-            </div>
+            {HERO_HP.map((h) => (
+              <div key={h.packaging} className={h.geser}>
+                <ProductArt packaging={h.packaging} shade={h.shade} brandColor={h.brand} brandName={h.brandName} title={h.judul} />
+              </div>
+            ))}
           </div>
           <HeroComposition className="hidden w-full md:block" />
         </div>
       </section>
 
-      <Suspense fallback={<div className="container-rona pt-5 md:pt-8" aria-hidden><div className="aspect-[16/10] rounded-card bg-porselen sm:aspect-[21/8] md:aspect-[1200/360]" /></div>}>
+      <Suspense fallback={<div className="container-toko pt-5 md:pt-8" aria-hidden><div className="aspect-[16/10] rounded-card bg-porselen sm:aspect-[21/8] md:aspect-[1200/360]" /></div>}>
         <HomeBanners />
       </Suspense>
 
       <CategoryCircles categories={categories} />
 
-      <Suspense fallback={<div className="h-[520px] bg-kopi" aria-busy aria-label="Memuat flash sale" />}>
-        <FlashSaleSection />
-      </Suspense>
+      {fiturAktif("flashSale") ? (
+        <Suspense fallback={<div className="h-[520px] bg-kopi" aria-busy aria-label="Memuat flash sale" />}>
+          <FlashSaleSection />
+        </Suspense>
+      ) : null}
 
       <AdvisorCta />
 
       <Suspense fallback={<ProductRowSkeleton title="Terlaris minggu ini" />}>
-        <ProductRow title="Terlaris minggu ini" subtitle="Pilihan yang paling sering masuk keranjang pembeli Rona." href="/c/semua?urut=terlaris" sort="terlaris" hideBadges={["terlaris"]} />
+        <ProductRow title="Terlaris minggu ini" subtitle={`Pilihan yang paling sering masuk keranjang pembeli ${MEREK.nama}.`} href="/c/semua?urut=terlaris" sort="terlaris" hideBadges={["terlaris"]} />
       </Suspense>
 
       <Suspense fallback={<ProductRowSkeleton title="Baru datang" />}>
@@ -95,7 +96,7 @@ export default async function HomePage() {
 
       <BrandShowcase brands={brands} />
       <JournalSection articles={articles} />
-      <StoresSection locations={locations} />
+      {fiturAktif("multiCabang") ? <StoresSection locations={locations} /> : null}
     </>
   );
 }

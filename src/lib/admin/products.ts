@@ -9,6 +9,7 @@ import { discountPercent, roundToPromo } from "@/lib/pricing";
 import { slugify } from "@/lib/utils";
 import { writeAudit } from "./audit";
 import { can, type StaffPrincipal } from "./permissions";
+import { MEREK } from "@/config/merek";
 
 export const PRODUCT_STATUSES = ["aktif", "draf", "arsip"] as const;
 export type ProductStatus = (typeof PRODUCT_STATUSES)[number];
@@ -59,7 +60,7 @@ export type ProductIssue = { field: string; message: string };
 
 // SKU otomatis: kode merek (4 huruf), nomor produk, nomor varian. Bisa diubah admin.
 export function suggestSku(brandName: string, productId: number | null, index: number) {
-  const code = brandName.replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase() || "RONA";
+  const code = brandName.replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase() || MEREK.prefiksPesanan;
   return `${code}-${String(productId ?? 0).padStart(3, "0")}-${String(index + 1).padStart(2, "0")}`;
 }
 

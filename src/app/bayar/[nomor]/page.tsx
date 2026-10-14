@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import QRCode from "qrcode";
@@ -15,7 +14,7 @@ import { PaymentInstructions } from "@/components/order/payment-instructions";
 import { PaymentWatcher } from "@/components/order/payment-watcher";
 import { TrackForm } from "@/components/order/track-form";
 import { db } from "@/db/client";
-import { ORDERS_COOKIE } from "@/lib/cart/cookie";
+import { tokenPesananTersimpan } from "@/lib/orders/token-cookie";
 import { env } from "@/lib/env";
 import { formatDateTimeWib, formatRupiah } from "@/lib/format";
 import { currentCustomer } from "@/lib/auth/current";
@@ -33,7 +32,7 @@ async function PaymentContent({ params, searchParams }: Props) {
   await expireIfDue(db, nomor, undefined, siteUrl());
   const order = await getOrderDetail(db, nomor);
   if (!order) notFound();
-  const tokens = ((await cookies()).get(ORDERS_COOKIE)?.value ?? "").split(".").filter(Boolean);
+  const tokens = await tokenPesananTersimpan();
   if (!canAccessOrder(order, sp.t, tokens, (await currentCustomer())?.customerId)) {
     return (
       <div className="mx-auto max-w-md rounded-card border border-garis bg-putih p-6">
@@ -142,7 +141,7 @@ async function PaymentContent({ params, searchParams }: Props) {
 
 export default function BayarPage(props: Props) {
   return (
-    <section className="container-rona py-6 md:py-10">
+    <section className="container-toko py-6 md:py-10">
       <Suspense fallback={<div className="mx-auto h-96 max-w-4xl animate-pulse rounded-card bg-garis/50" aria-busy />}>
         <PaymentContent {...props} />
       </Suspense>

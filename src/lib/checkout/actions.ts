@@ -1,12 +1,12 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
 import { z } from "zod";
 import { db, schema } from "@/db/client";
 import { createAddress, getAddress, MAX_ADDRESSES, listAddresses } from "@/lib/account/addresses";
 import { currentCustomer } from "@/lib/auth/current";
-import { ORDERS_COOKIE } from "@/lib/cart/cookie";
+import { ingatTokenPesanan } from "@/lib/orders/token-cookie";
 import { resolveCart } from "@/lib/cart/current";
 import { viewCart, type CartView } from "@/lib/cart/service";
 import { now } from "@/lib/clock";
@@ -16,14 +16,16 @@ import { buildPricingLines, loadVoucher } from "@/lib/orders/pricing-loader";
 import { normalizePhone } from "@/lib/orders/rules";
 import { placeOrder, WAREHOUSE_SLUG, type PaymentMethod } from "@/lib/orders/service";
 import { priceCart, type PricedCart } from "@/lib/pricing/cart";
-import { pricingRules, type PaymentMethodKey } from "@/lib/settings";
+import { pricingRules, type PaymentMethodKey, pickupAktif } from "@/lib/settings";
 import { getStoreSettings } from "@/lib/settings/load";
 import { locationFlags } from "@/lib/product/availability";
 import { regionName, zoneForRegency } from "@/lib/regions";
 import { couriers, etaLabel, instantAvailability, type CourierCode, type Zone } from "@/lib/shipping";
 import { siteUrl } from "@/lib/site";
 import { scheduleEmailDispatch } from "@/lib/email/schedule";
-import { cookieSecure } from "@/lib/cookie-secure";
+import { fiturAktif } from "@/config/fitur";
+import { BATAS, clientIp, hashKey, limitByKey } from "@/lib/security/rate-limit";
+import { catatVoucherSalah, PESAN_VOUCHER_TERBATAS, voucherTerblokir } from "./voucher-guard";
 
 export type CourierOption = { code: CourierCode; name: string; service: string; cost: number; payable: number; etaLabel: string; shipsToday: boolean; disabledNote: string | null };
 export type PickupOption = { slug: string; name: string; district: string; address: string; hoursLabel: string; enough: boolean; readyLabel: string };
@@ -56,9 +58,12 @@ async function cartFromCookie() {
 // Penawaran checkout: ringkasan harga terbaru, kurir untuk zona tujuan, dan cabang yang stoknya cukup.
 export async function quoteCheckoutAction(raw: z.input<typeof quoteSchema>): Promise<CheckoutQuote> {
   const input = quoteSchema.parse(raw);
+  const ipKey = hashKey(clientIp(await headers()));
+  const b = BATAS.ongkirPerIp;
+  if (!limitByKey(`ongkir:${ipKey}`, b.limit, b.windowMs)) throw new Error("Terlalu sering menghitung ulang. Tunggu sebentar, ya.");
   const [cart, me] = await Promise.all([cartFromCookie(), currentCustomer()]);
   const settings = await getStoreSettings();
-  const empty: CheckoutQuote = { cart: null, pricing: null, couriers: [], pickup: [], warehouseShort: [], zone: null, points: null, payments: settings.payments, pickupEnabled: settings.couriers.active.includes("ambil_di_toko") };
+  const empty: CheckoutQuote = { cart: null, pricing: null, couriers: [], pickup: [], warehouseShort: [], zone: null, points: null, payments: settings.payments, pickupEnabled: pickupAktif(settings) };
   if (!cart) return empty;
   await ensureFlashSaleSlots(db);
   const at = now();
@@ -67,9 +72,11 @@ export async function quoteCheckoutAction(raw: z.input<typeof quoteSchema>): Pro
   const view = await viewCart(db, cart.id, { now: at, voucherOverride: input.voucherCode ?? null, buyer, settings });
   if (view.lines.length === 0) return { ...empty, cart: view };
   const items = view.lines.map((l) => ({ variantId: l.variantId, quantity: l.quantity }));
+  const kodeVoucher = input.voucherCode?.trim() || null;
+  const terblokir = kodeVoucher ? await voucherTerblokir(db, ipKey, at) : false;
   const [{ lines }, voucher, stock, locations] = await Promise.all([
     buildPricingLines(db, items, buyer, at),
-    loadVoucher(db, input.voucherCode, buyer),
+    terblokir ? null : loadVoucher(db, input.voucherCode, buyer),
     availabilityByVariant(db, items.map((i) => i.variantId)),
     db.select().from(schema.locations).where(eq(schema.locations.isActive, true)).orderBy(schema.locations.sortOrder),
   ]);
@@ -104,7 +111,7 @@ export async function quoteCheckoutAction(raw: z.input<typeof quoteSchema>): Pro
   }
 
   const pickup: PickupOption[] = locations
-    .filter((l) => l.canPickup && settings.couriers.active.includes("ambil_di_toko"))
+    .filter((l) => l.canPickup && pickupAktif(settings))
     .map((l) => {
       const enough = view.lines.every((line) => (stock.get(line.variantId)?.get(l.id) ?? 0) >= line.quantity);
       const f = locationFlags(l, at, settings.cutoff);
@@ -124,8 +131,11 @@ export async function quoteCheckoutAction(raw: z.input<typeof quoteSchema>): Pro
   else if (zone && input.courierCode && courierOptions.some((c) => c.code === input.courierCode && !c.disabledNote)) pricing = priceFor({ method: "kirim", courierCode: input.courierCode, zone });
   else pricing = priceFor(null);
 
-  const pointsInfo = me ? { balance: me.points, usable: Math.min(me.points, pricing.points.cap) } : null;
-  return { cart: view, pricing, couriers: courierOptions, pickup, warehouseShort, zone, points: pointsInfo, payments: settings.payments, pickupEnabled: settings.couriers.active.includes("ambil_di_toko") };
+  if (kodeVoucher && !terblokir && !voucher) await catatVoucherSalah(db, ipKey, kodeVoucher, at);
+  if (terblokir && pricing.voucher) pricing = { ...pricing, voucher: { ...pricing.voucher, message: PESAN_VOUCHER_TERBATAS } };
+
+  const pointsInfo = me && fiturAktif("poin") ? { balance: me.points, usable: Math.min(me.points, pricing.points.cap) } : null;
+  return { cart: view, pricing, couriers: courierOptions, pickup, warehouseShort, zone, points: pointsInfo, payments: settings.payments, pickupEnabled: pickupAktif(settings) };
 }
 
 const placeSchema = z.object({
@@ -205,6 +215,8 @@ export async function placeOrderAction(raw: z.input<typeof placeSchema>): Promis
   }
   const cart = await cartFromCookie();
   if (!cart) return { ok: false, message: "Keranjangmu kosong.", code: "keranjang_kosong" };
+  const ipKey = hashKey(clientIp(await headers()));
+  if (d.voucherCode && (await voucherTerblokir(db, ipKey))) return { ok: false, message: PESAN_VOUCHER_TERBATAS, code: "voucher", field: "voucherCode" };
   await ensureFlashSaleSlots(db);
   const result = await placeOrder(db, {
     cartId: cart.id,
@@ -223,7 +235,10 @@ export async function placeOrderAction(raw: z.input<typeof placeSchema>): Promis
     siteUrl: siteUrl(),
     settings: await getStoreSettings(),
   });
-  if (!result.ok) return { ok: false, message: result.message, code: result.code, pricing: result.pricing, field: result.code === "voucher" ? "voucherCode" : undefined };
+  if (!result.ok) {
+    if (result.code === "voucher" && d.voucherCode) await catatVoucherSalah(db, ipKey, d.voucherCode);
+    return { ok: false, message: result.message, code: result.code, pricing: result.pricing, field: result.code === "voucher" ? "voucherCode" : undefined };
+  }
 
   // Opsi "simpan alamat ini": hanya untuk alamat baru, gagal diam-diam bila buku alamat penuh.
   if (me && !saved && d.method === "kirim" && d.saveAddress && d.provinceCode && d.regencyCode) {
@@ -246,8 +261,6 @@ export async function placeOrderAction(raw: z.input<typeof placeSchema>): Promis
   }
 
   // Simpan token pesanan di perangkat supaya tamu bisa membuka pesanannya lagi tanpa tautan.
-  const jar = await cookies();
-  const prev = (jar.get(ORDERS_COOKIE)?.value ?? "").split(".").filter(Boolean).slice(-9);
-  jar.set(ORDERS_COOKIE, [...prev, result.accessToken].join("."), { httpOnly: true, sameSite: "lax", secure: cookieSecure(), path: "/", maxAge: 60 * 60 * 24 * 90 });
+  await ingatTokenPesanan(result.accessToken);
   return { ok: true, number: result.number, token: result.accessToken, paymentMethod: result.paymentMethod };
 }

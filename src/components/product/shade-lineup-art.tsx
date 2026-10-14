@@ -50,13 +50,13 @@ export function ShadeLineupArt({ shades, selectedId, className, title }: { shade
                 <path d={`M${x + colW / 2 - 4} ${top - 16} l3 3 l5 -5`} stroke="#FFFFFF" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
               </>
             ) : null}
-            <text x={x + colW / 2} y={bottom + 24} textAnchor="middle" fontFamily="var(--font-jakarta), sans-serif" fontSize={list.length > 5 ? 5.6 : 6.4} fontWeight={selected ? 700 : 500} fill={selected ? "#2A1F1D" : "#6E615D"}>
+            <text x={x + colW / 2} y={bottom + 24} textAnchor="middle" fontFamily="var(--font-teks), sans-serif" fontSize={list.length > 5 ? 5.6 : 6.4} fontWeight={selected ? 700 : 500} fill={selected ? "#2A1F1D" : "#6E615D"}>
               {shortName(s.shadeName, list.length > 5 ? 9 : 12)}
             </text>
           </g>
         );
       })}
-      <text x={w / 2} y={h - 14} textAnchor="middle" fontFamily="var(--font-jakarta), sans-serif" fontSize="6" letterSpacing="1.2" fill={readableOn("#F1E9E4", "#6E615D", "#FFFFFF")}>
+      <text x={w / 2} y={h - 14} textAnchor="middle" fontFamily="var(--font-teks), sans-serif" fontSize="6" letterSpacing="1.2" fill={readableOn("#F1E9E4", "#6E615D", "#FFFFFF")}>
         {`${shades.length} SHADE`}
       </text>
     </svg>

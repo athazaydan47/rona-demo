@@ -2,7 +2,9 @@ import { config } from "dotenv";
 import postgres from "postgres";
 import { expect, type Page } from "@playwright/test";
 
-config({ path: ".env.local" });
+config({ path: ".env.local", quiet: true });
+// DATABASE_URL di sini sudah diarahkan ke <database kerja>_e2e oleh playwright.config.ts (Fase 8B).
+if (!/_e2e(\?|$)/.test(process.env.DATABASE_URL ?? "")) throw new Error("Uji E2E harus memakai database _e2e. Jalankan lewat npx playwright test.");
 
 // Satu koneksi bersama untuk semua berkas uji di worker yang sama; ditutup otomatis saat menganggur
 // (jangan panggil sql.end() di afterAll, karena berkas uji berikutnya masih memakainya).

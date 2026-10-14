@@ -1,6 +1,7 @@
 // Adapter email (Fase 6C). Murni: konfigurasi dari env, allowlist mode demo, dan template email transaksional.
 // Pengiriman ada di dispatch.ts, penyedia Resend di resend.ts. Kanal WhatsApp tetap pratinjau (lihat whatsapp.ts).
 import { absoluteLinks } from "@/lib/notifications/links";
+import { MEREK } from "@/config/merek";
 
 export const MAX_EMAIL_ATTEMPTS = 3;
 
@@ -43,7 +44,7 @@ const URL_RE = /(https?:\/\/[^\s<]+[^\s<.,;:!?)"'])/g;
 
 // Template transaksional: HTML sederhana yang responsif (tabel 600 px, gaya inline) dan versi teks biasa.
 export function renderEmail(input: { subject: string; body: string; site: string; storeName?: string }) {
-  const store = input.storeName ?? "Rona Beauty";
+  const store = input.storeName ?? MEREK.namaLengkap;
   const text = absoluteLinks(input.body, input.site);
   const paragraphs = text
     .split(/\n{2,}|\n/)

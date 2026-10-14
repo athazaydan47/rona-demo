@@ -1,7 +1,8 @@
 // Audit poles (Fase 8A): buka setiap halaman toko dan admin di 375, 390, 768, dan 1440 px sebagai tamu, Pembeli Demo,
 // dan empat peran staf, lalu kumpulkan temuan yang bisa diukur: status HTTP, galat konsol, overflow mendatar, teks
 // dengan tanda pisah panjang, istilah yang tidak konsisten ("Order", "Anda"), teks mentah (undefined, NaN, [object),
-// sasaran sentuh di bawah 32 px di HP (tautan teks di dalam kalimat dikecualikan), dan pelanggaran axe serius atau kritis (di 390 dan 1440 px).
+// sasaran sentuh di bawah 32 px di HP (tautan teks di dalam kalimat dikecualikan), pelanggaran axe serius atau kritis (di
+// 390 dan 1440 px), dan pelanggaran Content Security Policy (Fase 8B).
 //   CUPLIK_URL=http://localhost:3211 node scripts/audit-poles.mjs
 // Hasil: _review/audit-poles.json dan ringkasan di terminal. Dipakai untuk menyusun docs/AUDIT-POLES.md.
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -36,6 +37,11 @@ const browser = await chromium.launch();
 // Setiap peran berjalan di konteks sendiri secara paralel (maksimal 3 sekaligus) supaya audit selesai dalam belasan menit.
 async function auditRole(role) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+  // Fase 8B: catat pelanggaran CSP (mode enforce maupun report-only) di setiap halaman.
+  await context.addInitScript(() => {
+    window.__csp = [];
+    document.addEventListener("securitypolicyviolation", (e) => window.__csp.push(`${e.effectiveDirective} ${e.blockedURI || "inline"} (${e.disposition})`));
+  });
   const page = await context.newPage();
   if (role.login) await role.login(page);
   for (const path of role.pages) {
@@ -98,6 +104,8 @@ async function auditRole(role) {
         if (dom.kecil.length) f.masalah.push(`sasaran sentuh kecil: ${dom.kecil.join("; ")}`);
         if (dom.imgTanpaAlt) f.masalah.push(`${dom.imgTanpaAlt} gambar tanpa alt`);
         if (consoleErrors.length) f.masalah.push(`galat konsol: ${[...new Set(consoleErrors)].slice(0, 2).join(" | ")}`);
+        const csp = await page.evaluate(() => window.__csp ?? []);
+        if (csp.length) f.masalah.push(`pelanggaran CSP: ${[...new Set(csp)].slice(0, 3).join(" | ")}`);
         if (width === 390 || width === 1440) {
           const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"]).exclude("[data-activity-hidden]").analyze();
           const bad = axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical");

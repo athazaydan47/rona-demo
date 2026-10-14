@@ -7,6 +7,7 @@ import { greetingName } from "@/lib/reviews/display-name";
 import type { StyleGuide } from "@/lib/settings";
 import type { AiModel, Schema } from "./client";
 import { medicalClaims, splitSentences } from "./guard";
+import { MEREK, POLA_NOMOR_PESANAN_DI_TEKS } from "@/config/merek";
 
 export type ReplySituation = "pujian" | "keluhan_produk" | "pengiriman" | "salah_shade";
 export const SITUATION_LABELS: Record<ReplySituation, string> = { pujian: "Pujian", keluhan_produk: "Keluhan produk", pengiriman: "Pengiriman atau kemasan", salah_shade: "Salah shade" };
@@ -29,7 +30,7 @@ const GUIDE: Record<ReplySituation, string> = {
 // Kata yang tidak boleh ada di balasan: janji uang atau kompensasi, dan menyalahkan pembeli.
 export const REPLY_FORBIDDEN = [/uang (kembali|kamu kembali|akan dikembalikan)|refund|ganti rugi|kompensasi|cashback|voucher gratis|kami ganti(kan)? (produk|baru)|gratis (produk|pengganti)/i, /(kamu|kakak|anda) (salah|keliru) (pakai|memakai|pilih)|seharusnya (kamu|kakak|anda)|bukan salah kami|kesalahan (kamu|pembeli)/i];
 // Data pesanan pribadi tidak boleh tampil di balasan publik: nomor WA, nominal rupiah, nomor pesanan, alamat.
-export const REPLY_PRIVATE = /(?:\+62|62|08)\d{8,12}|Rp\s?\d|RONA-\d{4}-\d{6}|\b(jl\.?|jalan|gang|rt\b|rw\b|kelurahan|kecamatan)\b/i;
+export const REPLY_PRIVATE = new RegExp(`(?:\\+62|62|08)\\d{8,12}|Rp\\s?\\d|${POLA_NOMOR_PESANAN_DI_TEKS.source}|\\b(jl\\.?|jalan|gang|rt\\b|rw\\b|kelurahan|kecamatan)\\b`, "i");
 
 export function replyProblems(text: string, fullName?: string): string[] {
   const out: string[] = [];
@@ -57,7 +58,7 @@ export function replyPrompt(r: ReplyInput, style: StyleGuide) {
   return {
     situation,
     text: [
-      "TUGAS: balas_ulasan. Tulis draf balasan toko Rona Beauty untuk ulasan pembeli. Maksimal 4 kalimat, tanpa tanda pisah panjang.",
+      `TUGAS: balas_ulasan. Tulis draf balasan toko ${MEREK.namaLengkap} untuk ulasan pembeli. Maksimal 4 kalimat, tanpa tanda pisah panjang.`,
       `Nada: ${style.nada} Sapaan untuk pembeli: ${style.sapaan}. Hindari kata: ${style.kataDihindari.join(", ")}.`,
       `Sapa pembeli hanya dengan "${greetingName(r.authorName)}" (nama panggilan), jangan tulis nama lengkapnya. Jangan menyebut nomor WA, alamat, nomor pesanan, atau nominal belanja.`,
       `Situasi: ${SITUATION_LABELS[situation]}. ${GUIDE[situation]}`,

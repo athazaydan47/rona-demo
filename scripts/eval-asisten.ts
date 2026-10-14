@@ -37,7 +37,7 @@ async function main() {
     console.log("Evaluasi dilewati: AI_GATEWAY_URL dan GEMINI_API_KEY belum diisi.");
     process.exit(0);
   }
-  const model = aiModel(cfg)!;
+  const model = aiModel("asistenAdmin", cfg)!;
   const { skenario } = JSON.parse(readFileSync("evals/asisten.json", "utf8")) as { skenario: Scenario[] };
   const only = arg("hanya")?.split(",");
   const role = arg("peran");

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { markAllReadAction, markReadAction } from "@/lib/account/actions";
 import { refreshAccountStatus } from "@/lib/auth/client-status";
 import { cn } from "@/lib/utils";
+import { MEREK } from "@/config/merek";
 
 export type InboxRow = { id: number; channel: "wa" | "email"; subject: string; body: string; timeLabel: string; dayLabel: string; unread: boolean; orderNumber: string | null };
 
@@ -28,7 +29,7 @@ function Body({ text }: { text: string }) {
             setOpen(!open);
           }}
           aria-expanded={open}
-          className="mt-1 inline-flex min-h-8 items-center gap-1 text-xs font-semibold text-rona-gelap hover:underline"
+          className="mt-1 inline-flex min-h-8 items-center gap-1 text-xs font-semibold text-aksen-gelap hover:underline"
         >
           {open ? <ChevronUp className="size-3.5" aria-hidden /> : <ChevronDown className="size-3.5" aria-hidden />} {open ? "Tutup" : "Buka pesan"}
         </button>
@@ -38,14 +39,14 @@ function Body({ text }: { text: string }) {
 }
 
 function Item({ n, onOpen }: { n: InboxRow; onOpen: (id: number) => void }) {
-  const marker = n.unread ? <span className="absolute top-3 -left-1.5 size-2.5 rounded-full bg-rona" role="img" aria-label="Belum dibaca" /> : null;
+  const marker = n.unread ? <span className="absolute top-3 -left-1.5 size-2.5 rounded-full bg-aksen" role="img" aria-label="Belum dibaca" /> : null;
   if (n.channel === "wa") {
     return (
       <li className="relative pl-3" data-testid="notif" data-unread={n.unread ? "ya" : "tidak"} onClick={() => n.unread && onOpen(n.id)}>
         {marker}
         <div className="max-w-[min(100%,34rem)] rounded-2xl rounded-tl-sm bg-[#E3F1DD] px-4 py-2.5 shadow-[0_1px_1px_rgb(42_31_29/0.08)]">
           <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold text-[#3C6B35]">
-            <MessageCircle className="size-3.5" aria-hidden /> WhatsApp · Rona Beauty
+            <MessageCircle className="size-3.5" aria-hidden /> WhatsApp · {MEREK.namaLengkap}
           </p>
           <Body text={n.body} />
           <p className="mt-1 flex items-center justify-end gap-1 text-[11px] text-abu-hangat">
@@ -53,7 +54,7 @@ function Item({ n, onOpen }: { n: InboxRow; onOpen: (id: number) => void }) {
           </p>
         </div>
         {n.orderNumber ? (
-          <Link href={`/pesanan/${n.orderNumber}`} className="mt-1 inline-flex min-h-8 items-center text-xs font-semibold text-rona-gelap hover:underline">
+          <Link href={`/pesanan/${n.orderNumber}`} className="mt-1 inline-flex min-h-8 items-center text-xs font-semibold text-aksen-gelap hover:underline">
             Lihat pesanan {n.orderNumber}
           </Link>
         ) : null}
@@ -65,10 +66,10 @@ function Item({ n, onOpen }: { n: InboxRow; onOpen: (id: number) => void }) {
       {marker}
       <div className="max-w-[min(100%,34rem)] overflow-hidden rounded-card border border-garis bg-putih">
         <div className="flex items-center gap-2 border-b border-garis bg-porselen px-4 py-2 text-xs text-abu-hangat">
-          <Mail className="size-3.5 text-rona" aria-hidden /> Email dari halo@rona.demo · {n.timeLabel}
+          <Mail className="size-3.5 text-aksen" aria-hidden /> Email dari {MEREK.kontak.email} · {n.timeLabel}
         </div>
         <div className="px-4 py-3">
-          <p className={cn("text-sm text-kopi", n.unread && "font-semibold")}>{n.subject || "Kabar dari Rona"}</p>
+          <p className={cn("text-sm text-kopi", n.unread && "font-semibold")}>{n.subject || `Kabar dari ${MEREK.nama}`}</p>
           <div className="mt-1">
             <Body text={n.body} />
           </div>

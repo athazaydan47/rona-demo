@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Bubble, TypingDots } from "@/components/ui/chat-parts";
 import type { RoleSlug } from "@/lib/admin/permissions";
 import { cn } from "@/lib/utils";
+import { kunciLokal, namaEvent } from "@/config/merek";
 
 type Table = { kolom: string[]; baris: string[][] };
 type Msg = {
@@ -23,7 +24,7 @@ type Msg = {
   kind?: "jawab" | "langsung" | "tidak_tersedia" | "galat";
 };
 
-export const ASSISTANT_EVENT = "rona:asisten-open";
+export const ASSISTANT_EVENT = namaEvent("asisten-open");
 export const openAdminAssistant = (prompt?: string) => window.dispatchEvent(new CustomEvent(ASSISTANT_EVENT, { detail: { prompt } }));
 
 export const ROLE_CHIPS: Record<RoleSlug, string[]> = {
@@ -33,7 +34,7 @@ export const ROLE_CHIPS: Record<RoleSlug, string[]> = {
   gudang: ["Saran transfer hari ini", "Stok yang menipis di Gudang Online"],
 };
 
-const KEY = "rona.asisten";
+const KEY = kunciLokal("asisten");
 const load = (): Msg[] => {
   try {
     const raw = window.sessionStorage.getItem(KEY);
@@ -140,8 +141,8 @@ export function AssistantButton({ variant = "sidebar" }: { variant?: "sidebar" |
       </button>
     );
   return (
-    <button type="button" onClick={() => openAdminAssistant()} className="mx-3 mb-3 flex items-center gap-2 rounded-lg border border-rona/30 bg-blush/40 px-3 py-2 text-left text-sm font-semibold text-kopi hover:border-rona/60" data-testid="asisten-sidebar">
-      <Bot className="size-4 text-rona" aria-hidden /> Asisten Admin
+    <button type="button" onClick={() => openAdminAssistant()} className="mx-3 mb-3 flex items-center gap-2 rounded-lg border border-aksen/30 bg-blush/40 px-3 py-2 text-left text-sm font-semibold text-kopi hover:border-aksen/60" data-testid="asisten-sidebar">
+      <Bot className="size-4 text-aksen" aria-hidden /> Asisten Admin
     </button>
   );
 }
@@ -246,7 +247,7 @@ export function AdminAssistant({ role }: { role: RoleSlug }) {
             <div className="flex items-start justify-between gap-3 border-b border-garis bg-putih px-4 py-3">
               <div>
                 <Dialog.Title className="flex items-center gap-1.5 font-serif text-xl text-kopi">
-                  <Bot className="size-5 text-rona" aria-hidden /> Asisten Admin
+                  <Bot className="size-5 text-aksen" aria-hidden /> Asisten Admin
                 </Dialog.Title>
                 <Dialog.Description className="text-[11px] text-abu-hangat">Hanya membaca data sesuai izinmu. Angka diambil dari fungsi laporan dan stok yang sama dengan halaman admin.</Dialog.Description>
               </div>
@@ -261,7 +262,7 @@ export function AdminAssistant({ role }: { role: RoleSlug }) {
                   <p className="mt-1 text-abu-hangat">Tanya omzet, stok, pesanan, atau cara pakai panel. Aku menyebut periode dan sumber angkanya.</p>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {ROLE_CHIPS[role].map((c) => (
-                      <button key={c} type="button" onClick={() => send(c)} className="rounded-pill border border-garis bg-porselen px-3 py-1.5 text-xs font-medium hover:border-rona/40" data-testid="chip-asisten">
+                      <button key={c} type="button" onClick={() => send(c)} className="rounded-pill border border-garis bg-porselen px-3 py-1.5 text-xs font-medium hover:border-aksen/40" data-testid="chip-asisten">
                         {c}
                       </button>
                     ))}
@@ -292,7 +293,7 @@ export function AdminAssistant({ role }: { role: RoleSlug }) {
                     {m.pilihan?.length && i === messages.length - 1 ? (
                       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Pilihan cepat">
                         {m.pilihan.map((p) => (
-                          <button key={p} type="button" onClick={() => send(p)} disabled={busy} className="rounded-pill border border-garis bg-porselen px-3 py-1.5 text-xs font-medium hover:border-rona/40 disabled:opacity-50" data-testid="pilihan-asisten">
+                          <button key={p} type="button" onClick={() => send(p)} disabled={busy} className="rounded-pill border border-garis bg-porselen px-3 py-1.5 text-xs font-medium hover:border-aksen/40 disabled:opacity-50" data-testid="pilihan-asisten">
                             {p}
                           </button>
                         ))}
@@ -302,7 +303,7 @@ export function AdminAssistant({ role }: { role: RoleSlug }) {
                     {m.tautan?.length ? (
                       <div className="flex flex-wrap gap-1.5">
                         {m.tautan.map((t) => (
-                          <Link key={t.href} href={t.href} onClick={() => setOpen(false)} className="rounded-pill border border-rona/30 bg-putih px-3 py-1 text-xs font-semibold text-rona hover:border-rona" data-testid="tautan-asisten">
+                          <Link key={t.href} href={t.href} onClick={() => setOpen(false)} className="rounded-pill border border-aksen/30 bg-putih px-3 py-1 text-xs font-semibold text-aksen hover:border-aksen" data-testid="tautan-asisten">
                             {t.label}
                           </Link>
                         ))}
@@ -332,7 +333,7 @@ export function AdminAssistant({ role }: { role: RoleSlug }) {
               }}
             >
               {micError ? <p className="mb-2 text-xs text-bahaya">{micError}</p> : null}
-              {recorder.state === "rekam" ? <p className="mb-2 text-xs text-rona" role="status">Merekam {recorder.seconds} dari 60 detik. Tekan berhenti bila selesai.</p> : null}
+              {recorder.state === "rekam" ? <p className="mb-2 text-xs text-aksen" role="status">Merekam {recorder.seconds} dari 60 detik. Tekan berhenti bila selesai.</p> : null}
               {recorder.state === "proses" ? <p className="mb-2 text-xs text-abu-hangat" role="status">Mengubah suara jadi teks...</p> : null}
               <div className="flex items-end gap-2">
                 <textarea
@@ -347,7 +348,7 @@ export function AdminAssistant({ role }: { role: RoleSlug }) {
                   }}
                   rows={1}
                   placeholder="Tanya data toko atau cara pakai"
-                  className="max-h-32 min-h-11 min-w-0 flex-1 resize-none rounded-2xl border border-garis bg-porselen px-4 py-2.5 text-sm outline-none focus-visible:border-rona"
+                  className="max-h-32 min-h-11 min-w-0 flex-1 resize-none rounded-2xl border border-garis bg-porselen px-4 py-2.5 text-sm outline-none focus-visible:border-aksen"
                   aria-label="Pertanyaan untuk Asisten Admin"
                   disabled={busy}
                 />
@@ -369,7 +370,7 @@ export function AdminAssistant({ role }: { role: RoleSlug }) {
 // Tombol kecil yang membuka Asisten Admin dengan pertanyaan terisi (misal "Jelaskan saran transfer hari ini").
 export function AskAssistantButton({ prompt, label }: { prompt: string; label: string }) {
   return (
-    <button type="button" onClick={() => openAdminAssistant(prompt)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-rona hover:underline">
+    <button type="button" onClick={() => openAdminAssistant(prompt)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-aksen hover:underline">
       <Bot className="size-3.5" aria-hidden /> {label}
     </button>
   );

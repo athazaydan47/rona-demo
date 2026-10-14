@@ -6,9 +6,10 @@ import * as schema from "@/db/schema";
 import type { AnyDb } from "@/lib/db-types";
 import { emailConfig, emailReady, MAX_EMAIL_ATTEMPTS, recipientAllowed, renderEmail, type EmailConfig, type EmailProvider } from "./index";
 import { createResendProvider } from "./resend";
+import { MEREK } from "@/config/merek";
 
 export const CLAIM_TIMEOUT_MS = 5 * 60_000;
-export const notificationIdempotencyKey = (id: number) => `rona-notif-${id}`;
+export const notificationIdempotencyKey = (id: number) => `${MEREK.kunci}-notif-${id}`;
 
 export type DispatchResult = { mode: "preview" | "kirim"; claimed: number; sent: number; failed: number; skipped: number };
 export type DispatchOptions = {
@@ -58,8 +59,8 @@ export async function dispatchEmails(db: AnyDb, opts: DispatchOptions): Promise<
       out.skipped += 1;
       continue;
     }
-    const { html, text } = renderEmail({ subject: row.subject || "Kabar dari Rona Beauty", body: row.body, site: opts.site });
-    const res = await provider.send({ to: row.recipient, subject: row.subject || "Kabar dari Rona Beauty", html, text, idempotencyKey: notificationIdempotencyKey(id) });
+    const { html, text } = renderEmail({ subject: row.subject || `Kabar dari ${MEREK.namaLengkap}`, body: row.body, site: opts.site });
+    const res = await provider.send({ to: row.recipient, subject: row.subject || `Kabar dari ${MEREK.namaLengkap}`, html, text, idempotencyKey: notificationIdempotencyKey(id) });
     if (res.ok) {
       await db.update(n).set({ status: "terkirim", sentAt: now, attempts: row.attempts + 1, providerId: res.id, lastError: null, claimedAt: null }).where(eq(n.id, id));
       out.sent += 1;

@@ -13,7 +13,7 @@ export function SkinFit({ fit }: { fit: FitResult | null }) {
         <p className="font-semibold text-kopi">Cocok untuk kulitmu?</p>
         <p className="mt-0.5 text-abu-hangat">
           Ikut{" "}
-          <Link href="/kuis-kulit" className="font-semibold text-rona hover:underline">
+          <Link href="/kuis-kulit" className="font-semibold text-aksen hover:underline">
             kuis kulit 1 menit
           </Link>{" "}
           supaya kami bisa menilai kecocokannya.

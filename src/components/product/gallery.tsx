@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, LazyMotion, useReducedMotion } from "motion/react";
+import * as m from "motion/react-m";
 import { cn } from "@/lib/utils";
 
 export type GalleryImage = { key: string; label: string; node: React.ReactNode };
@@ -11,6 +12,9 @@ type Props = {
   variantKey: string; // berubah saat shade berganti supaya gambar utama crossfade
   mainRef?: React.RefObject<HTMLDivElement | null>;
 };
+
+// Fitur animasi Motion dimuat terpisah (LazyMotion + m, Fase 8B); hanya galeri produk yang memakai Motion.
+const fiturGerak = () => import("@/lib/motion-fitur").then((r) => r.default);
 
 // Desktop: gambar utama dengan thumbnail di kiri. HP: baris geser dengan indikator titik.
 export function ProductGallery({ images, variantKey, mainRef }: Props) {
@@ -43,6 +47,7 @@ export function ProductGallery({ images, variantKey, mainRef }: Props) {
   };
 
   return (
+    <LazyMotion features={fiturGerak} strict>
     <div>
       {/* Desktop */}
       <div className="hidden gap-3 md:flex">
@@ -63,7 +68,7 @@ export function ProductGallery({ images, variantKey, mainRef }: Props) {
         </ul>
         <div ref={mainRef} className="relative min-w-0 flex-1 overflow-hidden rounded-card bg-porselen" style={{ aspectRatio: "5 / 6" }}>
           <AnimatePresence initial={false} mode="sync">
-            <motion.div
+            <m.div
               key={`${current.key}-${variantKey}`}
               initial={reduce ? { opacity: 1 } : { opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -72,7 +77,7 @@ export function ProductGallery({ images, variantKey, mainRef }: Props) {
               className="absolute inset-0"
             >
               {current.node}
-            </motion.div>
+            </m.div>
           </AnimatePresence>
         </div>
       </div>
@@ -84,15 +89,15 @@ export function ProductGallery({ images, variantKey, mainRef }: Props) {
             <div key={img.key} data-slide={i} className="w-full shrink-0 snap-center px-4">
               <div className="overflow-hidden rounded-card bg-porselen" style={{ aspectRatio: "5 / 6" }} ref={i === 0 ? (mainRef as React.RefObject<HTMLDivElement>) : undefined}>
                 <AnimatePresence initial={false} mode="sync">
-                  <motion.div key={`${img.key}-${variantKey}`} initial={reduce ? { opacity: 1 } : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+                  <m.div key={`${img.key}-${variantKey}`} initial={reduce ? { opacity: 1 } : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
                     {img.node}
-                  </motion.div>
+                  </m.div>
                 </AnimatePresence>
               </div>
             </div>
           ))}
         </div>
-        <div className="mt-3 flex items-center justify-center gap-1.5" role="tablist" aria-label="Indikator galeri">
+        <div className="mt-1 flex items-center justify-center" role="tablist" aria-label="Indikator galeri">
           {images.map((img, i) => (
             <button
               key={img.key}
@@ -101,11 +106,15 @@ export function ProductGallery({ images, variantKey, mainRef }: Props) {
               aria-selected={i === active}
               aria-label={img.label}
               onClick={() => scrollTo(i)}
-              className={cn("h-2 rounded-full transition-[width,background-color] duration-200", i === active ? "w-6 bg-kopi" : "w-2 bg-garis")}
-            />
+              // Area sentuh 32 px (Fase 8B), titik tetap kecil di tengahnya.
+              className="grid h-8 min-w-6 place-items-center px-1"
+            >
+              <span className={cn("block h-2 rounded-full transition-[width,background-color] duration-200", i === active ? "w-6 bg-kopi" : "w-2 bg-garis")} />
+            </button>
           ))}
         </div>
       </div>
     </div>
+    </LazyMotion>
   );
 }

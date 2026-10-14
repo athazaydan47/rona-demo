@@ -12,6 +12,7 @@ import { AdminAssistant, AssistantButton } from "./asisten-panel";
 import { cn } from "@/lib/utils";
 import { AdminSearch, openAdminSearch } from "./search";
 import { NAV_ICONS } from "./nav-icons";
+import { MEREK } from "@/config/merek";
 
 export type ShellItem = { key: NavKey; href: string; label: string; soon?: boolean };
 export type ShellStaff = { name: string; roleName: string; scope: string };
@@ -72,8 +73,8 @@ export function AdminShell({ items, mobilePrimary, staff, demoMode, assistantRol
         <div className="sticky top-0 flex h-dvh flex-col">
           <div className="px-5 pt-5 pb-4">
             <Link href="/admin" className="flex min-h-11 items-baseline gap-2">
-              <span className="font-serif text-2xl text-kopi">Rona</span>
-              <span className="text-[10px] font-bold tracking-[0.24em] text-rona uppercase">Admin</span>
+              <span className="font-serif text-2xl text-kopi">{MEREK.nama}</span>
+              <span className="text-[10px] font-bold tracking-[0.24em] text-aksen uppercase">Admin</span>
             </Link>
           </div>
           <button type="button" onClick={openAdminSearch} className="mx-3 mb-3 flex items-center gap-2 rounded-lg border border-garis bg-porselen px-3 py-2 text-left text-sm text-abu-hangat hover:border-kopi/25">
@@ -86,7 +87,7 @@ export function AdminShell({ items, mobilePrimary, staff, demoMode, assistantRol
           </nav>
           <div className="border-t border-garis p-3">
             {demoMode ? (
-              <p className="mb-2 flex items-center gap-1.5 rounded-md bg-[#FBF4E6] px-2 py-1 text-[11px] font-semibold text-[#7A5A1E]">
+              <p className="mb-2 flex items-center gap-1.5 rounded-md bg-[#FBF4E6] px-2 py-1 text-[11px] font-semibold text-[#7A5A1E]" data-tanda-demo>
                 <FlaskConical className="size-3.5" aria-hidden /> Mode demo, data fiktif
               </p>
             ) : null}
@@ -97,7 +98,7 @@ export function AdminShell({ items, mobilePrimary, staff, demoMode, assistantRol
               {staff.roleName} · {staff.scope}
             </p>
             <form action={staffLogoutAction}>
-              <button type="submit" className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-rona hover:underline">
+              <button type="submit" className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-aksen hover:underline">
                 <LogOut className="size-3.5" aria-hidden /> Keluar
               </button>
             </form>
@@ -111,10 +112,10 @@ export function AdminShell({ items, mobilePrimary, staff, demoMode, assistantRol
       <div className="min-w-0">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-garis bg-putih/95 px-4 backdrop-blur lg:hidden">
           <Link href="/admin" className="flex min-h-11 items-baseline gap-1.5">
-            <span className="font-serif text-xl text-kopi">Rona</span>
-            <span className="text-[9px] font-bold tracking-[0.22em] text-rona uppercase">Admin</span>
+            <span className="font-serif text-xl text-kopi">{MEREK.nama}</span>
+            <span className="text-[9px] font-bold tracking-[0.22em] text-aksen uppercase">Admin</span>
           </Link>
-          {demoMode ? <span className="rounded-full bg-[#FBF4E6] px-2 py-0.5 text-[10px] font-semibold text-[#7A5A1E]">Demo</span> : null}
+          {demoMode ? <span className="rounded-full bg-[#FBF4E6] px-2 py-0.5 text-[10px] font-semibold text-[#7A5A1E]" data-tanda-demo>Demo</span> : null}
           <span className="ml-auto max-w-32 truncate text-xs text-abu-hangat">{staff.name}</span>
           {assistantRole ? <AssistantButton variant="header" /> : null}
           <button type="button" onClick={openAdminSearch} className="grid size-10 place-items-center rounded-full hover:bg-blush/50" aria-label="Cari pesanan, produk, pelanggan">
@@ -135,7 +136,7 @@ export function AdminShell({ items, mobilePrimary, staff, demoMode, assistantRol
                 const active = isActive(p, it.href);
                 return (
                   <li key={it.key} className="flex-1">
-                    <Link href={it.href} aria-current={active ? "page" : undefined} className={cn("flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium", active ? "text-rona" : "text-abu-hangat")}>
+                    <Link href={it.href} aria-current={active ? "page" : undefined} className={cn("flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium", active ? "text-aksen" : "text-abu-hangat")}>
                       <Icon className="size-5" aria-hidden />
                       <span className="max-w-full truncate px-1">{it.label === "Staf dan izin" ? "Staf" : it.label === "Log aktivitas" ? "Log" : it.label}</span>
                     </Link>
@@ -143,7 +144,7 @@ export function AdminShell({ items, mobilePrimary, staff, demoMode, assistantRol
                 );
               })}
               <li className="flex-1">
-                <button type="button" onClick={() => setMore(true)} className={cn("flex h-full w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium", rest.some((r) => isActive(p, r.href)) ? "text-rona" : "text-abu-hangat")}>
+                <button type="button" onClick={() => setMore(true)} className={cn("flex h-full w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium", rest.some((r) => isActive(p, r.href)) ? "text-aksen" : "text-abu-hangat")}>
                   <MoreHorizontal className="size-5" aria-hidden />
                   Lainnya
                 </button>
@@ -173,7 +174,7 @@ export function AdminShell({ items, mobilePrimary, staff, demoMode, assistantRol
                 {staff.roleName} · {staff.scope}
               </p>
               <form action={staffLogoutAction}>
-                <button type="submit" className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-rona">
+                <button type="submit" className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-aksen">
                   <LogOut className="size-4" aria-hidden /> Keluar
                 </button>
               </form>

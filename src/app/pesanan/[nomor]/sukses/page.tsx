@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { CheckCircle2, MessageCircle, PackageCheck, Store, UserPlus } from "lucide-react";
@@ -9,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { OrderCosts, OrderItems, StatusBadge } from "@/components/order/order-parts";
 import { db } from "@/db/client";
 import { currentCustomer } from "@/lib/auth/current";
-import { ORDERS_COOKIE } from "@/lib/cart/cookie";
+import { tokenPesananTersimpan } from "@/lib/orders/token-cookie";
 import { formatDateTimeWib } from "@/lib/format";
 import { canAccessOrder, getOrderDetail } from "@/lib/orders/queries";
 import { expireIfDue } from "@/lib/orders/service";
@@ -25,7 +24,7 @@ async function SuccessContent({ params, searchParams }: Props) {
   await expireIfDue(db, nomor, undefined, siteUrl());
   const order = await getOrderDetail(db, nomor);
   if (!order) notFound();
-  const tokens = ((await cookies()).get(ORDERS_COOKIE)?.value ?? "").split(".").filter(Boolean);
+  const tokens = await tokenPesananTersimpan();
   const me = await currentCustomer();
   if (!canAccessOrder(order, sp.t, tokens, me?.customerId)) redirect(`/pesanan/${order.number}`);
   const token = order.accessToken;
@@ -66,7 +65,7 @@ async function SuccessContent({ params, searchParams }: Props) {
           <ul className="mt-3 space-y-3">
             {steps.map((s) => (
               <li key={s.text} className="flex gap-3 text-sm text-kopi/90">
-                <s.icon className="mt-0.5 size-4 shrink-0 text-rona" aria-hidden /> {s.text}
+                <s.icon className="mt-0.5 size-4 shrink-0 text-aksen" aria-hidden /> {s.text}
               </li>
             ))}
           </ul>
@@ -85,7 +84,7 @@ async function SuccessContent({ params, searchParams }: Props) {
           {order.customerId == null ? (
             <div className="rounded-card bg-blush/60 p-5">
               <p className="flex items-center gap-2 font-semibold text-kopi">
-                <UserPlus className="size-4 text-rona" aria-hidden /> Simpan pesanan ini ke akunmu
+                <UserPlus className="size-4 text-aksen" aria-hidden /> Simpan pesanan ini ke akunmu
               </p>
               <p className="mt-1 text-sm text-abu-hangat">Masuk dengan nomor WhatsApp yang sama supaya riwayat pesanan, poin, dan ulasan tersimpan.</p>
               <Button asChild variant="outline" size="sm" className="mt-3">
@@ -95,7 +94,7 @@ async function SuccessContent({ params, searchParams }: Props) {
           ) : (
             <div className="rounded-card bg-blush/60 p-5 text-sm text-kopi">
               Pesanan ini tersimpan di akunmu. Poin masuk saat pesanan selesai.{" "}
-              <Link href="/akun/pesanan" className="font-semibold text-rona hover:underline">
+              <Link href="/akun/pesanan" className="font-semibold text-aksen hover:underline">
                 Lihat pesananku
               </Link>
             </div>
@@ -116,7 +115,7 @@ async function SuccessContent({ params, searchParams }: Props) {
 
 export default function SuksesPage(props: Props) {
   return (
-    <section className="container-rona py-6 md:py-10">
+    <section className="container-toko py-6 md:py-10">
       <Suspense fallback={<div className="mx-auto h-96 max-w-3xl animate-pulse rounded-card bg-garis/50" aria-busy />}>
         <SuccessContent {...props} />
       </Suspense>

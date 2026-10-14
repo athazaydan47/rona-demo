@@ -12,6 +12,7 @@ import { movePoints, netSpend } from "@/lib/points";
 import { REVENUE_EXCLUDED } from "@/lib/reports";
 import { writeAudit } from "./audit";
 import { can, type StaffPrincipal } from "./permissions";
+import { fiturAktif } from "@/config/fitur";
 
 const DAY = 86_400_000;
 export const SEGMENT_DAYS = { baru: 30, setia: 180, tidakAktif: 90 } as const;
@@ -175,6 +176,7 @@ export function validatePointAdjust(amount: number, reason: string, balance?: nu
 
 export async function adjustPoints(db: AnyDb, staff: StaffPrincipal, customerId: number, amount: number, reason: string, opts: { now?: Date } = {}): Promise<PointAdjustResult> {
   if (!can(staff, "pelanggan.poin")) return { ok: false, message: "Kamu tidak punya izin menyesuaikan poin." };
+  if (!fiturAktif("poin")) return { ok: false, message: "Fitur poin tidak aktif di toko ini." };
   const pre = validatePointAdjust(amount, reason);
   if (pre) return { ok: false, message: pre };
   const at = opts.now ?? new Date();

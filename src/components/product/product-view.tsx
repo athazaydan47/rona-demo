@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { PriceTag } from "@/components/ui/price-tag";
 import { RatingStars } from "@/components/ui/rating-stars";
 import { toast } from "@/components/ui/toast";
-import { ProductArtInline, ShadeSwatchArt, type SwatchTexture } from "@/components/product-art";
+import { ProductArt } from "@/components/product-art";
+import { ShadeSwatchArt, type SwatchTexture } from "@/components/product-art/swatch-art";
 import { FlashCountdown } from "@/components/flash/flash-countdown";
 import { QuotaBar } from "@/components/flash/quota-bar";
 import { Breadcrumb } from "@/components/catalog/breadcrumb";
@@ -29,6 +30,7 @@ import { StickyBuyBar } from "./sticky-buy-bar";
 import { StockByStore } from "./stock-by-store";
 import { SwatchPicker } from "./swatch-picker";
 import { saveShadeProfileAction } from "@/lib/skin/actions";
+import { fiturAktif } from "@/config/fitur";
 
 type Props = { product: ProductDetail; live: ProductLive; siteUrl: string; shadeProfile?: SkinProfile | null; extras?: React.ReactNode; shadeTools?: React.ReactNode };
 
@@ -101,8 +103,10 @@ export function ProductView({ product, live, siteUrl, shadeProfile = null, extra
   }, [profile, product.hasShades, variants]);
 
   const images: GalleryImage[] = [
-    { key: "depan", label: "Tampak depan", node: <ProductArtInline packaging={product.packaging} shade={selected.hex} brandColor={product.brand.color} brandName={product.brand.name} title={`${product.name}, ${selected.shadeName}, tampak depan`} /> },
-    { key: "detail", label: "Tampak detail", node: <ProductArtInline packaging={product.packaging} shade={selected.hex} brandColor={product.brand.color} brandName={product.brand.name} view="detail" title={`${product.name}, ${selected.shadeName}, tampak detail`} /> },
+    // Packshot sebagai gambar dari route /art (Fase 8B): URL tampak depan sama dengan kerangka halaman, jadi gambar
+    // sudah di cache browser saat galeri tampil, dan kode gambar SVG tidak ikut bundel klien.
+    { key: "depan", label: "Tampak depan", node: <ProductArt packaging={product.packaging} shade={selected.hex} brandColor={product.brand.color} brandName={product.brand.name} title={`${product.name}, ${selected.shadeName}, tampak depan`} priority /> },
+    { key: "detail", label: "Tampak detail", node: <ProductArt packaging={product.packaging} shade={selected.hex} brandColor={product.brand.color} brandName={product.brand.name} view="detail" title={`${product.name}, ${selected.shadeName}, tampak detail`} /> },
     {
       key: "swatch",
       label: "Swatch tekstur",
@@ -137,7 +141,7 @@ export function ProductView({ product, live, siteUrl, shadeProfile = null, extra
   };
 
   return (
-    <div className="container-rona py-5 md:py-8">
+    <div className="container-toko py-5 md:py-8">
       <Breadcrumb
         items={[...(product.parent ? [{ label: product.parent.name, href: `/c/${product.parent.slug}` }] : []), { label: product.category.name, href: product.parent ? `/c/${product.parent.slug}/${product.category.slug}` : `/c/${product.category.slug}` }, { label: product.name }]}
         className="mb-4"
@@ -148,7 +152,7 @@ export function ProductView({ product, live, siteUrl, shadeProfile = null, extra
         </div>
 
         <div className="min-w-0">
-          <Link href={`/merek/${product.brand.slug}`} className="text-xs font-semibold tracking-wide text-rona uppercase hover:underline">
+          <Link href={`/merek/${product.brand.slug}`} className="text-xs font-semibold tracking-wide text-aksen uppercase hover:underline">
             {product.brand.name}
           </Link>
           <h1 className="mt-1 font-serif text-3xl font-medium text-balance text-kopi md:text-4xl">{product.name}</h1>
@@ -240,7 +244,7 @@ export function ProductView({ product, live, siteUrl, shadeProfile = null, extra
           </div>
 
           <div className="mt-6 space-y-4">
-            <StockByStore locations={live.locations} stock={live.stock[selected.id] ?? {}} shadeName={shadeLabel || undefined} />
+            {fiturAktif("multiCabang") ? <StockByStore locations={live.locations} stock={live.stock[selected.id] ?? {}} shadeName={shadeLabel || undefined} /> : null}
             <ShippingEstimate weightGram={selected.weightGram} rates={live.shipping?.rates} active={live.shipping?.active} />
           </div>
         </div>

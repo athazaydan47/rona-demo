@@ -8,7 +8,7 @@ export function Breadcrumb({ items, className }: { items: Crumb[]; className?: s
     <nav aria-label="Jejak navigasi" className={className}>
       <ol className="flex flex-wrap items-center gap-1 text-xs text-abu-hangat">
         <li>
-          <Link href="/" className="inline-flex min-h-8 items-center hover:text-rona-gelap">
+          <Link href="/" className="inline-flex min-h-8 items-center hover:text-aksen-gelap">
             Beranda
           </Link>
         </li>
@@ -16,7 +16,7 @@ export function Breadcrumb({ items, className }: { items: Crumb[]; className?: s
           <li key={`${item.label}-${i}`} className="flex items-center gap-1">
             <ChevronRight className="size-3" aria-hidden />
             {item.href ? (
-              <Link href={item.href} className="inline-flex min-h-8 items-center hover:text-rona-gelap">
+              <Link href={item.href} className="inline-flex min-h-8 items-center hover:text-aksen-gelap">
                 {item.label}
               </Link>
             ) : (

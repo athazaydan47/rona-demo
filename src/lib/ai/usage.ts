@@ -6,17 +6,21 @@ import * as schema from "@/db/schema";
 import type { AnyDb } from "@/lib/db-types";
 import { wibDayStart } from "@/lib/reports";
 import type { AiConfig } from "./client";
+import { MEREK, namaCookie } from "@/config/merek";
+import { logEvent } from "@/lib/log";
 
-export const VISITOR_COOKIE = "rona_pengunjung";
+export const VISITOR_COOKIE = namaCookie("pengunjung");
 export const LIMITS = { chatPerDayDemo: 20, chatPerMinute: 5, photoPerDay: 5, dupePerDay: 10, adminPerDay: 80, transcribePerDay: 40 } as const;
 
-export function visitorHash(visitorId: string, secret = process.env.SESSION_SECRET ?? "rona-demo") {
+export function visitorHash(visitorId: string, secret = process.env.SESSION_SECRET ?? `${MEREK.kunci}-demo`) {
   return createHash("sha256").update(`${secret}:${visitorId}`).digest("hex").slice(0, 32);
 }
 
 export type AiLogInput = { feature: string; model: string; inputTokens?: number; outputTokens?: number; latencyMs: number; ok: boolean; error?: string | null; visitorHash?: string; query?: string | null; at?: Date; staffId?: number | null; door?: string | null; tools?: string[]; warning?: string | null };
 
 export async function logAi(db: AnyDb, l: AiLogInput) {
+  // Galat AI juga ke log server (tanpa isi pertanyaan) supaya terlihat di log Vercel (Fase 8B).
+  if (!l.ok) logEvent("ai.galat", { fitur: l.feature, model: l.model, galat: l.error ?? "", latensiMs: Math.round(l.latencyMs) }, "warn");
   await db.insert(schema.aiLogs).values({
     feature: l.feature,
     model: l.model,
@@ -36,7 +40,7 @@ export async function logAi(db: AnyDb, l: AiLogInput) {
 }
 
 export type LimitResult = { ok: true } | { ok: false; reason: "harian" | "menit" | "global"; message: string };
-export const RESTING_MESSAGE = "Rona Advisor sedang istirahat, coba lagi besok. Kuis kulit, rutinitas, dan pencarian tetap bisa dipakai.";
+export const RESTING_MESSAGE = `${MEREK.asisten.nama} sedang istirahat, coba lagi besok. Kuis kulit, rutinitas, dan pencarian tetap bisa dipakai.`;
 
 // Batas global: jumlah panggilan AI hari ini (WIB, semua fitur) dibanding AI_DAILY_CAP.
 export async function globalCapReached(db: AnyDb, cfg: AiConfig, now: Date) {

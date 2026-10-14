@@ -1,7 +1,8 @@
+import { MEREK } from "@/config/merek";
 // Nama tampilan ulasan dan sapaan balasan (murni). "Zahra Khairunnisa" tampil sebagai "Zahra K." dan disapa "Kak Zahra".
 export function reviewerDisplayName(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "Pembeli Rona";
+  if (parts.length === 0) return `Pembeli ${MEREK.nama}`;
   return parts.length === 1 ? parts[0] : `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
 }
 

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { env } from "@/lib/env";
 import { getCategoryTree, getLocations, getPromoMessages } from "@/lib/catalog/queries";
@@ -14,27 +13,15 @@ import { AdvisorLauncher } from "@/components/ai/advisor";
 import { MobileMenuProvider, MobileMenuSheet } from "@/components/layout/mobile-menu";
 import { Toaster } from "@/components/ui/toast";
 import { CartDrawer } from "@/components/cart/cart-drawer";
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-fraunces",
-  axes: ["opsz"], // sumbu SOFT tidak dipakai; dibuang supaya berkas font lebih kecil (Fase 8A)
-  display: "swap",
-});
-
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-jakarta",
-  display: "swap",
-});
+import { fontJudul, fontTeks } from "@/config/font";
+import { MEREK, temaCss } from "@/config/merek";
 
 export const metadata: Metadata = {
   title: {
-    default: "Rona Beauty, toko kosmetik demo",
-    template: "%s | Rona Beauty",
+    default: `${MEREK.namaLengkap}, toko kosmetik demo`,
+    template: `%s | ${MEREK.namaLengkap}`,
   },
-  description:
-    "Toko kosmetik demo multi-merek dengan data fiktif: shade yang pas, stok per cabang, dan rekomendasi dari katalog sendiri.",
+  description: MEREK.deskripsi,
   robots: { index: false, follow: false },
 };
 
@@ -45,7 +32,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     getPromoMessages(),
   ]);
   return (
-    <html lang="id" className={`${fraunces.variable} ${jakarta.variable} h-full`}>
+    <html lang="id" className={`${fontJudul.variable} ${fontTeks.variable} h-full`}>
+      <head>
+        {/* Palet dari src/config/merek.ts menimpa token warna bawaan di globals.css. */}
+        <style>{temaCss()}</style>
+      </head>
       <body className="flex min-h-full flex-col">
         <MobileMenuProvider>
           {env.demoMode ? <DemoRibbon /> : null}

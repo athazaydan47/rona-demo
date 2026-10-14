@@ -4,9 +4,10 @@
 // Saat masuk, daftar perangkat digabung ke akun lalu dihapus dari perangkat.
 import { useSyncExternalStore } from "react";
 import { setWishlistAction, wishlistStateAction } from "@/lib/account/actions";
+import { kunciLokal, namaEvent } from "@/config/merek";
 
-const KEY = "rona.wishlist";
-const EVENT = "rona:wishlist";
+const KEY = kunciLokal("wishlist");
+const EVENT = namaEvent("wishlist");
 
 export function readLocalWishlist(): number[] {
   try {

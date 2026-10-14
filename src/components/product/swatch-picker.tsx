@@ -84,7 +84,7 @@ export function SwatchPicker({ variants, selectedId, onSelect, availability, mat
                   {active ? <Check className="absolute size-4 text-putih drop-shadow" aria-hidden /> : null}
                   {out ? <span className="absolute h-[2px] w-11 rotate-45 rounded bg-kopi/70" aria-hidden /> : null}
                   {match && !active ? (
-                    <span className={cn("absolute -top-1 -right-1 grid size-4 place-items-center rounded-full text-putih", v.id === bestMatchId ? "bg-rona" : "bg-sage")} aria-hidden>
+                    <span className={cn("absolute -top-1 -right-1 grid size-4 place-items-center rounded-full text-putih", v.id === bestMatchId ? "bg-aksen" : "bg-sage")} aria-hidden>
                       <Sparkles className="size-2.5" />
                     </span>
                   ) : null}
@@ -98,7 +98,7 @@ export function SwatchPicker({ variants, selectedId, onSelect, availability, mat
       {visible.length === 0 ? <p className="mt-3 text-sm text-abu-hangat">Tidak ada shade dengan undertone ini.</p> : null}
       {matchIds && matchIds.size > 0 ? (
         <p className="mt-2 inline-flex items-center gap-1 text-xs text-abu-hangat">
-          <Sparkles className="size-3 text-rona" /> Tanda kilau: cocok dengan profil shade-mu.
+          <Sparkles className="size-3 text-aksen" /> Tanda kilau: cocok dengan profil shade-mu.
         </p>
       ) : null}
     </div>

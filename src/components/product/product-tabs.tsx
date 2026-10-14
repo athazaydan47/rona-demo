@@ -1,6 +1,6 @@
 "use client";
 
-import { Popover, Tabs } from "radix-ui";
+import { Tabs } from "radix-ui";
 import { Info } from "lucide-react";
 import { ingredientNote } from "@/lib/product/ingredients";
 import type { ProductDetail } from "@/lib/product/queries";
@@ -26,7 +26,7 @@ function paragraphs(text: string) {
 }
 
 const triggerClass =
-  "relative h-11 shrink-0 px-1 text-sm font-medium whitespace-nowrap text-abu-hangat transition-colors hover:text-kopi data-[state=active]:text-kopi after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-transparent data-[state=active]:after:bg-rona";
+  "relative h-11 shrink-0 px-1 text-sm font-medium whitespace-nowrap text-abu-hangat transition-colors hover:text-kopi data-[state=active]:text-kopi after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-transparent data-[state=active]:after:bg-aksen";
 
 export function ProductTabs({ product, variantWeight }: { product: ProductDetail; variantWeight: number }) {
   const steps = splitSteps(product.howToUse);
@@ -59,19 +59,18 @@ export function ProductTabs({ product, variantWeight }: { product: ProductDetail
             <p className="text-xs font-semibold tracking-wide text-abu-hangat uppercase">Bahan aktif</p>
             <ul className="mt-2 flex flex-wrap gap-2">
               {product.activeIngredients.map((name) => (
-                <li key={name}>
-                  <Popover.Root>
-                    <Popover.Trigger className="inline-flex h-9 items-center gap-1.5 rounded-pill border border-sage/50 bg-[#E8EFE7] px-3 text-sm font-medium text-[#3F5A45] hover:bg-[#DCE8DA]">
+                <li key={name} className="relative">
+                  {/* Keterangan bahan memakai details bawaan browser (Fase 8B): tanpa JS popover; name membuat hanya
+                      satu keterangan terbuka sekaligus. */}
+                  <details name="bahan-aktif" className="group">
+                    <summary className="inline-flex h-9 cursor-pointer list-none items-center gap-1.5 rounded-pill border border-sage/50 bg-[#E8EFE7] px-3 text-sm font-medium text-[#3F5A45] hover:bg-[#DCE8DA] [&::-webkit-details-marker]:hidden">
                       {name} <Info className="size-3.5 opacity-70" aria-hidden />
-                    </Popover.Trigger>
-                    <Popover.Portal>
-                      <Popover.Content sideOffset={6} collisionPadding={16} className="z-50 w-72 rounded-card border border-garis bg-putih p-4 text-sm text-kopi shadow-lift outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95">
-                        <p className="font-semibold">{name}</p>
-                        <p className="mt-1 text-abu-hangat">{ingredientNote(name)}</p>
-                        <Popover.Arrow className="fill-putih" />
-                      </Popover.Content>
-                    </Popover.Portal>
-                  </Popover.Root>
+                    </summary>
+                    <div className="absolute top-full left-0 z-20 mt-1.5 w-72 max-w-[calc(100vw-2.5rem)] rounded-card border border-garis bg-putih p-4 text-sm text-kopi shadow-lift animate-pudar-masuk">
+                      <p className="font-semibold">{name}</p>
+                      <p className="mt-1 text-abu-hangat">{ingredientNote(name)}</p>
+                    </div>
+                  </details>
                 </li>
               ))}
             </ul>
@@ -83,7 +82,7 @@ export function ProductTabs({ product, variantWeight }: { product: ProductDetail
         <ol className="space-y-3">
           {steps.map((s, i) => (
             <li key={i} className="flex gap-3 text-base leading-7 text-kopi/90">
-              <span className="mt-1 grid size-6 shrink-0 place-items-center rounded-full bg-blush text-xs font-bold text-rona-gelap tabular-nums">{i + 1}</span>
+              <span className="mt-1 grid size-6 shrink-0 place-items-center rounded-full bg-blush text-xs font-bold text-aksen-gelap tabular-nums">{i + 1}</span>
               <span>{s}</span>
             </li>
           ))}

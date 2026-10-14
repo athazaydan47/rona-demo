@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Chip } from "@/components/ui/chip";
 
-const initial = ["Kulit berminyak", "Di bawah Rp 100.000", "Tersedia di Rona Dinoyo"];
+const initial = ["Kulit berminyak", "Di bawah Rp 100.000", "Tersedia di cabang terdekat"];
 
 export function ChipDemo() {
   const [active, setActive] = useState(initial);
@@ -24,7 +24,7 @@ export function ChipDemo() {
           </Chip>
         ))}
         {active.length < initial.length ? (
-          <button type="button" className="text-sm font-semibold text-rona hover:underline" onClick={() => setActive(initial)}>
+          <button type="button" className="text-sm font-semibold text-aksen hover:underline" onClick={() => setActive(initial)}>
             Pulihkan filter
           </button>
         ) : null}

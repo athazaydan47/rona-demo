@@ -23,7 +23,7 @@ async function Content() {
 export default function StockInPage() {
   return (
     <>
-      <Link href="/admin/stok" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-rona hover:underline">
+      <Link href="/admin/stok" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-aksen hover:underline">
         <ArrowLeft className="size-4" aria-hidden /> Stok
       </Link>
       <PageHead title="Stok masuk" description="Catat barang yang datang. Setiap baris menulis buku stok jenis masuk dan memicu Kabari aku bila stok online kembali ada." />

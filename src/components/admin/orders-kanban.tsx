@@ -67,7 +67,7 @@ export function OrdersKanban({ columns, staffId, rememberedTab = null }: { colum
           const to = e.target.value as OrderStatus | "";
           if (to) drop(o, to);
         }}
-        className="mt-2 h-7 w-full rounded-md border border-garis bg-porselen px-1.5 text-[11px] text-kopi focus-visible:border-rona"
+        className="mt-2 h-7 w-full rounded-md border border-garis bg-porselen px-1.5 text-[11px] text-kopi focus-visible:border-aksen"
         data-testid="pindah-status"
       >
         <option value="">Pindahkan ke...</option>
@@ -110,7 +110,7 @@ export function OrdersKanban({ columns, staffId, rememberedTab = null }: { colum
           {KANBAN_FINAL.includes(current.status) ? (
             <li className="rounded-xl border border-dashed border-garis bg-putih p-6 text-center text-sm text-abu-hangat">
               {current.total} pesanan {statusLabels[current.status].toLowerCase()} dalam {KANBAN_FINAL_DAYS} hari terakhir.{" "}
-              <a href={`/admin/pesanan?tampilan=tabel&status=${current.status}`} className="font-semibold text-rona">
+              <a href={`/admin/pesanan?tampilan=tabel&status=${current.status}`} className="font-semibold text-aksen">
                 Lihat di tabel
               </a>
             </li>
@@ -149,7 +149,7 @@ export function OrdersKanban({ columns, staffId, rememberedTab = null }: { colum
                   </Badge>
                   <span className="font-serif text-2xl text-kopi tabular-nums">{c.total}</span>
                   <span className="text-[10px] leading-tight text-abu-hangat">{KANBAN_FINAL_DAYS} hari terakhir</span>
-                  <a href={`/admin/pesanan?tampilan=tabel&status=${c.status}`} className="text-[11px] font-semibold text-rona hover:underline">
+                  <a href={`/admin/pesanan?tampilan=tabel&status=${c.status}`} className="text-[11px] font-semibold text-aksen hover:underline">
                     Lihat tabel
                   </a>
                   {dragging && valid ? <span className="mt-auto text-[10px] text-sukses">Lepas di sini</span> : null}

@@ -16,6 +16,10 @@ import { orderMessage, type OrderEvent } from "./messages";
 import { buildPricingLines, loadVoucher, type Buyer } from "./pricing-loader";
 import { formatOrderNumber, isExpired, normalizePhone, orderPeriod, paymentDeadline } from "./rules";
 import { assertTransition, statusLabels, type OrderStatus } from "./status";
+import { MEREK } from "@/config/merek";
+import { fiturAktif } from "@/config/fitur";
+import { pickupAktif } from "@/lib/settings";
+import { logEvent } from "@/lib/log";
 
 export type PaymentMethod = "qris" | "va_bca" | "va_bni" | "va_bri" | "va_mandiri" | "bayar_di_toko";
 export const ONLINE_METHODS: PaymentMethod[] = ["qris", "va_bca", "va_bni", "va_bri", "va_mandiri"];
@@ -73,7 +77,11 @@ export function vaNumber(method: PaymentMethod, seq: number, phone: string) {
 
 export function qrPayload(number: string, amount: number) {
   // Payload dummy bergaya EMV QRIS, hanya untuk demo.
-  return `00020101021226570014ID.RONA.DEMO01${String(number.length).padStart(2, "0")}${number}5204597753033605${String(String(amount).length).padStart(2, "0")}${amount}5802ID5911RONA BEAUTY6006MALANG6304DEMO`;
+  const tlv = (tag: string, value: string) => `${tag}${String(value.length).padStart(2, "0")}${value}`;
+  const merchant = tlv("00", `ID.${MEREK.kunci.toUpperCase()}.DEMO`) + tlv("01", number);
+  const name = MEREK.namaLengkap.toUpperCase().slice(0, 25);
+  const city = MEREK.kontak.kota.toUpperCase().slice(0, 15);
+  return `000201010212${tlv("26", merchant)}520459775303360${tlv("54", String(amount))}5802ID${tlv("59", name)}${tlv("60", city)}6304DEMO`;
 }
 
 async function nextOrderNumber(tx: AnyDb, at: Date) {
@@ -101,7 +109,7 @@ export async function placeOrder(db: AnyDb, input: PlaceOrderInput): Promise<Pla
   const settings = input.settings ?? (await loadSettings(db));
   if (!settings.payments.includes(input.paymentMethod)) return { ok: false, code: "data_tidak_valid", message: "Metode bayar ini sedang tidak tersedia. Pilih metode lain, ya." };
   if (input.method === "kirim" && input.courierCode && !settings.couriers.active.includes(input.courierCode)) return { ok: false, code: "data_tidak_valid", message: "Kurir ini sedang tidak tersedia. Pilih kurir lain, ya." };
-  if (input.method === "ambil" && !settings.couriers.active.includes("ambil_di_toko")) return { ok: false, code: "data_tidak_valid", message: "Ambil di Toko sedang tidak tersedia." };
+  if (input.method === "ambil" && !pickupAktif(settings)) return { ok: false, code: "data_tidak_valid", message: "Ambil di Toko sedang tidak tersedia." };
   if (input.method === "kirim" && input.courierCode === "instan") {
     const instant = instantAvailability(at, settings.instant);
     if (!instant.available) return { ok: false, code: "data_tidak_valid", message: `Kurir instan hanya beroperasi Senin sampai Sabtu pukul 08.00 sampai 17.00 WIB. ${instant.note}.` };
@@ -135,7 +143,9 @@ export async function placeOrder(db: AnyDb, input: PlaceOrderInput): Promise<Pla
       const voucher = await loadVoucher(tx, input.voucherCode, buyer, { lock: true });
       // Saldo poin dibaca dengan mengunci baris customer, supaya dua pesanan bersamaan tidak memakai poin yang sama.
       let pointsBalance = 0;
-      if (buyer.customerId && (input.pointsRequested ?? 0) > 0) {
+      // Fitur poin dimatikan (src/config/fitur.ts): permintaan tukar poin diabaikan.
+      const pointsRequested = fiturAktif("poin") ? (input.pointsRequested ?? 0) : 0;
+      if (buyer.customerId && pointsRequested > 0) {
         const [c] = await tx.select({ points: schema.customers.points }).from(schema.customers).where(eq(schema.customers.id, buyer.customerId)).for("update");
         pointsBalance = c?.points ?? 0;
       }
@@ -144,7 +154,7 @@ export async function placeOrder(db: AnyDb, input: PlaceOrderInput): Promise<Pla
         now: at,
         voucherCode: input.voucherCode,
         voucher,
-        points: buyer.customerId ? { requested: input.pointsRequested ?? 0, balance: pointsBalance } : null,
+        points: buyer.customerId ? { requested: pointsRequested, balance: pointsBalance } : null,
         rules: pricingRules(settings),
         shipping: input.method === "ambil" ? { method: "ambil" } : { method: "kirim", courierCode: input.courierCode!, zone: input.zone! },
       });
@@ -273,6 +283,7 @@ export async function placeOrder(db: AnyDb, input: PlaceOrderInput): Promise<Pla
       await tx.update(schema.carts).set({ voucherCode: null, updatedAt: at }).where(eq(schema.carts.id, cart.id));
 
       await queueNotifications(tx, order.id, "dibuat", at);
+      logEvent("pesanan.dibuat", { nomor: number, total: pricing.total, metode: input.method, bayar: input.paymentMethod, pembeli: buyer.customerId ? "akun" : "tamu", item: pricing.lines.length });
       return { ok: true as const, orderId: order.id, number, accessToken, total: pricing.total, paymentMethod: input.paymentMethod };
     });
   } catch (err) {
@@ -306,6 +317,8 @@ export async function applyTransition(tx: AnyDb, order: LockedOrder, to: OrderSt
   const at = opts.now ?? clockNow();
   const from = order.status as OrderStatus;
   assertTransition(from, to, { method: order.method, paymentMethod: order.paymentMethod, payAtStoreHandover: opts.payAtStoreHandover });
+  // Log terstruktur (Fase 8B): dibayar, dibatalkan, dan perubahan status lain; dicatat di dalam transaksi.
+  logEvent(`pesanan.${to}`, { nomor: order.number, dari: from, aktor: opts.actor ?? "sistem", metode: order.method, alasan: opts.reason ?? null });
   const items = await tx.select().from(schema.orderItems).where(eq(schema.orderItems.orderId, order.id));
   const perVariant = new Map<number, number>();
   for (const it of items) perVariant.set(it.variantId, (perVariant.get(it.variantId) ?? 0) + it.quantity);
@@ -380,7 +393,7 @@ export async function applyTransition(tx: AnyDb, order: LockedOrder, to: OrderSt
 
 // Poin pesanan Selesai: 1 poin per Rp 1.000 belanja bersih. Idempoten lewat kunci "dapat:<nomor>".
 export async function awardOrderPoints(tx: AnyDb, order: { number: string; customerId: number | null; subtotal: number; voucherDiscount: number; pointsUsed: number }, at: Date) {
-  if (!order.customerId) return 0;
+  if (!order.customerId || !fiturAktif("poin")) return 0;
   const points = earnedPoints(order);
   if (points <= 0) return 0;
   const r = await movePoints(tx, { customerId: order.customerId, amount: points, reason: `Poin dari pesanan ${order.number}`, reference: order.number, key: pointKeys.earn(order.number), at });

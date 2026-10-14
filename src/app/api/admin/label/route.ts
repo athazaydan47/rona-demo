@@ -6,7 +6,7 @@ import { labelsPdf } from "@/lib/admin/pdf";
 import { can } from "@/lib/admin/permissions";
 import { now } from "@/lib/clock";
 
-// Label kirim A6 (PDF) untuk satu atau beberapa pesanan: /api/admin/label?nomor=RONA-2610-000001,RONA-2610-000002
+// Label kirim A6 (PDF) untuk satu atau beberapa pesanan: /api/admin/label?nomor=<nomor-1>,<nomor-2>
 // GET tanpa efek samping; hanya untuk staf dengan izin pesanan.cetak di lokasi pesanannya.
 export async function GET(request: NextRequest) {
   const me = await currentStaff();

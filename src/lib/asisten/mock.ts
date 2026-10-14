@@ -3,6 +3,7 @@
 // jawaban disusun dari hasil tool (angka apa adanya).
 import type { Content, GenRequest, GenResponse, Part } from "@/lib/ai/client";
 import { formatRupiah } from "@/lib/format";
+import { POLA_NOMOR_PESANAN_DI_TEKS } from "@/config/merek";
 
 const est = (s: string) => Math.ceil(s.length / 4);
 function reply(parts: Part[], req: GenRequest): GenResponse {
@@ -55,7 +56,7 @@ export function adminIntent(raw: string): Intent {
     if (!cari) return { direct: "Produk atau shade apa yang mau dicek stoknya?" };
     return { tool: "stok_varian", args: { cari, ...(lokasi ? { lokasi } : {}) } };
   }
-  const nomor = /rona-\d{4}-\d{6}/i.exec(raw)?.[0] ?? /(?:08|62)\d{8,12}/.exec(raw)?.[0];
+  const nomor = POLA_NOMOR_PESANAN_DI_TEKS.exec(raw)?.[0] ?? /(?:08|62)\d{8,12}/.exec(raw)?.[0];
   if (nomor) return { tool: "cari_pesanan", args: { cari: nomor } };
   if ((/berapa pesanan|rata-rata nilai pesanan|unit terjual/.test(q) || (/pesanan/.test(q) && periode && !/ambil|tindakan|proses/.test(q))) && !/kinerja/.test(q)) return { tool: "ringkasan_penjualan", args: { periode: periode ?? "30 hari terakhir", ...(lokasi ? { cabang: lokasi } : {}) } };
   if (/pesanan|ambil hari ini|perlu tindakan|diproses/.test(q) && !/omzet/.test(q)) return { tool: "pesanan_perlu_tindakan", args: lokasi ? { cabang: lokasi } : {} };

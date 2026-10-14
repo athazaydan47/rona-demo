@@ -5,6 +5,8 @@ import { can } from "@/lib/admin/permissions";
 import { checkPhoto } from "@/lib/reviews/image-info";
 import { photoStorage } from "@/lib/reviews/storage";
 import { rejectCrossOrigin } from "@/lib/security/origin";
+import { db } from "@/db/client";
+import { BATAS, rateLimit } from "@/lib/security/rate-limit";
 
 // Unggah foto produk atau banner dari admin (sudah dikompresi di browser). Sesi staf dan Origin wajib.
 export async function POST(request: NextRequest) {
@@ -13,6 +15,9 @@ export async function POST(request: NextRequest) {
   const me = await currentStaff();
   const kind = request.nextUrl.searchParams.get("jenis") === "banner" ? "banner" : "produk";
   if (!me || !can(me, kind === "banner" ? "promo.kelola" : "produk.kelola")) return NextResponse.json({ ok: false, message: "Tidak punya izin." }, { status: 403 });
+  const batas = BATAS.fotoAdminPerStaf;
+  const rl = await rateLimit(db, `foto-admin:${me.id}`, batas.limit, batas.windowMs);
+  if (!rl.ok) return NextResponse.json({ ok: false, message: "Terlalu banyak unggahan dalam satu jam. Coba lagi nanti." }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
   const storage = photoStorage();
   if (storage.kind === "nonaktif") return NextResponse.json({ ok: false, message: "Unggah foto belum tersedia di server ini. Pakai ProductArt dulu." }, { status: 503 });
   const form = await request.formData().catch(() => null);

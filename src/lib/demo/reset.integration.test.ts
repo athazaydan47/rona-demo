@@ -1,5 +1,5 @@
 // Reset data demo: ditolak saat DEMO_MODE mati, idempoten (dua kali reset menghasilkan data yang sama), dan
-// aman dari dua reset bersamaan. Memakai database terpisah rona_demo_uji supaya data kerja lokal tidak terhapus.
+// aman dari dua reset bersamaan. Memakai database uji (<database kerja>_uji) supaya data kerja lokal tidak terhapus.
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
@@ -9,6 +9,7 @@ import * as schema from "@/db/schema";
 import type { AnyDb } from "@/lib/db-types";
 import { dbUrl } from "@/test/integration";
 import { checkDataConsistency } from "./consistency";
+import { cariDataUji } from "./data-uji";
 import { DemoResetError, resetDemoData } from "./reset";
 
 const ON = { DEMO_MODE: "true" };
@@ -23,20 +24,13 @@ describe("reset data demo tanpa DEMO_MODE", () => {
   });
 });
 
-describe.skipIf(!dbUrl)("reset data demo (integrasi, database rona_demo_uji)", () => {
-  const testUrl = (() => {
-    const u = new URL(dbUrl ?? "postgres://localhost/x");
-    u.pathname = "/rona_demo_uji";
-    return u.toString();
-  })();
+describe.skipIf(!dbUrl)("reset data demo (integrasi, database uji)", () => {
+  // Database uji sudah dibuat dan dimigrasi oleh src/test/global-setup.ts (vitest.config.ts mengarahkan DATABASE_URL).
+  const testUrl = dbUrl ?? "";
   let client: ReturnType<typeof postgres>;
   let db: AnyDb;
 
   beforeAll(async () => {
-    const admin = postgres(dbUrl!, { max: 1, onnotice: () => {} });
-    const [exists] = await admin`select 1 as ok from pg_database where datname = 'rona_demo_uji'`;
-    if (!exists) await admin.unsafe("create database rona_demo_uji");
-    await admin.end();
     client = postgres(testUrl, { max: 4, onnotice: () => {} });
     const d = drizzle(client, { schema, casing: "snake_case" });
     await d.execute(sql`create extension if not exists pg_trgm`);
@@ -82,6 +76,8 @@ describe.skipIf(!dbUrl)("reset data demo (integrasi, database rona_demo_uji)", (
     expect(r.summary.historyOrders).toBeGreaterThan(90 * 8 * 0.9);
     expect(r.summary.historyCustomers).toBe(150);
     expect(await checkDataConsistency(db)).toEqual({ ok: true, issues: [] });
+    // Fase 8B: seed tidak boleh berisi nama yang menandakan data uji (Uji, E2E, test, Playwright).
+    expect(await cariDataUji(db)).toEqual([]);
     const [mix] = (await db.execute(sql`
       select count(*) filter (where status = 'selesai')::int as selesai, count(*) filter (where status = 'dibatalkan')::int as batal,
              count(*) filter (where status = 'diretur')::int as retur, count(*) filter (where status in ('dibayar', 'diproses', 'dikirim', 'siap_diambil', 'menunggu_pembayaran'))::int as aktif,

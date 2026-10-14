@@ -1,8 +1,11 @@
 // Gambar dari pembeli (foto wajah untuk kuis, screenshot untuk cari dupe). Hanya ada di memori selama satu
 // permintaan: tidak ditulis ke disk, Blob, database, cache, atau log. Jenis berkas dicek dari isi (magic bytes),
 // bukan dari nama atau tipe yang dikirim browser.
+import { imageInfo } from "@/lib/reviews/image-info";
 
 export const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // browser sudah memperkecil ke 1024 px, jadi biasanya di bawah 300 KB
+export const MIN_IMAGE_SIDE = 64;
+export const MAX_IMAGE_SIDE = 4096;
 export type ImageInput = { mimeType: "image/jpeg" | "image/png" | "image/webp"; data: string }; // data = base64
 
 export function sniffImageType(bytes: Uint8Array): ImageInput["mimeType"] | null {
@@ -25,6 +28,9 @@ export async function readImages(form: FormData, field: string, max: number): Pr
     const bytes = new Uint8Array(await f.arrayBuffer());
     const mimeType = sniffImageType(bytes);
     if (!mimeType) return { ok: false, message: "Berkas ini bukan foto JPG, PNG, atau WebP." };
+    // Dimensi dibaca dari isi berkas (Fase 8B): tolak gambar rusak, sangat kecil, atau sangat besar.
+    const info = imageInfo(bytes);
+    if (!info || Math.min(info.width, info.height) < MIN_IMAGE_SIDE || Math.max(info.width, info.height) > MAX_IMAGE_SIDE) return { ok: false, message: "Ukuran gambar tidak bisa dipakai. Coba foto atau screenshot lain, ya." };
     images.push({ mimeType, data: Buffer.from(bytes).toString("base64") });
   }
   return { ok: true, images };

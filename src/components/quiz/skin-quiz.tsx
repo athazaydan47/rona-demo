@@ -50,7 +50,7 @@ function FaceArt({ kind }: { kind: string }) {
 
 export function FromPhotoBadge() {
   return (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-rona/10 px-2 py-0.5 text-[10px] font-semibold text-rona" data-testid="dari-foto">
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-aksen/10 px-2 py-0.5 text-[10px] font-semibold text-aksen" data-testid="dari-foto">
       <Camera className="size-3" aria-hidden /> dari foto
     </span>
   );
@@ -61,7 +61,7 @@ function Option({ selected, onClick, children, testId, fromPhoto }: { selected: 
     <button type="button" onClick={onClick} aria-pressed={selected} data-testid={testId} className={cn("flex min-h-14 w-full items-center gap-3 rounded-xl border-2 bg-putih p-3 text-left text-sm transition-colors", selected ? "border-kopi" : "border-garis hover:border-kopi/30")}>
       {children}
       {selected && fromPhoto ? <span className="ml-auto"><FromPhotoBadge /></span> : null}
-      {selected ? <Check className={cn("size-4 shrink-0 text-rona", !fromPhoto && "ml-auto")} aria-hidden /> : null}
+      {selected ? <Check className={cn("size-4 shrink-0 text-aksen", !fromPhoto && "ml-auto")} aria-hidden /> : null}
     </button>
   );
 }
@@ -99,13 +99,13 @@ export function SkinQuiz({ initial, photoAvailable = false }: { initial: QuizAns
   return (
     <div className="rounded-card border border-garis bg-porselen p-4 sm:p-6" data-testid="kuis-kulit">
       <div className="mb-4">
-        <p className="text-xs font-semibold tracking-wide text-rona uppercase">
+        <p className="text-xs font-semibold tracking-wide text-aksen uppercase">
           Langkah {step + 1} dari {STEPS.length}
         </p>
         <h2 className="mt-1 font-serif text-2xl text-kopi">{["Jenis kulitmu yang mana?", "Apa yang ingin kamu perbaiki?", "Seberapa sering kulitmu bereaksi?", "Budget per produk?", "Warna kulitmu", "Rutinitasmu sekarang"][step]}</h2>
         <div className="mt-3 flex gap-1" aria-hidden>
           {STEPS.map((s, i) => (
-            <span key={s} className={cn("h-1.5 flex-1 rounded-full", i <= step ? "bg-rona" : "bg-garis")} />
+            <span key={s} className={cn("h-1.5 flex-1 rounded-full", i <= step ? "bg-aksen" : "bg-garis")} />
           ))}
         </div>
       </div>
@@ -120,7 +120,7 @@ export function SkinQuiz({ initial, photoAvailable = false }: { initial: QuizAns
             </span>
           </button>
           <button type="button" onClick={() => setMode("foto")} className="flex items-center gap-3 rounded-xl border-2 border-garis bg-putih p-3 text-left text-sm hover:border-kopi/30" data-testid="bantu-foto">
-            <Camera className="size-5 shrink-0 text-rona" aria-hidden />
+            <Camera className="size-5 shrink-0 text-aksen" aria-hidden />
             <span>
               <span className="block font-semibold">Bantu isi dari foto (opsional)</span>
               <span className="block text-xs text-abu-hangat">Foto tidak disimpan, hasilnya bisa kamu ubah</span>

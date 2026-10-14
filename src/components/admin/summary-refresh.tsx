@@ -11,7 +11,7 @@ export function SummaryRefresh({ productId, info }: { productId: number; info: s
   const [pending, run] = useTransition();
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-garis bg-putih px-3 py-2 text-sm" data-testid="ringkasan-admin">
-      <Sparkles className="size-4 text-rona" aria-hidden />
+      <Sparkles className="size-4 text-aksen" aria-hidden />
       <span className="text-abu-hangat">{msg ?? info}</span>
       <Button
         size="sm"

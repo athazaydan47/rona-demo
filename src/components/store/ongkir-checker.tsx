@@ -12,7 +12,7 @@ const WEIGHTS = [
   { gram: 1000, label: "Paket skincare (1 kg)" },
   { gram: 2000, label: "Belanja besar (2 kg)" },
 ];
-const field = "h-11 w-full rounded-lg border border-garis bg-putih px-3 text-sm outline-none focus-visible:border-rona";
+const field = "h-11 w-full rounded-lg border border-garis bg-putih px-3 text-sm outline-none focus-visible:border-aksen";
 
 // Cek ongkir tanpa checkout: kota tujuan dan berat kira-kira, tarif dari Pengaturan toko (sama dengan checkout).
 export function OngkirChecker({ rates, active }: { rates: Partial<Record<CourierCode, Record<Zone, number | null>>>; active: CourierCode[] }) {
@@ -47,7 +47,7 @@ export function OngkirChecker({ rates, active }: { rates: Partial<Record<Courier
       <ul className="mt-4 divide-y divide-garis" aria-live="polite">
         {quotes.map((q, i) => (
           <li key={q.code} className="flex items-center gap-3 py-2.5 text-sm">
-            <Truck className={cn("size-4 shrink-0", i === 0 ? "text-rona" : "text-abu-hangat")} aria-hidden />
+            <Truck className={cn("size-4 shrink-0", i === 0 ? "text-aksen" : "text-abu-hangat")} aria-hidden />
             <span className="min-w-0 flex-1">
               <span className="font-medium text-kopi">
                 {q.name} {q.service}

@@ -33,7 +33,7 @@ export function OrderCard({ order }: { order: AccountOrderCard }) {
       {unreviewed.length ? (
         <div className="flex flex-wrap items-center gap-2 border-t border-garis px-4 py-2.5">
           {unreviewed.slice(0, 3).map((i) => (
-            <Link key={i.orderItemId} href={`/akun/ulasan/${i.orderItemId}`} className="inline-flex items-center gap-1.5 rounded-pill bg-blush/70 px-3 py-1 text-xs font-semibold text-rona-gelap hover:bg-blush">
+            <Link key={i.orderItemId} href={`/akun/ulasan/${i.orderItemId}`} className="inline-flex items-center gap-1.5 rounded-pill bg-blush/70 px-3 py-1 text-xs font-semibold text-aksen-gelap hover:bg-blush">
               <PenLine className="size-3.5" aria-hidden /> Tulis ulasan<span className="sr-only"> {i.productName}</span>
               {order.items.length > 1 ? <span className="max-w-32 truncate font-normal"> {i.productName}</span> : null}
             </Link>

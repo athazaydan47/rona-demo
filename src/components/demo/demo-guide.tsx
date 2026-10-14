@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Check, ListChecks, X } from "lucide-react";
 import { bacaPanduan, BUKA_EVENT, LANGKAH, langkahDariUrl, PANDUAN_EVENT, simpanPanduan, tandaiLangkah, type LangkahId, type PanduanState } from "@/lib/demo/panduan";
 import { cn } from "@/lib/utils";
+import { MEREK } from "@/config/merek";
 
 const EMPTY: PanduanState = { selesai: [], tutup: false, pernahDibuka: false };
 let cache: PanduanState | null = null;
@@ -56,10 +57,10 @@ export function DemoGuide() {
     setOpen(false);
   };
   return (
-    <aside className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-[55] max-h-[70dvh] overflow-y-auto rounded-card border border-garis bg-putih p-4 shadow-lift animate-muncul md:inset-x-auto md:right-6 md:bottom-6 md:w-96" aria-label="Panduan demo" data-testid="panduan-demo">
+    <aside className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-[55] max-h-[70dvh] overflow-y-auto rounded-card border border-garis bg-putih p-4 shadow-lift animate-muncul md:inset-x-auto md:right-6 md:bottom-6 md:w-96" aria-label="Panduan demo" data-testid="panduan-demo" data-tanda-demo>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-rona uppercase">
+          <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-aksen uppercase">
             <ListChecks className="size-3.5" aria-hidden /> Panduan demo 5 menit
           </p>
           <p className="mt-1 text-sm text-abu-hangat">
@@ -94,7 +95,7 @@ export function DemoGuide() {
           );
         })}
       </ol>
-      {done.size === LANGKAH.length ? <p className="mt-3 rounded-lg bg-blush px-3 py-2 text-sm font-semibold text-rona-gelap">Semua langkah selesai. Terima kasih sudah mencoba Rona.</p> : null}
+      {done.size === LANGKAH.length ? <p className="mt-3 rounded-lg bg-blush px-3 py-2 text-sm font-semibold text-aksen-gelap">Semua langkah selesai. Terima kasih sudah mencoba {MEREK.nama}.</p> : null}
     </aside>
   );
 }

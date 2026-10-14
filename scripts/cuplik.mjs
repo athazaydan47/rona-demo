@@ -282,6 +282,12 @@ async function main() {
     }
   }
 
+  // Fase 8B: tolak jalan bila database kerja berisi data bernama uji (sisa uji lama). Uji kini memakai database terpisah.
+  try {
+    execSync("npx tsx scripts/cek-data-uji.ts", { stdio: "inherit" });
+  } catch {
+    process.exit(1);
+  }
   await ensureServer();
 
   const now = new Date();

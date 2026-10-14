@@ -13,7 +13,7 @@ export function SortSelect({ filters, basePath }: { filters: CatalogFilters; bas
         value={filters.sort}
         onChange={(e) => apply({ ...filters, sort: e.target.value as SortKey })}
         disabled={pending}
-        className="h-10 appearance-none rounded-pill border border-garis bg-putih pr-9 pl-4 text-sm font-medium text-kopi outline-none hover:border-kopi/30 focus-visible:border-rona focus-visible:shadow-ring"
+        className="h-10 appearance-none rounded-pill border border-garis bg-putih pr-9 pl-4 text-sm font-medium text-kopi outline-none hover:border-kopi/30 focus-visible:border-aksen focus-visible:shadow-ring"
       >
         {SORT_KEYS.map((k) => (
           <option key={k} value={k}>

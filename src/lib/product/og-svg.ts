@@ -5,6 +5,7 @@ import type { Packaging } from "@/db/schema/enums";
 import { buildCtx, type ProductArtView } from "@/components/product-art/context";
 import { Defs } from "@/components/product-art/primitives";
 import { shapes } from "@/components/product-art/shapes";
+import { MEREK } from "@/config/merek";
 
 const keepCamel = new Set([
   "viewBox", "baseFrequency", "numOctaves", "stdDeviation", "xChannelSelector", "yChannelSelector", "textLength", "lengthAdjust",
@@ -78,6 +79,6 @@ export function productArtSvg(input: { packaging: Packaging; shade: string; bran
   const id = "art";
   const ctx = buildCtx({ id, view: input.view ?? "depan", packaging: input.packaging, shade: input.shade, brand: input.brandColor, brandName: input.brandName });
   const draw = shapes[input.packaging] ?? shapes.cream_jar;
-  const bg = input.background === "none" ? "" : `<rect width="200" height="240" rx="16" fill="url(#${id}-bg)"></rect>`;
+  const bg = input.background === "none" ? "" : `<rect width="200" height="240" rx="${MEREK.productArt.sudut}" fill="url(#${id}-bg)"></rect>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="200" height="240" role="img">${input.title ? `<title>${escText(input.title)}</title>` : ""}${renderStatic(Defs({ ctx }))}${bg}${renderStatic(draw(ctx))}</svg>`;
 }

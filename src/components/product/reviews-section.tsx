@@ -5,13 +5,14 @@ import { BadgeCheck, Camera, Sparkles, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { RatingStars } from "@/components/ui/rating-stars";
-import { ShadeSwatchArt } from "@/components/product-art";
+import { ShadeSwatchArt } from "@/components/product-art/swatch-art";
 import { skinTypeLabels } from "@/lib/catalog/filters";
 import { formatDateWib } from "@/lib/format";
 import type { ProductReview } from "@/lib/product/queries";
 import { cn } from "@/lib/utils";
+import { MEREK, kunciLokal } from "@/config/merek";
 
-const HELPFUL_KEY = "rona.review-helpful";
+const HELPFUL_KEY = kunciLokal("review-helpful");
 const PAGE = 5;
 
 function readHelpful(): number[] {
@@ -81,7 +82,7 @@ export function ReviewsSection({ reviews, ratingAvg, summary }: { reviews: Produ
       </h2>
       {summary ? (
         <div className="mt-4 rounded-card border border-garis bg-blush/30 p-4" data-testid="ringkasan-ulasan">
-          <p className="flex items-center gap-1.5 text-xs font-semibold text-rona">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-aksen">
             <Sparkles className="size-3.5" aria-hidden /> Diringkas AI dari {summary.reviewCount} ulasan
           </p>
           <div className="mt-2 grid gap-3 text-sm sm:grid-cols-2">
@@ -151,7 +152,7 @@ export function ReviewsSection({ reviews, ratingAvg, summary }: { reviews: Produ
             </Chip>
             <label className="ml-auto flex items-center gap-2 text-xs text-abu-hangat">
               Urutkan
-              <select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} className="h-9 rounded-pill border border-garis bg-putih px-3 text-sm text-kopi outline-none focus-visible:border-rona">
+              <select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} className="h-9 rounded-pill border border-garis bg-putih px-3 text-sm text-kopi outline-none focus-visible:border-aksen">
                 <option value="terbaru">Terbaru</option>
                 <option value="membantu">Paling membantu</option>
               </select>
@@ -195,12 +196,12 @@ export function ReviewsSection({ reviews, ratingAvg, summary }: { reviews: Produ
                   ) : null}
                   {r.storeReply ? (
                     <div className="mt-3 rounded-xl bg-porselen p-3 text-sm">
-                      <p className="text-xs font-semibold text-rona">Balasan Rona Beauty</p>
+                      <p className="text-xs font-semibold text-aksen">Balasan {MEREK.namaLengkap}</p>
                       <p className="mt-0.5 text-kopi/85">{r.storeReply}</p>
                     </div>
                   ) : null}
                   <div className="mt-3">
-                    <button type="button" onClick={() => vote(r.id)} disabled={voted.includes(r.id)} className={cn("inline-flex h-8 items-center gap-1.5 rounded-pill border px-3 text-xs font-medium transition-colors", voted.includes(r.id) ? "border-rona bg-blush text-rona-gelap" : "border-garis text-kopi hover:border-kopi/30")} aria-pressed={voted.includes(r.id)}>
+                    <button type="button" onClick={() => vote(r.id)} disabled={voted.includes(r.id)} className={cn("inline-flex h-8 items-center gap-1.5 rounded-pill border px-3 text-xs font-medium transition-colors", voted.includes(r.id) ? "border-aksen bg-blush text-aksen-gelap" : "border-garis text-kopi hover:border-kopi/30")} aria-pressed={voted.includes(r.id)}>
                       <ThumbsUp className="size-3.5" /> Membantu{helpful > 0 ? ` (${helpful})` : ""}
                     </button>
                   </div>

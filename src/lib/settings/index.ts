@@ -1,6 +1,8 @@
 // Pengaturan toko: bentuk data, nilai bawaan (sama dengan aturan di BRIEF), dan normalisasi dari tabel settings.
 // Murni, tanpa database, supaya logika harga, ongkir, dan cut-off bisa diuji dengan pengaturan apa pun.
 import type { CourierCode, Zone } from "@/lib/shipping";
+import { MEREK } from "@/config/merek";
+import { fiturAktif } from "@/config/fitur";
 
 export type PaymentMethodKey = "qris" | "va_bca" | "va_bni" | "va_bri" | "va_mandiri" | "bayar_di_toko";
 export const PAYMENT_METHOD_KEYS: PaymentMethodKey[] = ["qris", "va_bca", "va_bni", "va_bri", "va_mandiri", "bayar_di_toko"];
@@ -57,7 +59,7 @@ export const DEFAULT_RATES: CourierRates = {
 };
 
 export const DEFAULT_SETTINGS: StoreSettings = {
-  profile: { name: "Rona Beauty", tagline: "Temukan rona terbaikmu.", whatsapp: "6281200000000", email: "halo@rona.demo", address: "Jl. Veteran No. 8 (fiktif)", city: "Malang" },
+  profile: { name: MEREK.namaLengkap, tagline: MEREK.tagline, whatsapp: MEREK.kontak.whatsapp, email: MEREK.kontak.email, address: MEREK.kontak.alamat, city: MEREK.kontak.kota },
   cutoff: { ship: "15.00", pickup: "16.00", sundayOff: true },
   instant: { open: 8, close: 17 },
   couriers: { active: ["jne_reg", "jne_yes", "jnt_ez", "sicepat_reg", "instan", "ambil_di_toko"], rates: DEFAULT_RATES },
@@ -191,3 +193,6 @@ export function settingsRows(s: StoreSettings): Record<string, unknown> {
 // Aturan yang dipakai mesin harga dan ongkir.
 export type PricingRules = { freeShippingThreshold: number; freeShippingCap: number; rates: CourierRates; activeCouriers: CourierCode[] };
 export const pricingRules = (s: StoreSettings = DEFAULT_SETTINGS): PricingRules => ({ freeShippingThreshold: s.freeShipping.threshold, freeShippingCap: s.freeShipping.cap, rates: s.couriers.rates, activeCouriers: s.couriers.active });
+
+// Ambil di Toko aktif bila fiturnya menyala (src/config/fitur.ts) dan kurirnya aktif di Pengaturan.
+export const pickupAktif = (s: Pick<StoreSettings, "couriers">) => fiturAktif("ambilDiToko") && s.couriers.active.includes("ambil_di_toko");

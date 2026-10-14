@@ -132,8 +132,8 @@ export async function fetchOembed(link: Extract<LinkKind, { kind: "tiktok" | "yo
 
 // oEmbed tiruan untuk AI_PROVIDER=mock (uji, Playwright, cuplik): tanpa internet, data contoh tetap.
 export const MOCK_OEMBED: Record<string, { title: string; author_name: string; author_url: string }> = {
-  "7300000000000000001": { title: "Dupe lipstik Wardah warna nude satin buat kondangan, lembap seharian! #lipstik #kondangan", author_name: "Rona Demo Kreator", author_url: "https://www.tiktok.com/@rona.demo" },
-  "7300000000000000002": { title: "Cushion favorit buat kulit berminyak, hasilnya matte natural #cushion", author_name: "Rona Demo Kreator", author_url: "https://www.tiktok.com/@rona.demo" },
+  "7300000000000000001": { title: "Dupe lipstik Wardah warna nude satin buat kondangan, lembap seharian! #lipstik #kondangan", author_name: "Demo Kreator", author_url: "https://www.tiktok.com/@demo.kreator" },
+  "7300000000000000002": { title: "Cushion favorit buat kulit berminyak, hasilnya matte natural #cushion", author_name: "Demo Kreator", author_url: "https://www.tiktok.com/@demo.kreator" },
 };
 
 export const mockOembedFetch: FetchLike = async (url) => {

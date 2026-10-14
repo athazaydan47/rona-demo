@@ -5,6 +5,7 @@ import * as schema from "@/db/schema";
 import type { Packaging } from "@/db/schema/enums";
 import type { AnyDb } from "@/lib/db-types";
 import type { FlashInput, PricingLineInput, VoucherInput } from "@/lib/pricing/cart";
+import { fiturAktif } from "@/config/fitur";
 
 export type Buyer = { customerId: number | null; phone: string | null };
 
@@ -98,7 +99,8 @@ export async function loadVariantMeta(db: AnyDb, variantIds: number[]) {
 // Flash sale yang sedang berjalan untuk varian tertentu, beserta jumlah yang sudah dibeli pembeli ini di slot itu.
 export async function loadLiveFlash(db: AnyDb, variantIds: number[], buyer: Buyer, now: Date, opts: { lock?: boolean } = {}) {
   const out = new Map<number, FlashInput>();
-  if (variantIds.length === 0) return out;
+  // Fitur flash sale dimatikan (src/config/fitur.ts): tidak ada harga flash di keranjang, checkout, dan pesanan.
+  if (variantIds.length === 0 || !fiturAktif("flashSale")) return out;
   const base = db
     .select({
       id: schema.flashSaleItems.id,

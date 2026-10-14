@@ -7,13 +7,14 @@ import { writeAudit } from "./audit";
 import { normalizeEmail, revokeAllStaffSessions } from "./auth";
 import { hashPassword, validateNewPassword } from "./password";
 import { can, isPermissionKey, isRoleSlug, ROLE_TEMPLATES, type RoleSlug, type StaffPrincipal } from "./permissions";
+import { MEREK } from "@/config/merek";
 
-export const DEMO_STAFF_EMAILS = ["owner@rona.demo", "admin@rona.demo", "dinoyo@rona.demo", "gudang@rona.demo"] as const;
+export const DEMO_STAFF_EMAILS = [`owner@${MEREK.domainDemo}`, `admin@${MEREK.domainDemo}`, `dinoyo@${MEREK.domainDemo}`, `gudang@${MEREK.domainDemo}`] as const;
 export const DEMO_QUICK_LOGIN: { email: (typeof DEMO_STAFF_EMAILS)[number]; label: string; role: RoleSlug }[] = [
-  { email: "owner@rona.demo", label: "Owner", role: "owner" },
-  { email: "admin@rona.demo", label: "Admin Online", role: "admin_online" },
-  { email: "dinoyo@rona.demo", label: "Staf Cabang Dinoyo", role: "staf_cabang" },
-  { email: "gudang@rona.demo", label: "Gudang", role: "gudang" },
+  { email: DEMO_STAFF_EMAILS[0], label: "Owner", role: "owner" },
+  { email: DEMO_STAFF_EMAILS[1], label: "Admin Online", role: "admin_online" },
+  { email: DEMO_STAFF_EMAILS[2], label: "Staf Cabang Dinoyo", role: "staf_cabang" },
+  { email: DEMO_STAFF_EMAILS[3], label: "Gudang", role: "gudang" },
 ];
 export const isDemoStaffEmail = (email: string) => (DEMO_STAFF_EMAILS as readonly string[]).includes(normalizeEmail(email));
 

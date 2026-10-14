@@ -8,7 +8,7 @@ async function main() {
   const { db } = await import("../src/db/client");
   const { aiModel } = await import("../src/lib/ai");
   const { refreshAllReviewSummaries } = await import("../src/lib/ai/review-summary");
-  const model = aiModel();
+  const model = aiModel("aiPembeli");
   if (!model) {
     console.log("AI tidak tersedia: isi AI_GATEWAY_URL dan GEMINI_API_KEY, atau pakai AI_PROVIDER=mock.");
     process.exit(0);

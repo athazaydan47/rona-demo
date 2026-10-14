@@ -13,6 +13,8 @@ import { getFlashSlots, type FlashSlotData } from "@/lib/catalog/catalog-queries
 import { formatDateWib, formatTimeWib } from "@/lib/format";
 import { pickFlashSlot } from "@/lib/flash";
 import { now as clockNow } from "@/lib/clock";
+import { fiturAktif } from "@/config/fitur";
+import { notFound } from "next/navigation";
 
 export const metadata: Metadata = { title: "Flash Sale", description: "Slot flash sale yang sedang berjalan dan berikutnya." };
 
@@ -47,7 +49,7 @@ async function FlashSaleContent() {
   const { active, next } = pickFlashSlot(slots, now);
   const upcoming = slots.filter((s) => s.startsAt.getTime() > now.getTime() && s.id !== next?.id);
   return (
-    <div className="container-rona py-6 md:py-8">
+    <div className="container-toko py-6 md:py-8">
       <Breadcrumb items={[{ label: "Flash Sale" }]} className="mb-3" />
       <h1 className="font-serif text-3xl font-medium text-kopi md:text-4xl">Flash Sale</h1>
       <p className="mt-2 max-w-2xl text-sm text-abu-hangat md:text-base">Dua slot setiap hari, 12.00 sampai 14.00 dan 20.00 sampai 22.00 WIB. Kuota terbatas, maksimal 2 per pembeli per produk.</p>
@@ -76,7 +78,7 @@ async function FlashSaleContent() {
         <section className="mt-8" aria-labelledby="slot-berikut">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-xs font-semibold tracking-wide text-rona uppercase">Slot berikutnya</p>
+              <p className="text-xs font-semibold tracking-wide text-aksen uppercase">Slot berikutnya</p>
               <h2 id="slot-berikut" className="mt-1 font-serif text-2xl text-kopi md:text-3xl">
                 {next.name}
               </h2>
@@ -116,10 +118,12 @@ async function FlashSaleContent() {
 }
 
 export default function FlashSalePage() {
+  // Fitur dimatikan di src/config/fitur.ts: halaman ini tidak ada.
+  if (!fiturAktif("flashSale")) notFound();
   return (
     <Suspense
       fallback={
-        <div className="container-rona py-8" aria-busy>
+        <div className="container-toko py-8" aria-busy>
           <div className="h-10 w-48 animate-pulse rounded bg-garis/70" />
           <div className="mt-8 h-[460px] animate-pulse rounded-card bg-kopi/90" />
         </div>

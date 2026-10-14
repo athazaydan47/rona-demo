@@ -57,6 +57,13 @@
       "when": 1791981928652,
       "tag": "0007_ai_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791998558035,
+      "tag": "0008_keamanan",
+      "breakpoints": true
     }
   ]
 }

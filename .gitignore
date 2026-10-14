@@ -46,6 +46,9 @@ next-env.d.ts
 # lembar review visual (npm run cuplik)
 /_review/
 
+# gambar portofolio (npm run aset:portofolio), dibuat ulang kapan saja
+/_portofolio/
+
 # hasil uji Playwright
 /test-results/
 /playwright-report/

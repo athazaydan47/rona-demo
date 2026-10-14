@@ -18,6 +18,7 @@ import { emailConfig, emailReady } from "@/lib/email";
 import { formatDateTimeWib, formatDateWib, formatNumber, formatRupiah } from "@/lib/format";
 import { statusLabels, type OrderStatus } from "@/lib/orders/status";
 import { cn } from "@/lib/utils";
+import { fiturAktif } from "@/config/fitur";
 
 export const metadata: Metadata = { title: "Detail pelanggan" };
 
@@ -114,7 +115,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
             {d.totalOrders > d.orders.length ? <p className="px-3 py-2 text-xs text-abu-hangat">Menampilkan 30 pesanan terbaru.</p> : null}
           </Panel>
 
-          <Panel title={`Poin: ${formatNumber(c.points)}`} action={can(me, "pelanggan.poin") ? <PointsAdjust customerId={c.id} balance={c.points} /> : null} padded={false}>
+          <Panel title={`Poin: ${formatNumber(c.points)}`} action={can(me, "pelanggan.poin") && fiturAktif("poin") ? <PointsAdjust customerId={c.id} balance={c.points} /> : null} padded={false}>
             <ul className="divide-y divide-garis text-sm" data-testid="buku-poin">
               {d.ledger.map((l) => (
                 <li key={l.id} className="flex items-start justify-between gap-3 px-3 py-2">
@@ -158,7 +159,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
                 {d.addresses.map((a) => (
                   <li key={a.id}>
                     <span className="font-semibold">{a.label}</span>
-                    {a.isPrimary ? <span className="ml-1 text-xs text-rona">Utama</span> : null}
+                    {a.isPrimary ? <span className="ml-1 text-xs text-aksen">Utama</span> : null}
                     <span className="block text-abu-hangat">
                       {contact.masked ? `${a.district}, ${a.city}` : `${a.street}, ${a.district}, ${a.city} ${a.postalCode}`}
                     </span>
@@ -228,7 +229,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
 export default function CustomerPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <>
-      <Link href="/admin/pelanggan" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-rona hover:underline">
+      <Link href="/admin/pelanggan" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-aksen hover:underline">
         <ArrowLeft className="size-4" aria-hidden /> Pelanggan
       </Link>
       <Suspense fallback={<Skeleton rows={3} />}>

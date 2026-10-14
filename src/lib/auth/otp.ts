@@ -5,6 +5,7 @@ import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
 import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import type { AnyDb } from "@/lib/db-types";
+import { pesanKodeMasuk } from "@/lib/content/notifikasi";
 
 export const OTP_TTL_MS = 5 * 60_000;
 export const OTP_MAX_ATTEMPTS = 5;
@@ -110,8 +111,7 @@ export const demoOtpSender: OtpSender = {
       kind: "otp",
       channel: "wa",
       recipient: input.phone,
-      subject: "Kode masuk Rona",
-      body: `Kode ${input.purpose === "ganti_nomor" ? "verifikasi nomor baru" : "masuk"} Rona Beauty: ${input.code}. Berlaku 5 menit. Jangan berikan kode ini ke siapa pun, termasuk tim Rona.`,
+      ...pesanKodeMasuk(input.purpose, input.code),
       status: "terkirim",
       createdAt: input.now,
       sentAt: input.now,

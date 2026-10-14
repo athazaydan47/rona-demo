@@ -72,7 +72,7 @@ function slotState(s: FlashSlotView, now: number) {
   if (!s.isActive) return { label: "Nonaktif", cls: "bg-garis/60 text-abu-hangat" };
   if (new Date(s.endsAt).getTime() <= now) return { label: "Selesai", cls: "bg-garis/60 text-abu-hangat" };
   if (new Date(s.startsAt).getTime() <= now) return { label: "Berjalan", cls: "bg-[#E5F2EA] text-sukses" };
-  return { label: "Terjadwal", cls: "bg-blush text-rona-gelap" };
+  return { label: "Terjadwal", cls: "bg-blush text-aksen-gelap" };
 }
 
 type Draft = { variant: { variantId: number; productName: string; shadeName: string; hex: string; normalPrice: number; effective: number; onlineAvailable: number | null; sold?: number }; flashPrice: string; quota: string; maxPerCustomer: string };
@@ -223,7 +223,7 @@ export function FlashManager({ weekStart, slots, nowIso, defaultDate, initialSlo
             const today = dayKey(d) === dayKey(new Date(now));
             return (
               <div key={dayKey(d)} className={cn("flex gap-3 p-2 md:block md:min-h-44", today && "bg-blush/30")}>
-                <p className={cn("w-16 shrink-0 text-xs md:mb-2 md:w-auto", today ? "font-semibold text-rona" : "text-abu-hangat")}>
+                <p className={cn("w-16 shrink-0 text-xs md:mb-2 md:w-auto", today ? "font-semibold text-aksen" : "text-abu-hangat")}>
                   {weekdayNameId(p.weekday)} <span className="tabular-nums">{p.day}/{pad2(p.month)}</span>
                 </p>
                 <div className="flex min-w-0 flex-1 flex-wrap gap-1.5 md:block md:space-y-1.5">
@@ -231,7 +231,7 @@ export function FlashManager({ weekStart, slots, nowIso, defaultDate, initialSlo
                     list.map((s) => {
                       const st = slotState(s, now);
                       return (
-                        <button key={s.id} type="button" onClick={() => (setSelected(s.id), setDraft(carry ? toDraft(carry, s) : null))} className={cn("block rounded-lg border px-2 py-1.5 text-left text-xs md:w-full", selected === s.id ? "border-rona ring-2 ring-rona/25" : "border-garis", !s.isActive && "opacity-60")} aria-pressed={selected === s.id} data-slot={s.id}>
+                        <button key={s.id} type="button" onClick={() => (setSelected(s.id), setDraft(carry ? toDraft(carry, s) : null))} className={cn("block rounded-lg border px-2 py-1.5 text-left text-xs md:w-full", selected === s.id ? "border-aksen ring-2 ring-aksen/25" : "border-garis", !s.isActive && "opacity-60")} aria-pressed={selected === s.id} data-slot={s.id}>
                           <span className="block font-semibold tabular-nums">
                             {time(s.startsAt)} sampai {time(s.endsAt)}
                           </span>
@@ -259,7 +259,7 @@ export function FlashManager({ weekStart, slots, nowIso, defaultDate, initialSlo
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-garis px-4 py-3">
             <div>
               <h2 className="flex items-center gap-2 font-semibold">
-                <Zap className="size-4 text-rona" aria-hidden /> {slot.name}
+                <Zap className="size-4 text-aksen" aria-hidden /> {slot.name}
               </h2>
               <p className="text-xs text-abu-hangat">
                 {formatDateWib(new Date(slot.startsAt))}, {time(slot.startsAt)} sampai {time(slot.endsAt)} WIB · {slot.source === "admin" ? "dibuat admin" : "dibuat otomatis"} · {slotState(slot, now).label}
@@ -295,7 +295,7 @@ export function FlashManager({ weekStart, slots, nowIso, defaultDate, initialSlo
                       </span>
                     </td>
                     <td className="px-3 py-2 tabular-nums">
-                      <span className="block font-semibold text-rona">{formatRupiah(it.flashPrice)}</span>
+                      <span className="block font-semibold text-aksen">{formatRupiah(it.flashPrice)}</span>
                       <span className="text-xs text-abu-hangat line-through">{formatRupiah(it.normalPrice)}</span>
                     </td>
                     <td className="px-3 py-2 tabular-nums">
@@ -363,8 +363,8 @@ export function FlashManager({ weekStart, slots, nowIso, defaultDate, initialSlo
                   {check && Number(draft.flashPrice) > 0 ? (
                     <p className="mt-3 flex flex-wrap items-baseline gap-2 text-sm" data-testid="pratinjau-flash">
                       <span className="text-abu-hangat line-through tabular-nums">{formatRupiah(draft.variant.normalPrice)}</span>
-                      <span className="text-lg font-semibold text-rona tabular-nums">{formatRupiah(Number(draft.flashPrice))}</span>
-                      {check.percent > 0 ? <span className="rounded bg-rona px-1.5 text-xs font-semibold text-putih">-{check.percent}%</span> : null}
+                      <span className="text-lg font-semibold text-aksen tabular-nums">{formatRupiah(Number(draft.flashPrice))}</span>
+                      {check.percent > 0 ? <span className="rounded bg-aksen px-1.5 text-xs font-semibold text-putih">-{check.percent}%</span> : null}
                     </p>
                   ) : null}
                   {check?.errors.length && draft.flashPrice ? <p className="mt-2 text-sm text-bahaya">{check.errors[0]}</p> : null}

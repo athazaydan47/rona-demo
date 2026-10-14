@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { CatalogPage, CatalogPageSkeleton } from "@/components/catalog/catalog-page";
 import { parseCatalogParams, type RawParams } from "@/lib/catalog/filters";
+import { MEREK } from "@/config/merek";
 
-export const metadata: Metadata = { title: "Promo", description: "Semua produk yang sedang diskon di Rona Beauty." };
+export const metadata: Metadata = { title: "Promo", description: `Semua produk yang sedang diskon di ${MEREK.namaLengkap}.` };
 
 async function PromoRoute({ searchParams }: { searchParams: Promise<RawParams> }) {
   const sp = await searchParams;

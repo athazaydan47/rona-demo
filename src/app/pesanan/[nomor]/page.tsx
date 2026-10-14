@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { CheckCircle2, MapPin, MessageCircle, PenLine, Sparkles, Store, Truck, UserPlus } from "lucide-react";
@@ -16,7 +15,7 @@ import { db } from "@/db/client";
 import { currentCustomer } from "@/lib/auth/current";
 import { earnedPoints } from "@/lib/points";
 import { reviewableItems } from "@/lib/reviews/service";
-import { ORDERS_COOKIE } from "@/lib/cart/cookie";
+import { tokenPesananTersimpan } from "@/lib/orders/token-cookie";
 import { env } from "@/lib/env";
 import { formatDateTimeWib } from "@/lib/format";
 import { canAccessOrder, getOrderDetail } from "@/lib/orders/queries";
@@ -37,7 +36,7 @@ async function OrderContent({ params, searchParams }: Props) {
   await completeIfDue(db, nomor, undefined, siteUrl());
   const order = await getOrderDetail(db, nomor);
   if (!order) notFound();
-  const tokens = ((await cookies()).get(ORDERS_COOKIE)?.value ?? "").split(".").filter(Boolean);
+  const tokens = await tokenPesananTersimpan();
   const me = await currentCustomer();
   if (!canAccessOrder(order, sp.t, tokens, me?.customerId)) {
     return (
@@ -153,10 +152,10 @@ async function OrderContent({ params, searchParams }: Props) {
           {!isOwner && order.customerId == null && !me ? (
             <div className="rounded-card bg-blush/60 p-4 text-sm">
               <p className="flex items-center gap-2 font-semibold text-kopi">
-                <UserPlus className="size-4 text-rona" aria-hidden /> Simpan ke akunmu
+                <UserPlus className="size-4 text-aksen" aria-hidden /> Simpan ke akunmu
               </p>
               <p className="mt-1 text-abu-hangat">Masuk dengan nomor WhatsApp yang sama untuk dapat poin dan menulis ulasan.</p>
-              <Link href={`/masuk?kembali=${encodeURIComponent(`/pesanan/${order.number}`)}`} className="mt-2 inline-block font-semibold text-rona hover:underline">
+              <Link href={`/masuk?kembali=${encodeURIComponent(`/pesanan/${order.number}`)}`} className="mt-2 inline-block font-semibold text-aksen hover:underline">
                 Masuk sekarang
               </Link>
             </div>
@@ -165,7 +164,7 @@ async function OrderContent({ params, searchParams }: Props) {
             {order.method === "kirim" && order.address ? (
               <>
                 <p className="flex items-center gap-2 text-sm font-semibold text-kopi">
-                  <Truck className="size-4 text-rona" aria-hidden /> Dikirim ke
+                  <Truck className="size-4 text-aksen" aria-hidden /> Dikirim ke
                 </p>
                 <p className="mt-2 text-sm text-kopi">
                   {order.address.recipient} · {order.address.phone}
@@ -183,7 +182,7 @@ async function OrderContent({ params, searchParams }: Props) {
             ) : (
               <>
                 <p className="flex items-center gap-2 text-sm font-semibold text-kopi">
-                  <Store className="size-4 text-rona" aria-hidden /> Ambil di {order.location.name}
+                  <Store className="size-4 text-aksen" aria-hidden /> Ambil di {order.location.name}
                 </p>
                 <p className="mt-2 text-sm text-abu-hangat">
                   {order.location.address}, {order.location.district}
@@ -210,7 +209,7 @@ async function OrderContent({ params, searchParams }: Props) {
 
 export default function PesananPage(props: Props) {
   return (
-    <section className="container-rona py-6 md:py-8">
+    <section className="container-toko py-6 md:py-8">
       <Suspense fallback={<div className="h-96 animate-pulse rounded-card bg-garis/50" aria-busy />}>
         <OrderContent {...props} />
       </Suspense>

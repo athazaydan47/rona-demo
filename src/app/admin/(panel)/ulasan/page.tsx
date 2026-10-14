@@ -61,10 +61,10 @@ async function Content({ searchParams }: { searchParams: Promise<SP> }) {
         </div>
         <div className="flex items-center gap-3 text-sm">
           <label className="flex items-center gap-1.5">
-            <input type="checkbox" name="belum" value="1" defaultChecked={sp.belum === "1"} className="size-4 accent-rona" /> Belum dibalas
+            <input type="checkbox" name="belum" value="1" defaultChecked={sp.belum === "1"} className="size-4 accent-aksen" /> Belum dibalas
           </label>
           <label className="flex items-center gap-1.5">
-            <input type="checkbox" name="foto" value="1" defaultChecked={sp.foto === "1"} className="size-4 accent-rona" /> Ada foto
+            <input type="checkbox" name="foto" value="1" defaultChecked={sp.foto === "1"} className="size-4 accent-aksen" /> Ada foto
           </label>
         </div>
         <div className="flex gap-2">
@@ -78,7 +78,7 @@ async function Content({ searchParams }: { searchParams: Promise<SP> }) {
       </form>
       <p className="mb-2 text-sm text-abu-hangat">{r.total} ulasan</p>
       <ReviewModeration
-        aiDrafts={aiTersedia()}
+        aiDrafts={aiTersedia("asistenAdmin")}
         key={href(r.page)}
         rows={r.rows.map((x) => ({ ...x, createdLabel: formatDateWib(x.createdAt), repliedLabel: x.repliedAt ? formatDateTimeWib(x.repliedAt) : null }))}
       />

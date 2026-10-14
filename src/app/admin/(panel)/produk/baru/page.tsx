@@ -27,7 +27,7 @@ async function Content() {
       hasOrders={false}
       siteUrl={siteUrl()}
       photosEnabled={storageKind() !== "nonaktif"}
-      aiWriter={aiTersedia()}
+      aiWriter={aiTersedia("asistenAdmin")}
       initial={{ name: "", slug: "", brandId: brands[0]?.id ?? 0, categoryId: 0, packaging: "lipstick", shortDescription: "", benefits: "", ingredients: "", howToUse: "", activeIngredients: "", skinTypes: [], skinConcerns: [], finish: "", spf: "", bpom: "", netto: "", imageUrl: null, seoTitle: "", seoDescription: "", status: "draf", variants: [] }}
     />
   );
@@ -36,7 +36,7 @@ async function Content() {
 export default function NewProductPage() {
   return (
     <>
-      <Link href="/admin/produk" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-rona hover:underline">
+      <Link href="/admin/produk" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-aksen hover:underline">
         <ArrowLeft className="size-4" aria-hidden /> Produk
       </Link>
       <PageHead title="Tambah produk" description="Mulai sebagai draf, lalu aktifkan saat siap tampil di toko." />

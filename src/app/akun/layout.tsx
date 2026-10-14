@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: { template: "%s · Akunmu", default: 
 
 export default function AkunLayout({ children }: { children: React.ReactNode }) {
   return (
-    <section className="container-rona py-6 md:py-10">
+    <section className="container-toko py-6 md:py-10">
       <div className="grid gap-8 md:grid-cols-[220px_minmax(0,1fr)] lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="hidden md:block" aria-label="Menu akun">
           <div className="sticky top-[140px]">

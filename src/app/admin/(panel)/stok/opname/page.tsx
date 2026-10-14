@@ -62,7 +62,7 @@ async function Content({ searchParams }: Props) {
 export default function OpnamePage(props: Props) {
   return (
     <>
-      <Link href="/admin/stok" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-rona hover:underline">
+      <Link href="/admin/stok" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-aksen hover:underline">
         <ArrowLeft className="size-4" aria-hidden /> Stok
       </Link>
       <PageHead title="Opname" description="Hitung stok fisik, lihat selisihnya, lalu simpan. Stok fisik tidak boleh lebih kecil dari jumlah yang sedang dipesan." />

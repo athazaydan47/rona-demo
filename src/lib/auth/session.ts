@@ -4,9 +4,10 @@ import { createHash, randomBytes } from "node:crypto";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import type { AnyDb } from "@/lib/db-types";
+import { namaCookie } from "@/config/merek";
 
-export const SESSION_COOKIE = "rona_sesi";
-export const SESSION_FRESH_COOKIE = "rona_sesi_segar";
+export const SESSION_COOKIE = namaCookie("sesi");
+export const SESSION_FRESH_COOKIE = namaCookie("sesi_segar");
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60_000;
 export const SESSION_EXTEND_AFTER_MS = 12 * 60 * 60_000;
 

@@ -41,7 +41,7 @@ export function ShadeFinderDialog({ variants, profile, onSave, onPick }: Props) 
       }}
     >
       <Dialog.Trigger asChild>
-        <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-pill border border-rona/40 bg-blush/60 px-3 text-xs font-semibold text-rona-gelap transition-colors hover:bg-blush">
+        <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-pill border border-aksen/40 bg-blush/60 px-3 text-xs font-semibold text-aksen-gelap transition-colors hover:bg-blush">
           <Sparkles className="size-3.5" /> Cari shade-ku
         </button>
       </Dialog.Trigger>
@@ -50,7 +50,7 @@ export function ShadeFinderDialog({ variants, profile, onSave, onPick }: Props) 
         <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 max-h-[90vh] overflow-y-auto rounded-t-[20px] bg-putih p-5 pb-[max(20px,env(safe-area-inset-bottom))] shadow-lift outline-none data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 md:inset-auto md:top-1/2 md:left-1/2 md:w-[560px] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-card md:p-7">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold tracking-wide text-rona uppercase">Shade Finder</p>
+              <p className="text-xs font-semibold tracking-wide text-aksen uppercase">Shade Finder</p>
               <Dialog.Title className="mt-1 font-serif text-2xl text-kopi">
                 {step === 1 ? "Seberapa terang kulitmu?" : step === 2 ? "Undertone kulitmu?" : "Shade yang paling cocok"}
               </Dialog.Title>
@@ -107,13 +107,13 @@ export function ShadeFinderDialog({ variants, profile, onSave, onPick }: Props) 
                           onPick(r.variant.id);
                           setOpen(false);
                         }}
-                        className={cn("flex w-full items-center gap-3 rounded-card border p-3 text-left transition-colors hover:border-kopi/40", i === 0 ? "border-rona bg-blush/40" : "border-garis")}
+                        className={cn("flex w-full items-center gap-3 rounded-card border p-3 text-left transition-colors hover:border-kopi/40", i === 0 ? "border-aksen bg-blush/40" : "border-garis")}
                       >
                         <span className="size-12 shrink-0 rounded-full border border-kopi/10 shadow-[inset_0_-3px_6px_rgb(0_0_0/0.14)]" style={{ backgroundColor: r.variant.hex }} />
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-2 text-sm font-semibold text-kopi">
                             {r.variant.shadeName}
-                            {i === 0 ? <span className="rounded-pill bg-rona px-2 py-0.5 text-[10px] font-bold text-putih uppercase">Paling cocok</span> : null}
+                            {i === 0 ? <span className="rounded-pill bg-aksen px-2 py-0.5 text-[10px] font-bold text-putih uppercase">Paling cocok</span> : null}
                           </span>
                           <span className="block text-xs text-abu-hangat">{r.reason}</span>
                         </span>

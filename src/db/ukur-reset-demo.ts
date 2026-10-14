@@ -1,7 +1,7 @@
 // Ukur durasi reset data demo (jalur yang sama dengan cron harian), termasuk jumlah kueri.
 //   DEMO_MODE=true npm run demo:ukur-reset                 database dari .env.local (pooled, seperti di Vercel)
 //   LATENSI_MS=30 DEMO_MODE=true npm run demo:ukur-reset   simulasi jaringan: setiap paket ditunda 30 ms per arah
-// Ke host selain localhost wajib CONFIRM_RESET=rona-demo karena seluruh data diganti.
+// Ke host selain localhost wajib CONFIRM_RESET=<kunci merek>-demo karena seluruh data diganti.
 import { config } from "dotenv";
 config({ path: ".env.local" });
 

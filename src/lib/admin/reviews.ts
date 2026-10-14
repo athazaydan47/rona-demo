@@ -6,6 +6,7 @@ import type { AnyDb } from "@/lib/db-types";
 import { recomputeProductRating } from "@/lib/reviews/service";
 import { writeAudit } from "./audit";
 import { can, type StaffPrincipal } from "./permissions";
+import { pesanUlasanDibalas } from "@/lib/content/notifikasi";
 
 const DENIED = { ok: false as const, message: "Kamu tidak punya izin memoderasi ulasan." };
 export const HIDE_REASON_MIN = 5;
@@ -137,8 +138,7 @@ export async function replyReview(db: AnyDb, staff: StaffPrincipal, id: number, 
     if (first && r.customerId != null) {
       const [c] = await tx.select({ name: schema.customers.name, phone: schema.customers.phone, email: schema.customers.email }).from(schema.customers).where(eq(schema.customers.id, r.customerId)).limit(1);
       if (c) {
-        const subject = `Ulasanmu untuk ${r.productName} dibalas`;
-        const body = `Halo ${c.name.split(" ")[0]}, Rona Beauty membalas ulasanmu untuk ${r.productName}: "${reply.length > 160 ? `${reply.slice(0, 157)}...` : reply}" Lihat di /p/${r.productSlug}#ulasan`;
+        const { subject, body } = pesanUlasanDibalas(c.name.split(" ")[0], r.productName, reply, r.productSlug);
         const rows: (typeof schema.notifications.$inferInsert)[] = [{ customerId: r.customerId, kind: "ulasan_dibalas", channel: "wa", recipient: c.phone, subject, body, status: "antre", createdAt: at }];
         if (c.email) rows.push({ customerId: r.customerId, kind: "ulasan_dibalas", channel: "email", recipient: c.email, subject, body, status: "antre", createdAt: at });
         await tx.insert(schema.notifications).values(rows);

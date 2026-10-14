@@ -32,7 +32,7 @@ async function CheckoutContent() {
 
 export default function CheckoutPage() {
   return (
-    <section className="container-rona py-6 md:py-8">
+    <section className="container-toko py-6 md:py-8">
       <Breadcrumb items={[{ label: "Keranjang", href: "/keranjang" }, { label: "Checkout" }]} className="mb-3" />
       <h1 className="font-serif text-3xl font-medium text-kopi md:text-4xl">Checkout</h1>
       <div className="mt-6">

@@ -3,8 +3,9 @@ import Link from "next/link";
 import { HelpPage, HelpSections } from "@/components/layout/help-page";
 import { Button } from "@/components/ui/button";
 import { PENGIRIMAN } from "@/lib/content/bantuan";
+import { MEREK } from "@/config/merek";
 
-export const metadata: Metadata = { title: "Pengiriman", description: "Kurir, estimasi tiba, cut-off kirim hari ini, gratis ongkir, dan kemasan di Rona Beauty." };
+export const metadata: Metadata = { title: "Pengiriman", description: `Kurir, estimasi tiba, cut-off kirim hari ini, gratis ongkir, dan kemasan di ${MEREK.namaLengkap}.` };
 
 export default function PengirimanPage() {
   return (

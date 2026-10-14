@@ -19,11 +19,17 @@ export function useAiStatus(): AiStatus {
   const [status, setStatus] = useState<AiStatus>(OFF);
   useEffect(() => {
     let alive = true;
-    void load().then((s) => {
-      if (alive) setStatus(s);
-    });
+    // Ditunda sampai browser senggang (Fase 8B) supaya tidak bersaing dengan muatan awal halaman.
+    const jalankan = () =>
+      void load().then((s) => {
+        if (alive) setStatus(s);
+      });
+    const idle = typeof window.requestIdleCallback === "function" ? window.requestIdleCallback(jalankan, { timeout: 2000 }) : null;
+    const timer = idle == null ? window.setTimeout(jalankan, 300) : null;
     return () => {
       alive = false;
+      if (idle != null) window.cancelIdleCallback(idle);
+      if (timer != null) window.clearTimeout(timer);
     };
   }, []);
   return status;

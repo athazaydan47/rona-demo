@@ -61,7 +61,7 @@ const COMPACT_HIDE = `
   body > footer,
   nav[aria-label="Navigasi bawah"],
   body > div[role="note"][aria-label="Pemberitahuan toko demo"],
-  body > div.bg-blush.text-rona-gelap { display: none !important; }
+  body > div.bg-blush.text-aksen-gelap { display: none !important; }
 `;
 
 // Batas tinggi potretan dalam px CSS untuk mode ringkas.
@@ -139,7 +139,21 @@ export async function capturePage(browser, url, opts) {
  * mode "penuh": perilaku lama, tanpa batas tinggi.
  * @param {import("@playwright/test").Page} page
  */
+// Penjaga Fase 8B: lembar cuplik dan aset portofolio tidak boleh memperlihatkan data uji (Uji, E2E, test, Playwright).
+// Pola sama dengan src/lib/demo/data-uji.ts. Kata di dalam kalimat biasa seperti "teruji" tidak cocok.
+export const POLA_DATA_UJI = /(^|[^\p{L}\p{N}])(uji|e2e|test|playwright)(?![\p{L}\p{N}])/iu;
+export async function assertNoTestData(page, label = page.url()) {
+  const found = await page.evaluate((src) => {
+    const re = new RegExp(src, "iu");
+    const text = document.body?.innerText ?? "";
+    const m = text.split("\n").find((line) => re.test(line));
+    return m ? m.trim().slice(0, 100) : null;
+  }, POLA_DATA_UJI.source);
+  if (found) throw new Error(`Halaman ${label} menampilkan data uji: "${found}". Jalankan npm run db:reset dan npm run build, lalu ulangi.`);
+}
+
 export async function shootPage(page, out, { width, height, deviceScaleFactor = 1, fullPage = true, mode = "ringkas", maxCssHeight }) {
+  await assertNoTestData(page);
   await page.addStyleTag({ content: HIDE_DEV_UI + (mode === "ringkas" ? COMPACT_HIDE : "") + (fullPage ? FULL_PAGE_FIX : "") });
   if (fullPage) await scrollToTopAndSettle(page);
   else await page.waitForTimeout(150);

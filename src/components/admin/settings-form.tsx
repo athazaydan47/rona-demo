@@ -76,7 +76,7 @@ export function SettingsForm({ initial, demoMode, products = [] }: { initial: St
   return (
     <div className="space-y-4 pb-20">
       {demoMode ? (
-        <p className="flex items-start gap-2 rounded-lg border border-garis bg-blush/40 px-3 py-2 text-sm text-rona-gelap" data-testid="catatan-demo-pengaturan">
+        <p className="flex items-start gap-2 rounded-lg border border-garis bg-blush/40 px-3 py-2 text-sm text-aksen-gelap" data-testid="catatan-demo-pengaturan">
           <Info className="mt-0.5 size-4 shrink-0" aria-hidden /> Ini toko demo. Reset harian mengembalikan semua pengaturan, cabang, dan promo ke nilai bawaan.
         </p>
       ) : null}
@@ -117,7 +117,7 @@ export function SettingsForm({ initial, demoMode, products = [] }: { initial: St
           </Field>
         </div>
         <label className="mt-3 flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={s.cutoff.sundayOff} onChange={(e) => setS({ ...s, cutoff: { ...s.cutoff, sundayOff: e.target.checked } })} className="size-4 accent-rona" /> Gudang online libur hari Minggu
+          <input type="checkbox" checked={s.cutoff.sundayOff} onChange={(e) => setS({ ...s, cutoff: { ...s.cutoff, sundayOff: e.target.checked } })} className="size-4 accent-aksen" /> Gudang online libur hari Minggu
         </label>
       </Section>
 
@@ -332,7 +332,7 @@ function LocationCard({ loc }: { loc: LocationView }) {
           </div>
           {loc.type === "toko" ? (
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={f.canPickup} onChange={(e) => setF({ ...f, canPickup: e.target.checked })} className="size-4 accent-rona" /> Bisa Ambil di Toko
+              <input type="checkbox" checked={f.canPickup} onChange={(e) => setF({ ...f, canPickup: e.target.checked })} className="size-4 accent-aksen" /> Bisa Ambil di Toko
             </label>
           ) : null}
           <fieldset>
@@ -343,7 +343,7 @@ function LocationCard({ loc }: { loc: LocationView }) {
                 return (
                   <div key={d.key} className="flex flex-wrap items-center gap-2 text-sm">
                     <label className="flex w-28 items-center gap-2">
-                      <input type="checkbox" checked={Boolean(h)} onChange={(e) => setDay(d.key, e.target.checked ? { open: "09.00", close: "21.00" } : null)} className="size-4 accent-rona" />
+                      <input type="checkbox" checked={Boolean(h)} onChange={(e) => setDay(d.key, e.target.checked ? { open: "09.00", close: "21.00" } : null)} className="size-4 accent-aksen" />
                       {d.label}
                     </label>
                     {h ? (

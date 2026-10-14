@@ -18,6 +18,7 @@ import { getOrderDetail, type OrderDetail } from "@/lib/orders/queries";
 import { completeIfDue, expireIfDue } from "@/lib/orders/service";
 import { statusLabels } from "@/lib/orders/status";
 import { siteUrl } from "@/lib/site";
+import { MEREK } from "@/config/merek";
 
 export const metadata: Metadata = { title: "Detail pesanan" };
 
@@ -26,7 +27,7 @@ type Props = { params: Promise<{ nomor: string }> };
 // Pesan WhatsApp siap kirim sesuai status pesanan.
 function waMessage(o: OrderDetail) {
   const first = o.name.split(" ")[0] || "Kak";
-  const base = `Halo ${first}, ini dari Rona Beauty soal pesanan ${o.number}.`;
+  const base = `Halo ${first}, ini dari ${MEREK.namaLengkap} soal pesanan ${o.number}.`;
   const by: Record<string, string> = {
     menunggu_pembayaran: o.payment?.method === "bayar_di_toko" ? `${base} Pesananmu sudah kami sisihkan di ${o.location.name}. Bayar di kasir saat ambil, ya.` : `${base} Pesananmu menunggu pembayaran sebesar ${formatRupiah(o.pricing.total)}.`,
     dibayar: `${base} Pembayaran sudah kami terima, pesanan segera kami siapkan.`,
@@ -56,7 +57,7 @@ async function Content({ params }: Props) {
   const canPrint = can(me, "pesanan.cetak", { lokasiId: o.locationId });
   return (
     <div className="space-y-4">
-      <Link href="/admin/pesanan" className="inline-flex items-center gap-1 text-sm font-semibold text-rona hover:underline">
+      <Link href="/admin/pesanan" className="inline-flex items-center gap-1 text-sm font-semibold text-aksen hover:underline">
         <ArrowLeft className="size-4" aria-hidden /> Semua pesanan
       </Link>
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -145,9 +146,9 @@ async function Content({ params }: Props) {
             <p className="text-sm font-semibold text-kopi">{o.name || "Tamu"}</p>
             <p className="text-sm text-abu-hangat">{o.phone}</p>
             {o.email ? <p className="text-sm text-abu-hangat">{o.email}</p> : null}
-            <p className="mt-1 text-xs text-abu-hangat">{o.customerId ? "Punya akun Rona" : "Belanja sebagai tamu"}</p>
+            <p className="mt-1 text-xs text-abu-hangat">{o.customerId ? `Punya akun ${MEREK.nama}` : "Belanja sebagai tamu"}</p>
             {o.customerId && can(me, "pelanggan.lihat") ? (
-              <Link href={`/admin/pelanggan/${o.customerId}`} className="mt-1 inline-block text-sm font-semibold text-rona hover:underline" data-testid="tautan-pelanggan">
+              <Link href={`/admin/pelanggan/${o.customerId}`} className="mt-1 inline-block text-sm font-semibold text-aksen hover:underline" data-testid="tautan-pelanggan">
                 Lihat detail pelanggan
               </Link>
             ) : null}

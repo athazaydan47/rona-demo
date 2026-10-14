@@ -1,3 +1,4 @@
+import { kunciLokal } from "@/config/merek";
 // Shade Finder berbasis aturan: cocokkan kedalaman kulit (1 sampai 6) dan undertone dengan data varian.
 export type Undertone = "warm" | "neutral" | "cool";
 
@@ -68,7 +69,7 @@ export function isGoodMatch(profile: SkinProfile, v: ShadeCandidate) {
   return scoreShade(profile, v) <= 2;
 }
 
-export const SHADE_PROFILE_KEY = "rona.shade-profile";
+export const SHADE_PROFILE_KEY = kunciLokal("shade-profile");
 
 export function parseProfile(raw: string | null): SkinProfile | null {
   if (!raw) return null;

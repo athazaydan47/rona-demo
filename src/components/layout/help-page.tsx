@@ -5,10 +5,10 @@ import { cn } from "@/lib/utils";
 // Kerangka seragam halaman bantuan dan kebijakan: judul, pengantar, isi, dan navigasi antar halaman bantuan.
 export function HelpPage({ eyebrow = "Bantuan", title, intro, current, children, wide = false }: { eyebrow?: string; title: string; intro?: string; current: string; children: React.ReactNode; wide?: boolean }) {
   return (
-    <section className={cn("container-rona py-8 md:py-12", wide ? "" : "max-w-5xl")}>
+    <section className={cn("container-toko py-8 md:py-12", wide ? "" : "max-w-5xl")}>
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_220px]">
         <div className="min-w-0">
-          <p className="text-xs font-semibold tracking-wide text-rona uppercase">{eyebrow}</p>
+          <p className="text-xs font-semibold tracking-wide text-aksen uppercase">{eyebrow}</p>
           <h1 className="mt-1 font-serif text-3xl font-medium text-balance text-kopi md:text-4xl">{title}</h1>
           {intro ? <p className="mt-3 max-w-2xl text-base text-abu-hangat">{intro}</p> : null}
           <div className="mt-8">{children}</div>
@@ -18,7 +18,7 @@ export function HelpPage({ eyebrow = "Bantuan", title, intro, current, children,
           <ul className="mt-2 space-y-1">
             {HELP_LINKS.map((l) => (
               <li key={l.href}>
-                <Link href={l.href} aria-current={l.href === current ? "page" : undefined} className={cn("flex min-h-10 items-center rounded-lg px-2 py-1.5 text-sm", l.href === current ? "bg-blush/60 font-semibold text-rona-gelap" : "text-abu-hangat hover:text-kopi")}>
+                <Link href={l.href} aria-current={l.href === current ? "page" : undefined} className={cn("flex min-h-10 items-center rounded-lg px-2 py-1.5 text-sm", l.href === current ? "bg-blush/60 font-semibold text-aksen-gelap" : "text-abu-hangat hover:text-kopi")}>
                   {l.label}
                 </Link>
               </li>
@@ -28,7 +28,7 @@ export function HelpPage({ eyebrow = "Bantuan", title, intro, current, children,
           <ul className="mt-2 space-y-1">
             {POLICY_LINKS.map((l) => (
               <li key={l.href}>
-                <Link href={l.href} aria-current={l.href === current ? "page" : undefined} className={cn("flex min-h-10 items-center rounded-lg px-2 py-1.5 text-sm", l.href === current ? "bg-blush/60 font-semibold text-rona-gelap" : "text-abu-hangat hover:text-kopi")}>
+                <Link href={l.href} aria-current={l.href === current ? "page" : undefined} className={cn("flex min-h-10 items-center rounded-lg px-2 py-1.5 text-sm", l.href === current ? "bg-blush/60 font-semibold text-aksen-gelap" : "text-abu-hangat hover:text-kopi")}>
                   {l.label}
                 </Link>
               </li>

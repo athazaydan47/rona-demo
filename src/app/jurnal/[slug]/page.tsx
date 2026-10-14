@@ -58,7 +58,7 @@ async function ArticleContent({ params }: Props) {
   const article = await getArticle((await params).slug);
   if (!article) notFound();
   return (
-    <article className="container-rona max-w-3xl py-6 md:py-10">
+    <article className="container-toko max-w-3xl py-6 md:py-10">
       <Breadcrumb items={[{ label: "Jurnal", href: "/jurnal" }, { label: article.title }]} className="mb-4" />
       <p className="text-xs text-abu-hangat">
         {article.publishedAt ? formatDateWib(article.publishedAt) : ""} · {article.author}
@@ -86,7 +86,7 @@ export default function ArticlePage(props: Props) {
   return (
     <Suspense
       fallback={
-        <div className="container-rona max-w-3xl py-6 md:py-10" aria-busy>
+        <div className="container-toko max-w-3xl py-6 md:py-10" aria-busy>
           <div className="h-4 w-40 animate-pulse rounded bg-garis/70" />
           <div className="mt-4 h-10 w-3/4 animate-pulse rounded bg-garis/70" />
           <div className="mt-4 h-6 w-full animate-pulse rounded bg-garis/70" />

@@ -120,7 +120,7 @@ export function PhoneChange({ current }: { current: string }) {
               {pending ? <Loader2 className="animate-spin" /> : null} Ganti nomor
             </Button>
           </div>
-          <button type="button" className="text-xs font-semibold text-rona hover:underline" onClick={() => setSent(null)}>
+          <button type="button" className="text-xs font-semibold text-aksen hover:underline" onClick={() => setSent(null)}>
             Batal
           </button>
         </form>

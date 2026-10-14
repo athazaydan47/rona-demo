@@ -92,7 +92,7 @@ test("link TikTok tiruan: Rona tidak menjual merek itu, 3 kartu mirip dengan ala
   await page.getByRole("button", { name: "Cari yang mirip" }).click();
   const result = page.getByTestId("hasil-dupe");
   await expect(result.getByTestId("judul-hasil-dupe")).toHaveText("Rona tidak menjual Wardah, ini yang paling mirip");
-  await expect(result.getByTestId("sumber-video")).toContainText("Rona Demo Kreator");
+  await expect(result.getByTestId("sumber-video")).toContainText("Demo Kreator");
   await expect(result.getByTestId("sumber-video").getByRole("link", { name: /Lihat video asli/ })).toHaveAttribute("href", "https://www.tiktok.com/@rona.demo/video/7300000000000000001");
   const cards = result.getByTestId("kartu-dupe");
   await expect(cards).toHaveCount(3);

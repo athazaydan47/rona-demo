@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 export function PromoBar({ messages }: { messages: string[] }) {
   const [index, setIndex] = useState(0);
-  const reduce = useReducedMotion();
 
   useEffect(() => {
     if (messages.length <= 1) return;
@@ -17,20 +15,12 @@ export function PromoBar({ messages }: { messages: string[] }) {
   const current = messages[index] ?? messages[0];
 
   return (
-    <div className="bg-blush text-rona-gelap">
-      <div className="container-rona relative flex h-8 items-center justify-center overflow-hidden text-xs font-medium sm:text-sm" aria-live="polite">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.p
-            key={index}
-            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="truncate"
-          >
-            {current}
-          </motion.p>
-        </AnimatePresence>
+    <div className="bg-blush text-aksen-gelap">
+      <div className="container-toko relative flex h-8 items-center justify-center overflow-hidden text-xs font-medium sm:text-sm" aria-live="polite">
+        {/* Pesan baru masuk dengan geser halus (CSS, Fase 8B: tanpa Motion di semua halaman). */}
+        <p key={index} className={index > 0 ? "truncate animate-muncul" : "truncate"}>
+          {current}
+        </p>
       </div>
     </div>
   );

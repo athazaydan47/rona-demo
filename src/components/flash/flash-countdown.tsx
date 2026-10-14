@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { countdownTo, pad2 } from "@/lib/flash";
-import { DURASI, EASE_LEMBUT } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 type FlashCountdownProps = {
@@ -21,27 +19,17 @@ const sizes = {
 };
 
 // Hitung mundur yang berdetak di klien. Angka awal dari server supaya tidak melompat saat hidrasi.
-// Satu kotak angka: nilai lama turun keluar, nilai baru masuk dari atas (flip halus), tanpa mengubah ukuran kotak.
+// Satu kotak angka: nilai baru masuk dari atas dengan flip halus (CSS, Fase 8B), tanpa mengubah ukuran kotak.
+// Kunci elemen = nilai, jadi animasi hanya berjalan saat angka berganti.
 function Digit({ value, size }: { value: string; size: keyof typeof sizes }) {
-  const reduce = useReducedMotion();
   return (
     <span className={cn("relative grid place-items-center overflow-hidden rounded-lg bg-kopi font-semibold text-putih tabular-nums", sizes[size])} suppressHydrationWarning>
       <span className="invisible" aria-hidden>
         {value}
       </span>
-      <AnimatePresence initial={false}>
-        <motion.span
-          key={value}
-          initial={reduce ? { opacity: 0 } : { y: "-70%", opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={reduce ? { opacity: 0 } : { y: "70%", opacity: 0 }}
-          transition={{ duration: DURASI.sedang, ease: [...EASE_LEMBUT] }}
-          className="absolute inset-0 grid place-items-center"
-          suppressHydrationWarning
-        >
-          {value}
-        </motion.span>
-      </AnimatePresence>
+      <span key={value} className="absolute inset-0 grid place-items-center animate-flip-masuk" suppressHydrationWarning>
+        {value}
+      </span>
     </span>
   );
 }

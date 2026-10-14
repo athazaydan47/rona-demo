@@ -10,6 +10,8 @@ import { ProductArt } from "@/components/product-art";
 import type { CartLine, CartView, SavedLine } from "@/lib/cart/service";
 import { formatRupiah } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { MEREK } from "@/config/merek";
+import { PETUNJUK_VOUCHER } from "@/lib/content/demo";
 
 export function FreeShippingBar({ remaining, threshold, cap, className }: { remaining: number; threshold: number; cap: number; className?: string }) {
   // Batas 0 berarti gratis ongkir otomatis dimatikan di Pengaturan.
@@ -18,7 +20,7 @@ export function FreeShippingBar({ remaining, threshold, cap, className }: { rema
   return (
     <div className={cn("rounded-card bg-blush/50 p-3", className)} data-testid="bilah-gratis-ongkir">
       <p className="flex items-center gap-2 text-sm text-kopi">
-        <Truck className="size-4 shrink-0 text-rona" aria-hidden />
+        <Truck className="size-4 shrink-0 text-aksen" aria-hidden />
         {remaining > 0 ? (
           <span>
             Tambah <strong className="whitespace-nowrap tabular-nums">{formatRupiah(remaining)}</strong> lagi untuk gratis ongkir
@@ -28,7 +30,7 @@ export function FreeShippingBar({ remaining, threshold, cap, className }: { rema
         )}
       </p>
       <div className="mt-2 h-2 overflow-hidden rounded-pill bg-putih" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="Progres gratis ongkir">
-        <div className="h-full rounded-pill bg-rona transition-[width] duration-300" style={{ width: `${Math.max(4, pct)}%` }} />
+        <div className="h-full rounded-pill bg-aksen transition-[width] duration-300" style={{ width: `${Math.max(4, pct)}%` }} />
       </div>
     </div>
   );
@@ -53,7 +55,7 @@ export function CartLineRow({ line, busy, compact, onQty, onRemove, onSave, prio
       </Link>
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-semibold tracking-wide text-abu-hangat uppercase">{line.brandName}</p>
-        <Link href={href} className="line-clamp-2 text-sm font-medium text-kopi hover:text-rona-gelap">
+        <Link href={href} className="line-clamp-2 text-sm font-medium text-kopi hover:text-aksen-gelap">
           {line.productName}
         </Link>
         {line.showShade ? (
@@ -148,7 +150,7 @@ export function VoucherForm({ view, pending, onApply, onRemove }: { view: CartVi
             autoComplete="off"
             aria-invalid={v && !v.applied ? true : undefined}
             aria-describedby="voucher-pesan"
-            className="h-11 w-full rounded-pill border border-garis bg-putih pr-3 pl-9 text-sm uppercase outline-none focus-visible:border-rona focus-visible:shadow-ring aria-invalid:border-bahaya"
+            className="h-11 w-full rounded-pill border border-garis bg-putih pr-3 pl-9 text-sm uppercase outline-none focus-visible:border-aksen focus-visible:shadow-ring aria-invalid:border-bahaya"
           />
         </div>
         {v?.applied ? (
@@ -170,7 +172,7 @@ export function VoucherForm({ view, pending, onApply, onRemove }: { view: CartVi
         )}
       </form>
       <p id="voucher-pesan" className={cn("mt-1.5 min-h-4 text-xs", v ? (v.applied ? "text-sukses" : "text-bahaya") : "text-abu-hangat")} role={v && !v.applied ? "alert" : undefined}>
-        {v ? v.message : "Coba RONABARU, HEMAT15, ONGKIRRONA, atau LUMI10."}
+        {v ? v.message : PETUNJUK_VOUCHER}
       </p>
     </div>
   );
@@ -212,7 +214,7 @@ export function EmptyCart({ compact }: { compact?: boolean }) {
   return (
     <div className={cn("flex flex-col items-center text-center", compact ? "py-10" : "py-16")}>
       <div className="w-28">
-        <ProductArt packaging="lip_tint" shade="#F4DCDF" brandColor="#B8475D" brandName="Rona" title="Ilustrasi keranjang kosong" priority />
+        <ProductArt packaging="lip_tint" shade={MEREK.palet.blush} brandColor={MEREK.palet.aksen} brandName={MEREK.nama} title="Ilustrasi keranjang kosong" />
       </div>
       <p className="mt-4 font-serif text-2xl text-kopi">Keranjangmu masih kosong</p>
       <p className="mt-1 max-w-xs text-sm text-abu-hangat">Mulai dari produk terlaris, atau cari shade yang cocok untukmu.</p>

@@ -152,7 +152,7 @@ export type ReportData = {
   firstRevenueAt: Map<string, Date>; // pesanan omzet pertama per pembeli, sepanjang masa
   flashSlots: ReportFlashSlot[];
   vouchers: ReportVoucher[];
-  advisor?: { conversations: number; cartAdds: number }; // corong Rona Advisor dalam rentang (semua lokasi)
+  advisor?: { conversations: number; cartAdds: number }; // corong Advisor dalam rentang (semua lokasi)
 };
 
 export const isRevenueOrder = (o: Pick<ReportOrder, "paidAt" | "status">) => o.paidAt != null && !(REVENUE_EXCLUDED as readonly string[]).includes(o.status);
@@ -420,7 +420,7 @@ export function byHour(data: ReportData): OrderGroupRow[] {
   return rows.sort((a, b) => a.key.localeCompare(b.key));
 }
 
-// Kinerja Rona Advisor (Fase 7B): korelasi, bukan bukti sebab-akibat. Pesanan Advisor = pesanan omzet yang memuat
+// Kinerja Advisor (Fase 7B): korelasi, bukan bukti sebab-akibat. Pesanan Advisor = pesanan omzet yang memuat
 // minimal satu item bersumber Advisor; omzet Advisor = penjualan barang dari item itu saja.
 export type AdvisorPerformance = {
   conversations: number;

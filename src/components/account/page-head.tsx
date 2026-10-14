@@ -6,7 +6,7 @@ export function AccountPageHead({ title, description, back = true, children }: {
   return (
     <div className="mb-6">
       {back ? (
-        <Link href="/akun" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-rona md:hidden">
+        <Link href="/akun" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-aksen md:hidden">
           <ChevronLeft className="size-4" aria-hidden /> Akun
         </Link>
       ) : null}

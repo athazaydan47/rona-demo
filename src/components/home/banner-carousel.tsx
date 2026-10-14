@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useReducedMotion } from "motion/react";
+import { useKurangiGerak } from "@/lib/use-kurangi-gerak";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BannerCard, type BannerView } from "./banner-card";
@@ -12,7 +12,7 @@ export function BannerCarousel({ banners }: { banners: (BannerView & { id: numbe
   const track = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
-  const reduce = useReducedMotion();
+  const reduce = useKurangiGerak();
 
   const go = (i: number) => {
     const el = track.current;
@@ -36,7 +36,7 @@ export function BannerCarousel({ banners }: { banners: (BannerView & { id: numbe
   });
 
   return (
-    <section className="container-rona pt-5 md:pt-8" aria-roledescription="karusel" aria-label="Promo pilihan" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)} data-testid="banner-beranda">
+    <section className="container-toko pt-5 md:pt-8" aria-roledescription="karusel" aria-label="Promo pilihan" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)} data-testid="banner-beranda">
       <div className="relative">
         <div ref={track} className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {banners.map((b, i) => (
@@ -60,7 +60,7 @@ export function BannerCarousel({ banners }: { banners: (BannerView & { id: numbe
         <div className="mt-2.5 flex justify-center gap-1.5">
           {banners.map((b, i) => (
             <button key={b.id} type="button" onClick={() => go(i)} className="grid h-9 min-w-7 place-items-center px-1" aria-label={`Banner ${i + 1} dari ${banners.length}`} aria-current={i === index}>
-              <span className={cn("block h-1.5 rounded-full transition-all", i === index ? "w-5 bg-rona" : "w-1.5 bg-kopi/20")} />
+              <span className={cn("block h-1.5 rounded-full transition-all", i === index ? "w-5 bg-aksen" : "w-1.5 bg-kopi/20")} />
             </button>
           ))}
         </div>

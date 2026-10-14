@@ -6,6 +6,7 @@ import type { AnyDb } from "@/lib/db-types";
 import { effectivePrice } from "@/lib/pricing";
 import type { CatalogItem, CatalogVariant } from "./filters";
 import { buildScopeCondition, parent, relevanceExpr, type CatalogScope } from "./scope";
+import { flashSaleGate } from "@/lib/flash/gate";
 
 // Pemuat katalog tanpa ketergantungan Next: dipakai halaman katalog, fungsi katalog AI, dan uji.
 export async function loadCatalogItems(db: AnyDb, scope: CatalogScope, now: Date): Promise<CatalogItem[]> {
@@ -73,7 +74,7 @@ export async function loadCatalogItems(db: AnyDb, scope: CatalogScope, now: Date
       .from(schema.flashSaleItems)
       .innerJoin(schema.flashSales, eq(schema.flashSaleItems.flashSaleId, schema.flashSales.id))
       .innerJoin(schema.variants, eq(schema.flashSaleItems.variantId, schema.variants.id))
-      .where(and(inArray(schema.variants.productId, ids), eq(schema.flashSales.isActive, true), lte(schema.flashSales.startsAt, now), gt(schema.flashSales.endsAt, now)))
+      .where(and(inArray(schema.variants.productId, ids), eq(schema.flashSales.isActive, true), lte(schema.flashSales.startsAt, now), gt(schema.flashSales.endsAt, now), flashSaleGate()))
       // Slot admin diproses terakhir supaya menimpa slot otomatis.
       .orderBy(sql`case when ${schema.flashSales.source} = 'admin' then 1 else 0 end`, schema.flashSaleItems.id),
     db.select({ id: schema.locations.id, slug: schema.locations.slug }).from(schema.locations),

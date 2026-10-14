@@ -27,7 +27,7 @@ export async function addToCartAction(items: { variantId: number; quantity: numb
   const cart = await currentCart(true);
   const source = SOURCES.find((s) => s === opts?.source) ?? null;
   const r = await addItems(db, cart!.id, items, { source });
-  // Corong Rona Advisor (tab Laporan): catat tambah ke keranjang dari kartu Advisor. Gagal mencatat tidak memengaruhi keranjang.
+  // Corong Advisor (tab Laporan): catat tambah ke keranjang dari kartu Advisor. Gagal mencatat tidak memengaruhi keranjang.
   if (r.ok && source === "advisor") await db.insert(schema.advisorEvents).values({ kind: "keranjang", visitorHash: `keranjang:${cart!.id}` }).catch(() => {});
   return { ok: r.ok, count: await cartCount(db, cart!.id), message: r.message };
 }

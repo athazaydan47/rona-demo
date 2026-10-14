@@ -2,10 +2,11 @@
 
 import { Accordion } from "radix-ui";
 import { ChevronDown } from "lucide-react";
+import { MEREK } from "@/config/merek";
 
 const VA_STEPS: Record<string, { title: string; steps: string[] }[]> = {
   va_bca: [
-    { title: "m-BCA", steps: ["Buka m-BCA, pilih m-Transfer.", "Pilih BCA Virtual Account.", "Masukkan nomor virtual account di atas.", "Periksa nama Rona Beauty dan nominal, lalu masukkan PIN."] },
+    { title: "m-BCA", steps: ["Buka m-BCA, pilih m-Transfer.", "Pilih BCA Virtual Account.", "Masukkan nomor virtual account di atas.", `Periksa nama ${MEREK.namaLengkap} dan nominal, lalu masukkan PIN.`] },
     { title: "KlikBCA", steps: ["Masuk ke KlikBCA, pilih Transfer Dana.", "Pilih Transfer ke BCA Virtual Account.", "Masukkan nomor virtual account, lalu ikuti konfirmasi dengan KeyBCA."] },
     { title: "ATM BCA", steps: ["Masukkan kartu dan PIN.", "Pilih Transaksi Lainnya, Transfer, ke Rek BCA Virtual Account.", "Masukkan nomor virtual account, lalu konfirmasi."] },
   ],
@@ -18,11 +19,11 @@ const VA_STEPS: Record<string, { title: string; steps: string[] }[]> = {
     { title: "ATM BRI", steps: ["Pilih Transaksi Lain, Pembayaran, Lainnya, BRIVA.", "Masukkan nomor virtual account, lalu konfirmasi."] },
   ],
   va_mandiri: [
-    { title: "Livin' by Mandiri", steps: ["Buka Livin', pilih Bayar.", "Cari Rona Beauty atau masukkan nomor virtual account.", "Periksa tagihan, lalu konfirmasi dengan PIN."] },
+    { title: "Livin' by Mandiri", steps: ["Buka Livin', pilih Bayar.", `Cari ${MEREK.namaLengkap} atau masukkan nomor virtual account.`, "Periksa tagihan, lalu konfirmasi dengan PIN."] },
     { title: "ATM Mandiri", steps: ["Pilih Bayar/Beli, Multi Payment.", "Masukkan kode perusahaan dan nomor virtual account, lalu konfirmasi."] },
   ],
   qris: [
-    { title: "Aplikasi bank atau dompet digital", steps: ["Buka aplikasi yang mendukung QRIS.", "Pilih Scan atau Bayar dengan QR.", "Arahkan kamera ke kode QR di atas.", "Periksa nama Rona Beauty dan nominal, lalu konfirmasi."] },
+    { title: "Aplikasi bank atau dompet digital", steps: ["Buka aplikasi yang mendukung QRIS.", "Pilih Scan atau Bayar dengan QR.", "Arahkan kamera ke kode QR di atas.", `Periksa nama ${MEREK.namaLengkap} dan nominal, lalu konfirmasi.`] },
     { title: "Dari HP yang sama", steps: ["Tekan lama gambar QR lalu simpan, atau ambil tangkapan layar.", "Buka aplikasi pembayaran, pilih unggah QR dari galeri.", "Konfirmasi pembayaran."] },
   ],
 };

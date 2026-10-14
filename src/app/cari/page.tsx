@@ -24,7 +24,7 @@ async function resolveSearch(sp: RawParams, filters: CatalogFilters): Promise<{ 
   const exact = (Array.isArray(sp.persis) ? sp.persis[0] : sp.persis) === "1";
   if (filters.interpreted) return { scope: interpretedScope(filters), filters };
   const cfg = aiConfig();
-  const model = aiModel(cfg);
+  const model = aiModel("aiPembeli", cfg);
   if (!exact && model && looksLikeSentence(filters.q)) {
     // Jam dan cookie pengunjung hanya dibaca saat request, tidak ikut prerender.
     await connection();
@@ -46,7 +46,7 @@ async function SearchRoute({ searchParams }: { searchParams: Promise<RawParams> 
   const parsed = parseCatalogParams(sp);
   if (!parsed.q) {
     return (
-      <section className="container-rona py-8 md:py-12">
+      <section className="container-toko py-8 md:py-12">
         <h1 className="font-serif text-3xl font-medium text-kopi">Cari</h1>
         <p className="mt-2 text-sm text-abu-hangat">Ketik nama produk, merek, atau kategori. Salah ketik sedikit tidak apa-apa. Boleh juga kalimat, misal &ldquo;sunscreen yang ga lengket buat kulit berminyak&rdquo;.</p>
         <SearchBox className="mt-4 max-w-xl" autoFocus />
@@ -57,7 +57,7 @@ async function SearchRoute({ searchParams }: { searchParams: Promise<RawParams> 
   const exactHref = `/cari?${new URLSearchParams({ q: filters.q, persis: "1" }).toString()}`;
   return (
     <>
-      <div className="container-rona pt-6 md:hidden">
+      <div className="container-toko pt-6 md:hidden">
         <SearchBox initialQuery={filters.q} />
       </div>
       <CatalogPage
@@ -69,7 +69,7 @@ async function SearchRoute({ searchParams }: { searchParams: Promise<RawParams> 
           filters.interpreted ? (
             <p className="mt-2 text-sm text-abu-hangat" data-testid="tafsiran-ai">
               Pencarianmu kami tafsirkan menjadi filter di bawah. Hapus chip yang tidak sesuai, atau{" "}
-              <Link href={exactHref} className="font-semibold text-rona hover:underline">
+              <Link href={exactHref} className="font-semibold text-aksen hover:underline">
                 cari kata persis saja
               </Link>
               .

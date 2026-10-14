@@ -5,8 +5,9 @@ import ExcelJS from "exceljs";
 import { formatDateTimeWib, formatDateWib, toWibParts } from "@/lib/format";
 import { statusLabels, type OrderStatus } from "@/lib/orders/status";
 import { isRevenueOrder, type Report, type ReportData } from "./index";
+import { MEREK } from "@/config/merek";
 
-export const REPORT_SHEETS = ["Ringkasan", "Harian", "Per Merek", "Per Kategori", "Per Cabang", "Per Kanal", "Produk", "Voucher", "Rona Advisor", "Detail Pesanan", "Detail Item"] as const;
+export const REPORT_SHEETS = ["Ringkasan", "Harian", "Per Merek", "Per Kategori", "Per Cabang", "Per Kanal", "Produk", "Voucher", MEREK.asisten.nama, "Detail Pesanan", "Detail Item"] as const;
 export const MONEY_FORMAT = '"Rp "#,##0';
 const DATE_FORMAT = "dd/mm/yyyy";
 const DATETIME_FORMAT = "dd/mm/yyyy hh:mm";
@@ -30,7 +31,7 @@ function sheet(wb: ExcelJS.Workbook, name: string, meta: ExcelMeta, columns: Col
   const cols = columns.filter((c) => meta.finance || !c.money);
   const keep = columns.map((c) => meta.finance || !c.money);
   const ws = wb.addWorksheet(name, { views: [{ state: "frozen", ySplit: HEADER_ROW }] });
-  ws.getCell("A1").value = `Laporan Rona Beauty: ${name}`;
+  ws.getCell("A1").value = `Laporan ${MEREK.namaLengkap}: ${name}`;
   ws.getCell("A1").font = { bold: true, size: 14 };
   ws.getCell("A2").value = `Periode ${meta.periodLabel} · Cabang: ${meta.locationLabel} · Dicetak oleh ${meta.printedBy} · ${formatDateTimeWib(meta.printedAt)}`;
   ws.getCell("A2").font = { color: { argb: "FF6B5E5A" } };
@@ -71,7 +72,7 @@ const sum = <T,>(rows: T[], f: (r: T) => number) => rows.reduce((s, r) => s + f(
 
 export async function buildReportWorkbook(report: Report, data: ReportData, meta: ExcelMeta) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Rona Beauty (demo)";
+  wb.creator = `${MEREK.namaLengkap} (demo)`;
   wb.created = meta.printedAt;
   const s = report.summary;
   const rc = report.reconciliation;
@@ -114,7 +115,7 @@ export async function buildReportWorkbook(report: Report, data: ReportData, meta
     ],
   );
 
-  // Sheet Rona Advisor ditulis setelah Voucher (urutan REPORT_SHEETS); datanya disiapkan di sini.
+  // Sheet Advisor ditulis setelah Voucher (urutan REPORT_SHEETS); datanya disiapkan di sini.
   const adv = report.advisor;
   const advisorRows: unknown[][] = [
     ["Pesan ke Advisor", null, adv.conversations],
@@ -200,7 +201,7 @@ export async function buildReportWorkbook(report: Report, data: ReportData, meta
 
   sheet(
     wb,
-    "Rona Advisor",
+    MEREK.asisten.nama,
     meta,
     [
       { header: "Ukuran", width: 44 },
@@ -285,9 +286,9 @@ export async function buildReportWorkbook(report: Report, data: ReportData, meta
   return wb;
 }
 
-// Nama file laporan-rona-YYYYMMDD-YYYYMMDD.xlsx dari hari pertama dan terakhir (inklusif, WIB).
+// Nama file laporan-<kunci merek>-YYYYMMDD-YYYYMMDD.xlsx dari hari pertama dan terakhir (inklusif, WIB).
 export function reportFileName(firstDay: string, lastDay: string) {
-  return `laporan-rona-${firstDay.replace(/-/g, "")}-${lastDay.replace(/-/g, "")}.xlsx`;
+  return `laporan-${MEREK.kunci}-${firstDay.replace(/-/g, "")}-${lastDay.replace(/-/g, "")}.xlsx`;
 }
 
 export const periodLabel = (from: Date, to: Date) => `${formatDateWib(from)} sampai ${formatDateWib(new Date(to.getTime() - 1))}`;

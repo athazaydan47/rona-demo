@@ -11,6 +11,7 @@ import { requireStaff } from "@/lib/admin/current";
 import { labelData } from "@/lib/admin/labels";
 import { now } from "@/lib/clock";
 import { formatDateTimeWib } from "@/lib/format";
+import { MEREK } from "@/config/merek";
 
 export const metadata: Metadata = { title: "Pratinjau label" };
 
@@ -28,7 +29,7 @@ async function Content({ params }: Props) {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <Link href={`/admin/pesanan/${l.number}`} className="inline-flex items-center gap-1 text-sm font-semibold text-rona hover:underline">
+        <Link href={`/admin/pesanan/${l.number}`} className="inline-flex items-center gap-1 text-sm font-semibold text-aksen hover:underline">
           <ArrowLeft className="size-4" aria-hidden /> {l.number}
         </Link>
         <Button asChild size="sm">
@@ -39,7 +40,7 @@ async function Content({ params }: Props) {
       </div>
       <article className="mx-auto w-full max-w-[105mm] border-2 border-kopi bg-putih p-[4mm] text-kopi shadow-soft" style={{ aspectRatio: "105 / 148" }} data-testid="label-a6">
         <header className="flex items-center justify-between border-b border-kopi pb-2">
-          <span className="font-serif text-lg font-semibold text-rona">Rona Beauty</span>
+          <span className="font-serif text-lg font-semibold text-aksen">{MEREK.namaLengkap}</span>
           <span className="rounded bg-kopi px-2 py-0.5 text-xs font-bold text-putih">
             {l.courier} {l.service}
           </span>

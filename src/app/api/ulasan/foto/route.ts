@@ -4,6 +4,8 @@ import { currentCustomer } from "@/lib/auth/current";
 import { checkPhoto } from "@/lib/reviews/image-info";
 import { photoStorage } from "@/lib/reviews/storage";
 import { rejectCrossOrigin } from "@/lib/security/origin";
+import { db } from "@/db/client";
+import { BATAS, rateLimit } from "@/lib/security/rate-limit";
 
 // Unggah satu foto ulasan (sudah dikompresi di browser). Identitas hanya dari sesi; Origin wajib sama.
 export async function POST(request: NextRequest) {
@@ -11,6 +13,9 @@ export async function POST(request: NextRequest) {
   if (crossOrigin) return crossOrigin;
   const customer = await currentCustomer();
   if (!customer) return NextResponse.json({ ok: false, message: "Masuk dulu untuk mengunggah foto." }, { status: 401 });
+  const batas = BATAS.fotoUlasanPerPembeli;
+  const rl = await rateLimit(db, `foto-ulasan:${customer.customerId}`, batas.limit, batas.windowMs);
+  if (!rl.ok) return NextResponse.json({ ok: false, message: "Terlalu banyak foto dalam satu jam. Coba lagi nanti, ya." }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
   const storage = photoStorage();
   if (storage.kind === "nonaktif") return NextResponse.json({ ok: false, message: "Unggah foto sedang tidak tersedia. Ulasan teksmu tetap bisa dikirim." }, { status: 503 });
   const length = Number(request.headers.get("content-length") ?? 0);

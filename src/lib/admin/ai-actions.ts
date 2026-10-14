@@ -13,6 +13,7 @@ import { statusLabels, type OrderStatus } from "@/lib/orders/status";
 import { loadSettings } from "@/lib/settings/db";
 import { currentStaff } from "./current";
 import { can } from "./permissions";
+import { cocok, daftarId, skema } from "@/lib/validasi";
 
 const NO_SESSION = { ok: false as const, message: "Sesi staf berakhir. Masuk lagi, ya." };
 const DENIED = { ok: false as const, message: "Kamu tidak punya izin untuk ini." };
@@ -22,7 +23,7 @@ const MAX_BULK = 8;
 
 async function ready() {
   const cfg = aiConfig();
-  const model = aiModel(cfg);
+  const model = aiModel("asistenAdmin", cfg);
   if (!model) return null;
   if (await globalCapReached(db, cfg, now()).catch(() => true)) return null;
   return model;
@@ -43,6 +44,7 @@ export async function draftDescriptionAction(input: DescriptionRequest): Promise
   const me = await currentStaff();
   if (!me) return NO_SESSION;
   if (!can(me, "produk.kelola")) return DENIED;
+  if (!cocok(skema.deskripsiAi, input)) return { ok: false as const, message: "Data produk tidak valid." };
   const model = await ready();
   if (!model) return UNAVAILABLE;
   const settings = await loadSettings(db);
@@ -75,7 +77,7 @@ export async function bulkDescriptionAction(productIds: number[]) {
   if (!can(me, "produk.kelola")) return DENIED;
   const model = await ready();
   if (!model) return UNAVAILABLE;
-  const ids = [...new Set((Array.isArray(productIds) ? productIds : []).map(Number).filter(Number.isInteger))].slice(0, MAX_BULK);
+  const ids = [...new Set(cocok(daftarId(50), productIds) ?? [])].slice(0, MAX_BULK);
   if (!ids.length) return { ok: false as const, message: "Pilih produknya dulu." };
   const settings = await loadSettings(db);
   const ex = await examples(settings.gaya.contohProduk);
@@ -130,7 +132,7 @@ export async function bulkReplyDraftAction(reviewIds: number[]) {
   if (!can(me, "ulasan.kelola")) return DENIED;
   const model = await ready();
   if (!model) return UNAVAILABLE;
-  const ids = [...new Set((Array.isArray(reviewIds) ? reviewIds : []).map(Number).filter(Number.isInteger))].slice(0, MAX_BULK);
+  const ids = [...new Set(cocok(daftarId(50), reviewIds) ?? [])].slice(0, MAX_BULK);
   const open = ids.length ? await db.select({ id: schema.reviews.id }).from(schema.reviews).where(and(inArray(schema.reviews.id, ids), isNull(schema.reviews.storeReply))) : [];
   const style = (await loadSettings(db)).gaya;
   const drafts: { id: number; text: string | null; message?: string }[] = [];

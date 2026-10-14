@@ -43,7 +43,7 @@ export async function CatalogPage({ scope, filters, basePath, title, description
   const loosened = loosenedText(result.loosened, labels);
 
   return (
-    <div className="container-rona py-6 md:py-8">
+    <div className="container-toko py-6 md:py-8">
       <Breadcrumb items={breadcrumb} className="mb-3" />
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
@@ -97,7 +97,7 @@ export async function CatalogPage({ scope, filters, basePath, title, description
 // Kerangka halaman katalog dengan tinggi yang mirip supaya tidak terjadi pergeseran layout saat data tiba.
 export function CatalogPageSkeleton({ withHeader = true }: { withHeader?: boolean }) {
   return (
-    <div className="container-rona py-6 md:py-8" aria-busy aria-label="Memuat katalog">
+    <div className="container-toko py-6 md:py-8" aria-busy aria-label="Memuat katalog">
       {withHeader ? (
         <>
           <div className="mb-3 h-4 w-40 animate-pulse rounded bg-garis/70" />

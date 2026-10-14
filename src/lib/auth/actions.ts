@@ -19,6 +19,7 @@ import { adoptGuestProfile } from "@/lib/skin/current";
 import { otpSender, requestOtp, verifyOtp, type OtpPurpose } from "./otp";
 import { authSecret } from "./secret";
 import { revokeAllSessions, revokeSession, SESSION_COOKIE } from "./session";
+import { cocok, skema } from "@/lib/validasi";
 
 export type LoginAvailability = { available: boolean; demo: boolean };
 
@@ -65,8 +66,10 @@ async function sendOtp(phoneRaw: string, purpose: OtpPurpose, customerId: number
   return { ok: true, phone, masked: maskPhone(phone), expiresAt: r.expiresAt.toISOString(), resendAt: r.resendAt.toISOString(), demoCode: env.demoMode ? delivery.showOnScreen : null };
 }
 
-export async function requestLoginOtpAction(input: { phone: string }): Promise<RequestOtpResponse> {
-  return sendOtp(input?.phone, "masuk", null);
+export async function requestLoginOtpAction(raw: { phone: string }): Promise<RequestOtpResponse> {
+  const input = cocok(skema.telepon, raw);
+  if (!input) return { ok: false, message: "Nomor WhatsApp tidak valid." };
+  return sendOtp(input.phone, "masuk", null);
 }
 
 export type LoginResponse = { ok: true; needsName: boolean; redirectTo: string } | { ok: false; message: string };
@@ -84,7 +87,9 @@ async function finishLogin(phone: string, kembali: unknown, guestWishlist: unkno
   return { ok: true, needsName: outcome.needsName, redirectTo: safeReturn(kembali) };
 }
 
-export async function verifyLoginOtpAction(input: { phone: string; code: string; kembali?: string; guestWishlist?: number[] }): Promise<LoginResponse> {
+export async function verifyLoginOtpAction(raw: { phone: string; code: string; kembali?: string; guestWishlist?: number[] }): Promise<LoginResponse> {
+  const input = cocok(skema.verifikasiOtp, raw);
+  if (!input) return { ok: false, message: "Kode atau nomor tidak valid." };
   const secret = authSecret();
   if (!otpSender(env.demoMode).available || !secret) return { ok: false, message: "Masuk dengan WhatsApp belum tersedia di situs ini." };
   const phone = normalizePhone(String(input?.phone ?? ""));
@@ -95,8 +100,10 @@ export async function verifyLoginOtpAction(input: { phone: string; code: string;
 }
 
 // Akun demo tanpa OTP. Hanya ada saat DEMO_MODE=true.
-export async function demoLoginAction(input: { kembali?: string; guestWishlist?: number[] }): Promise<LoginResponse> {
+export async function demoLoginAction(raw: { kembali?: string; guestWishlist?: number[] }): Promise<LoginResponse> {
   if (!env.demoMode) return { ok: false, message: "Akun demo tidak tersedia." };
+  const input = cocok(skema.masukDemo, raw ?? {});
+  if (!input) return { ok: false, message: "Data tidak valid." };
   // Akun demo harus dari seed (berisi pesanan, poin, alamat). Jangan buat akun kosong diam-diam.
   const [demo] = await db.select({ name: schema.customers.name }).from(schema.customers).where(eq(schema.customers.phone, DEMO_BUYER_PHONE)).limit(1);
   if (!demo?.name) return { ok: false, message: "Akun demo belum disiapkan di database ini. Jalankan seed demo dulu." };
@@ -106,7 +113,7 @@ export async function demoLoginAction(input: { kembali?: string; guestWishlist?:
 export async function setNameAction(input: { name: string }): Promise<{ ok: boolean; message?: string }> {
   const me = await currentCustomer();
   if (!me) return { ok: false, message: "Sesi berakhir. Masuk lagi, ya." };
-  if (!validateName(input?.name ?? "")) return { ok: false, message: "Nama 2 sampai 60 huruf, ya." };
+  if (!cocok(skema.nama, input) || !validateName(input.name)) return { ok: false, message: "Nama 2 sampai 60 huruf, ya." };
   const r = await updateProfile(db, me.customerId, { name: input.name, email: me.email });
   return r.ok ? { ok: true } : { ok: false, message: r.message };
 }
@@ -134,18 +141,22 @@ export async function accountStatusAction(): Promise<AccountStatus> {
 }
 
 // Ganti nomor WA: OTP dikirim ke nomor BARU, akun berubah hanya setelah kode benar.
-export async function requestPhoneChangeOtpAction(input: { phone: string }): Promise<RequestOtpResponse> {
+export async function requestPhoneChangeOtpAction(raw: { phone: string }): Promise<RequestOtpResponse> {
   const me = await currentCustomer();
   if (!me) return { ok: false, message: "Sesi berakhir. Masuk lagi, ya." };
+  const input = cocok(skema.telepon, raw);
+  if (!input) return { ok: false, message: "Nomor WhatsApp tidak valid." };
   const phone = normalizePhone(String(input?.phone ?? ""));
   if (phone && phone === me.phone) return { ok: false, message: "Itu nomormu sekarang. Tulis nomor yang baru." };
   return sendOtp(input?.phone, "ganti_nomor", me.customerId);
 }
 
-export async function verifyPhoneChangeAction(input: { phone: string; code: string }): Promise<{ ok: boolean; message?: string }> {
+export async function verifyPhoneChangeAction(raw: { phone: string; code: string }): Promise<{ ok: boolean; message?: string }> {
   const me = await currentCustomer();
   const secret = authSecret();
   if (!me || !secret) return { ok: false, message: "Sesi berakhir. Masuk lagi, ya." };
+  const input = cocok(skema.verifikasiOtp, raw);
+  if (!input) return { ok: false, message: "Kode atau nomor tidak valid." };
   const phone = normalizePhone(String(input?.phone ?? ""));
   if (!phone) return { ok: false, message: "Nomor WhatsApp tidak valid." };
   const v = await verifyOtp(db, { phone, purpose: "ganti_nomor", code: String(input?.code ?? ""), secret, now: now(), customerId: me.customerId });

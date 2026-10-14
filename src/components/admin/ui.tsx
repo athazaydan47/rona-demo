@@ -35,7 +35,7 @@ export function Denied({ message = "Kamu tidak punya akses ke halaman ini." }: {
       <ShieldAlert className="mx-auto size-8 text-bahaya" aria-hidden />
       <h1 className="mt-2 font-serif text-2xl text-kopi">Akses ditolak</h1>
       <p className="mt-1 text-sm text-abu-hangat">{message}</p>
-      <Link href="/admin" className="mt-4 inline-flex min-h-10 items-center text-sm font-semibold text-rona hover:underline">
+      <Link href="/admin" className="mt-4 inline-flex min-h-10 items-center text-sm font-semibold text-aksen hover:underline">
         Kembali ke Dashboard
       </Link>
     </div>
@@ -67,7 +67,7 @@ export function Pager({ page, pageCount, href }: { page: number; pageCount: numb
   );
 }
 
-export const fieldClass = "h-10 w-full rounded-lg border border-garis bg-putih px-3 text-sm text-kopi outline-none focus-visible:border-rona focus-visible:shadow-ring";
+export const fieldClass = "h-10 w-full rounded-lg border border-garis bg-putih px-3 text-sm text-kopi outline-none focus-visible:border-aksen focus-visible:shadow-ring";
 export const thClass = "px-3 py-2 text-left text-xs font-semibold tracking-wide text-abu-hangat uppercase";
 export const tdClass = "px-3 py-2 align-middle";
 

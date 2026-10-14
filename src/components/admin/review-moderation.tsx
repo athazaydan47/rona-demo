@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { bulkReplyDraftAction, draftReplyAction } from "@/lib/admin/ai-actions";
 import { deleteReplyAction, hideReviewsAction, replyReviewAction, showReviewAction } from "@/lib/admin/moderation-actions";
 import { cn } from "@/lib/utils";
+import { MEREK } from "@/config/merek";
 
 export type ModerationRow = {
   id: number;
@@ -80,7 +81,7 @@ export function ReviewModeration({ rows, aiDrafts = false }: { rows: ModerationR
       ) : null}
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <label className="flex items-center gap-2">
-          <input type="checkbox" className="size-4 accent-rona" checked={visible.length > 0 && visible.every((r) => selected.includes(r.id))} onChange={(e) => setSelected(e.target.checked ? visible.map((r) => r.id) : [])} aria-label="Pilih semua ulasan tayang di halaman ini" />
+          <input type="checkbox" className="size-4 accent-aksen" checked={visible.length > 0 && visible.every((r) => selected.includes(r.id))} onChange={(e) => setSelected(e.target.checked ? visible.map((r) => r.id) : [])} aria-label="Pilih semua ulasan tayang di halaman ini" />
           Pilih semua yang tayang
         </label>
         {aiDrafts && unreplied.length ? (
@@ -114,7 +115,7 @@ export function ReviewModeration({ rows, aiDrafts = false }: { rows: ModerationR
         {rows.map((r) => (
           <li key={r.id} className={cn("rounded-xl border bg-putih p-3 sm:p-4", r.status === "tampil" ? "border-garis" : "border-dashed border-garis bg-porselen/50")} data-ulasan={r.id}>
             <div className="flex items-start gap-3">
-              {r.status === "tampil" ? <input type="checkbox" className="mt-1 size-4 shrink-0 accent-rona" checked={selected.includes(r.id)} onChange={() => toggle(r.id)} aria-label={`Pilih ulasan ${r.authorName}`} /> : <span className="w-4 shrink-0" />}
+              {r.status === "tampil" ? <input type="checkbox" className="mt-1 size-4 shrink-0 accent-aksen" checked={selected.includes(r.id)} onChange={() => toggle(r.id)} aria-label={`Pilih ulasan ${r.authorName}`} /> : <span className="w-4 shrink-0" />}
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <Stars n={r.rating} />
@@ -143,7 +144,7 @@ export function ReviewModeration({ rows, aiDrafts = false }: { rows: ModerationR
                 {r.hiddenReason ? <p className="mt-2 text-xs text-abu-hangat">Disembunyikan: {r.hiddenReason}</p> : null}
                 {r.storeReply ? (
                   <div className="mt-2 rounded-lg bg-blush/40 p-2.5 text-sm" data-testid="balasan-toko">
-                    <p className="text-xs font-semibold text-rona">Balasan Rona Beauty{r.repliedLabel ? ` · ${r.repliedLabel}` : ""}</p>
+                    <p className="text-xs font-semibold text-aksen">Balasan {MEREK.namaLengkap}{r.repliedLabel ? ` · ${r.repliedLabel}` : ""}</p>
                     <p className="mt-0.5 text-kopi/85">{r.storeReply}</p>
                   </div>
                 ) : null}
@@ -233,7 +234,7 @@ export function ReviewModeration({ rows, aiDrafts = false }: { rows: ModerationR
                 <X className="size-5" />
               </Dialog.Close>
             </div>
-            <Dialog.Description className="mt-1 text-sm text-abu-hangat">Balasan tampil di bawah ulasan dengan label &quot;Balasan Rona Beauty&quot;. Balasan pertama memberi tahu pembeli lewat notifikasi.</Dialog.Description>
+            <Dialog.Description className="mt-1 text-sm text-abu-hangat">Balasan tampil di bawah ulasan dengan label &quot;Balasan {MEREK.namaLengkap}&quot;. Balasan pertama memberi tahu pembeli lewat notifikasi.</Dialog.Description>
             {replying ? (
               <blockquote className="mt-3 rounded-lg bg-porselen p-3 text-sm">
                 <Stars n={replying.rating} /> <span className="font-semibold">{replying.authorName}</span>
@@ -265,7 +266,7 @@ export function ReviewModeration({ rows, aiDrafts = false }: { rows: ModerationR
             ) : null}
             <label className="mt-3 block text-sm">
               <span className="mb-1 block font-medium">Balasan</span>
-              <textarea value={replyText} onChange={(e) => setReplyText(e.target.value.slice(0, 1000))} rows={5} className="w-full rounded-lg border border-garis px-3 py-2 text-sm outline-none focus-visible:border-rona focus-visible:shadow-ring" aria-label="Isi balasan" placeholder="Terima kasih sudah berbagi, Kak..." />
+              <textarea value={replyText} onChange={(e) => setReplyText(e.target.value.slice(0, 1000))} rows={5} className="w-full rounded-lg border border-garis px-3 py-2 text-sm outline-none focus-visible:border-aksen focus-visible:shadow-ring" aria-label="Isi balasan" placeholder="Terima kasih sudah berbagi, Kak..." />
               <span className="mt-1 block text-right text-xs text-abu-hangat tabular-nums">{replyText.length}/1000</span>
             </label>
             {replyError ? (

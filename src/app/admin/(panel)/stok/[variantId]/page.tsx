@@ -39,7 +39,7 @@ async function Content({ params, searchParams }: Props) {
   const qs = (p: number) => `/admin/stok/${id}?${new URLSearchParams(Object.entries({ ...sp, hal: String(p) }).filter(([, v]) => v) as [string, string][])}`;
   return (
     <div className="space-y-4">
-      <Link href="/admin/stok" className="inline-flex items-center gap-1 text-sm font-semibold text-rona hover:underline">
+      <Link href="/admin/stok" className="inline-flex items-center gap-1 text-sm font-semibold text-aksen hover:underline">
         <ArrowLeft className="size-4" aria-hidden /> Matriks stok
       </Link>
       <div className="flex items-center gap-3">
@@ -117,14 +117,14 @@ async function Content({ params, searchParams }: Props) {
         {d.movements.length === 0 ? <p className="p-4 text-center text-sm text-abu-hangat">Belum ada gerakan yang cocok.</p> : null}
         <div className="flex justify-between gap-2 p-3 text-sm">
           {d.page > 1 ? (
-            <Link href={qs(d.page - 1)} className="font-semibold text-rona">
+            <Link href={qs(d.page - 1)} className="font-semibold text-aksen">
               Lebih baru
             </Link>
           ) : (
             <span />
           )}
           {d.hasMore ? (
-            <Link href={qs(d.page + 1)} className="font-semibold text-rona">
+            <Link href={qs(d.page + 1)} className="font-semibold text-aksen">
               Lebih lama
             </Link>
           ) : null}

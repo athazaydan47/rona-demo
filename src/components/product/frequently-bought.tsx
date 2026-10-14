@@ -39,7 +39,7 @@ export function FrequentlyBought({ current, items }: { current: Current; items: 
         {/* HP: daftar vertikal dengan centang */}
         <ul className="divide-y divide-garis rounded-card border border-garis bg-putih md:hidden">
           <li className="flex items-center gap-3 p-3">
-            <input type="checkbox" checked readOnly disabled aria-label={`${current.name} (produk ini, selalu termasuk)`} className="size-4 shrink-0 accent-rona" />
+            <input type="checkbox" checked readOnly disabled aria-label={`${current.name} (produk ini, selalu termasuk)`} className="size-4 shrink-0 accent-aksen" />
             <span className="w-14 shrink-0 overflow-hidden rounded-lg">
               <ProductArt packaging={current.packaging} shade={current.hex} brandColor={current.brandColor} brandName={current.brandName} title="" />
             </span>
@@ -51,7 +51,7 @@ export function FrequentlyBought({ current, items }: { current: Current; items: 
           </li>
           {picks.map((p) => (
             <li key={p.product.id} className={cn("flex items-center gap-3 p-3", !checked[p.product.id] && "opacity-60")}>
-              <input type="checkbox" checked={Boolean(checked[p.product.id])} onChange={() => toggle(p.product.id)} disabled={!p.variant.inStock} aria-label={`Sertakan ${p.product.name}`} className="size-4 shrink-0 accent-rona" />
+              <input type="checkbox" checked={Boolean(checked[p.product.id])} onChange={() => toggle(p.product.id)} disabled={!p.variant.inStock} aria-label={`Sertakan ${p.product.name}`} className="size-4 shrink-0 accent-aksen" />
               <Link href={`/p/${p.product.slug}`} className="w-14 shrink-0 overflow-hidden rounded-lg">
                 <ProductArt packaging={p.product.packaging} shade={p.variant.hex} brandColor={p.product.brandColor} brandName={p.product.brandName} title={p.product.name} />
               </Link>
@@ -76,7 +76,7 @@ export function FrequentlyBought({ current, items }: { current: Current; items: 
                 </span>
               ) : null}
               <label className="absolute top-2 right-2 z-20 grid size-7 cursor-pointer place-items-center rounded-full bg-putih/95 shadow-soft">
-                <input type="checkbox" checked={Boolean(checked[p.product.id])} onChange={() => toggle(p.product.id)} disabled={!p.variant.inStock} aria-label={`Sertakan ${p.product.name}`} className="size-4 accent-rona" />
+                <input type="checkbox" checked={Boolean(checked[p.product.id])} onChange={() => toggle(p.product.id)} disabled={!p.variant.inStock} aria-label={`Sertakan ${p.product.name}`} className="size-4 accent-aksen" />
               </label>
               <ProductCard product={p.product} quickAdd={false} />
             </li>

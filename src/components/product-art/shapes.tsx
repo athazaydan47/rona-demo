@@ -163,7 +163,7 @@ const cushion: Shape = (ctx) => {
         <path d="M44 100 A62 62 0 0 1 128 72 L112 92 A42 42 0 0 0 60 112 Z" fill="#FFFFFF" opacity={0.22} />
         <BrandText ctx={ctx} y={129} fill={ctx.textOnBrand} size={9.5} maxWidth={110} />
         <rect x={82} y={137} width={36} height={1.2} rx={0.6} fill={alpha(ctx.textOnBrand, 0.5)} />
-        <text x={100} y={150} textAnchor="middle" fontFamily="var(--font-jakarta), sans-serif" fontSize={5.5} letterSpacing={1.4} fill={alpha(ctx.textOnBrand, 0.75)}>
+        <text x={100} y={150} textAnchor="middle" fontFamily="var(--font-teks), sans-serif" fontSize={5.5} letterSpacing={1.4} fill={alpha(ctx.textOnBrand, 0.75)}>
           CUSHION
         </text>
       </g>
@@ -253,7 +253,7 @@ const sunscreenTube: Shape = (ctx) => {
       <rect x={74} y={100} width={52} height={54} rx={3} fill="#FBF8F4" opacity={0.96} />
       <BrandText ctx={ctx} y={114} fill={ctx.brandDark} size={6} maxWidth={44} />
       <LabelLines x={84} y={121} w={32} color={KOPI} rows={2} />
-      <text x={100} y={146} textAnchor="middle" fontFamily="var(--font-jakarta), sans-serif" fontSize={11} fontWeight={800} fill={ctx.brandDark}>
+      <text x={100} y={146} textAnchor="middle" fontFamily="var(--font-teks), sans-serif" fontSize={11} fontWeight={800} fill={ctx.brandDark}>
         SPF
       </text>
       <Cyl ctx={ctx} x={100 - botW / 2 - 2} y={178} w={botW + 4} h={30} rx={5} grad="brandDark" spec={false} />
@@ -619,7 +619,7 @@ const sheetMask: Shape = (ctx) => {
       <path d={`M${x + w / 2 - 8} ${y + h * 0.4} Q${x + w / 2 - 5} ${y + h * 0.37} ${x + w / 2 - 2} ${y + h * 0.4} M${x + w / 2 + 2} ${y + h * 0.4} Q${x + w / 2 + 5} ${y + h * 0.37} ${x + w / 2 + 8} ${y + h * 0.4}`} stroke={alpha(ctx.brandDark, 0.55)} strokeWidth={1.1} fill="none" strokeLinecap="round" />
       <path d={`M${x + w / 2 - 5} ${y + h * 0.5} Q${x + w / 2} ${y + h * 0.53} ${x + w / 2 + 5} ${y + h * 0.5}`} stroke={alpha(ctx.brandDark, 0.55)} strokeWidth={1.1} fill="none" strokeLinecap="round" />
       <BrandText ctx={ctx} x={x + w / 2} y={y + h * 0.76} fill={ctx.textOnBrand} size={Math.min(6.4, w / 14)} maxWidth={w - 16} />
-      <text x={x + w / 2} y={y + h * 0.84} textAnchor="middle" fontFamily="var(--font-jakarta), sans-serif" fontSize={4.6} letterSpacing={1} fill={alpha(ctx.textOnBrand, 0.75)}>
+      <text x={x + w / 2} y={y + h * 0.84} textAnchor="middle" fontFamily="var(--font-teks), sans-serif" fontSize={4.6} letterSpacing={1} fill={alpha(ctx.textOnBrand, 0.75)}>
         SHEET MASK
       </text>
     </g>
@@ -667,38 +667,6 @@ export const shapes: Record<Packaging, Shape> = {
   sheet_mask: sheetMask,
 };
 
-export const packagingLabels: Record<Packaging, string> = {
-  lipstick: "Lipstick",
-  lip_tint: "Lip tint",
-  lip_cream: "Lip cream",
-  cushion: "Cushion",
-  foundation_bottle: "Botol foundation",
-  sunscreen_tube: "Tube sunscreen",
-  serum_dropper: "Botol serum pipet",
-  toner_bottle: "Botol toner",
-  cream_jar: "Jar krim",
-  mascara: "Mascara",
-  eyeshadow_palette: "Palet eyeshadow",
-  perfume_bottle: "Botol parfum",
-  lotion_pump: "Botol pompa",
-  sheet_mask: "Sachet sheet mask",
-};
-
-export const detailLabels: Record<Packaging, string> = {
-  lipstick: "Peluru keluar, tutup rebah",
-  lip_tint: "Aplikator doe-foot dicabut",
-  lip_cream: "Aplikator doe-foot dicabut",
-  cushion: "Tertutup dari atas",
-  foundation_bottle: "Olesan cairan shade",
-  sunscreen_tube: "Tube rebah, krim keluar",
-  serum_dropper: "Pipet terangkat, satu tetes",
-  toner_bottle: "Kapas basah",
-  cream_jar: "Tutup terbuka, tekstur krim",
-  mascara: "Sikat dicabut",
-  eyeshadow_palette: "Close-up 3 pan dan swatch",
-  perfume_bottle: "Sudut 3/4 dengan pantulan",
-  lotion_pump: "Setetes lotion",
-  sheet_mask: "Lembar masker terbuka",
-};
+export { detailLabels, packagingLabels } from "./labels";
 
 export { FLOOR_Y };

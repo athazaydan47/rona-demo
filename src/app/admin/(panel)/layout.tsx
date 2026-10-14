@@ -18,7 +18,7 @@ async function Shell({ children }: { children: React.ReactNode }) {
   const locs = allLocations(staff) ? [] : await db.select({ name: schema.locations.name }).from(schema.locations).where(inArray(schema.locations.id, staff.locationIds));
   const scope = allLocations(staff) ? "Semua lokasi" : locs.map((l) => l.name).join(", ");
   return (
-    <AdminShell items={items} mobilePrimary={MOBILE_PRIORITY[staff.roleSlug]} staff={{ name: staff.name, roleName: ROLE_TEMPLATES[staff.roleSlug].name, scope }} demoMode={env.demoMode} assistantRole={aiTersedia() ? staff.roleSlug : null}>
+    <AdminShell items={items} mobilePrimary={MOBILE_PRIORITY[staff.roleSlug]} staff={{ name: staff.name, roleName: ROLE_TEMPLATES[staff.roleSlug].name, scope }} demoMode={env.demoMode} assistantRole={aiTersedia("asistenAdmin") ? staff.roleSlug : null}>
       {children}
     </AdminShell>
   );

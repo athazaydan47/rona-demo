@@ -1,10 +1,11 @@
 // Aturan murni pesanan: nomor pesanan, batas waktu bayar, gabung keranjang.
 import type { OpeningHours } from "@/db/schema";
 import { toWibParts, wibDate } from "@/lib/format";
+import { MEREK, POLA_NOMOR_PESANAN } from "@/config/merek";
 
 export const PAYMENT_WINDOW_MINUTES = 15;
 
-// "RONA-2610-000123": tahun dan bulan WIB, urutan 6 digit per bulan.
+// Nomor pesanan PREFIKS-YYMM-urutan (prefiks dari MEREK.prefiksPesanan): tahun dan bulan WIB, urutan 6 digit per bulan.
 export function orderPeriod(date: Date) {
   const p = toWibParts(date);
   return `${String(p.year).slice(-2)}${String(p.month).padStart(2, "0")}`;
@@ -13,11 +14,11 @@ export function orderPeriod(date: Date) {
 export function formatOrderNumber(period: string, seq: number) {
   if (!/^\d{4}$/.test(period)) throw new Error("Periode harus YYMM");
   if (!Number.isInteger(seq) || seq < 1) throw new Error("Urutan harus bilangan bulat positif");
-  return `RONA-${period}-${String(seq).padStart(6, "0")}`;
+  return `${MEREK.prefiksPesanan}-${period}-${String(seq).padStart(6, "0")}`;
 }
 
 export function parseOrderNumber(number: string) {
-  const m = /^RONA-(\d{4})-(\d{6,})$/.exec(number.trim().toUpperCase());
+  const m = POLA_NOMOR_PESANAN.exec(number.trim().toUpperCase());
   return m ? { period: m[1], seq: Number(m[2]) } : null;
 }
 

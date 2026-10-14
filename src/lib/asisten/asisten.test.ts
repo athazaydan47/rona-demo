@@ -13,6 +13,7 @@ import { matchesSource, numbersInText, unsourcedNumbers } from "./angka";
 import { matchName, trigramSimilarity, type Candidate } from "./cocok";
 import { applyRole, lockedLocations, maskEmail, maskPhone } from "./peran";
 import { parsePeriode } from "./periode";
+import { tanyaTanggalHariRaya } from "./otak";
 import { executeTool, READ_ONLY_TOOLS, TOOL_REGISTRY, toolsFor } from "./tools";
 
 const staff = (roleSlug: RoleSlug, locationIds: number[] = []): StaffPrincipal => ({ id: 9, name: "Uji", email: "uji@rona.demo", roleSlug, isActive: true, grants: [], revokes: [], locationIds });
@@ -57,6 +58,20 @@ describe("penerjemah periode (WIB)", () => {
   it("tepat setelah tengah malam WIB sudah hari berikutnya", () => {
     const r = parsePeriode("hari ini", new Date("2026-10-13T17:30:00Z"));
     expect(r.ok && r.periode.firstDay).toBe("2026-10-14");
+  });
+});
+
+describe("hari raya tanpa tanggal selalu ditanya balik", () => {
+  it("bertanya balik bila hari raya disebut tanpa tanggal", () => {
+    expect(tanyaTanggalHariRaya("Omzet waktu Natal kemarin berapa?")).toMatch(/Natal.*tanggal berapa sampai berapa\?/);
+    expect(tanyaTanggalHariRaya("penjualan lebaran tahun ini")).toMatch(/^Periode Lebaran/);
+    expect(tanyaTanggalHariRaya("omzet imlek")).not.toBeNull();
+  });
+  it("tidak bertanya bila tanggal sudah ada atau tidak ada hari raya", () => {
+    expect(tanyaTanggalHariRaya("Omzet Natal 20 sampai 26 Des 2025")).toBeNull();
+    expect(tanyaTanggalHariRaya("omzet lebaran 28/3 sampai 5/4")).toBeNull();
+    expect(tanyaTanggalHariRaya("Omzet minggu ini dibanding minggu lalu")).toBeNull();
+    expect(tanyaTanggalHariRaya("stok pernatalan")).toBeNull();
   });
 });
 

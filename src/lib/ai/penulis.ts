@@ -7,6 +7,7 @@
 import type { StyleGuide } from "@/lib/settings";
 import type { AiModel, Schema } from "./client";
 import { MEDICAL_BANNED, splitSentences } from "./guard";
+import { MEREK } from "@/config/merek";
 
 export const DESCRIPTION_FIELDS = ["ringkas", "manfaat", "kandungan", "caraPakai", "metaJudul", "metaDeskripsi"] as const;
 export type DescriptionField = (typeof DESCRIPTION_FIELDS)[number];
@@ -80,7 +81,7 @@ export function descriptionSchema(): Schema {
 export function descriptionPrompt(input: DescriptionInput, style: StyleGuide, examples: DescriptionExample[]) {
   const p = style.panjang;
   return [
-    "TUGAS: deskripsi_produk. Tulis deskripsi produk kosmetik untuk toko Rona Beauty (toko demo, merek fiktif).",
+    `TUGAS: deskripsi_produk. Tulis deskripsi produk kosmetik untuk toko ${MEREK.namaLengkap} (toko demo, merek fiktif).`,
     `Nada: ${style.nada} Sapaan: ${style.sapaan}. Kata yang disukai: ${style.kataDipakai.join(", ")}. Kata yang dihindari: ${style.kataDihindari.join(", ")}.`,
     `Panjang maksimal (karakter): ringkas ${p.ringkas}, manfaat ${p.manfaat}, kandungan ${p.kandungan}, caraPakai ${p.caraPakai}, metaJudul ${p.metaJudul}, metaDeskripsi ${p.metaDeskripsi}.`,
     "Aturan: hanya pakai fakta dari acuan. Bahan yang disebut harus ada di daftar bahan aktif. Angka (persen, jam, SPF) hanya bila ada di acuan. Tanpa klaim medis (menyembuhkan, mengobati, dijamin) dan tanpa klaim mutlak. Tanpa tanda pisah panjang.",

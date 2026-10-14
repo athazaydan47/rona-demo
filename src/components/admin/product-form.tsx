@@ -17,6 +17,7 @@ import { cn, slugify } from "@/lib/utils";
 import type { ClaimIssue, DescriptionDraft, DescriptionField } from "@/lib/ai/penulis";
 import { DescriptionWriter } from "./description-writer";
 import { fieldClass } from "./ui";
+import { MEREK } from "@/config/merek";
 
 type Variant = { key: number; id: number | null; shadeName: string; hex: string; undertone: "warm" | "neutral" | "cool" | ""; depth: string; sku: string; skuTouched: boolean; barcode: string; weightGram: string; normalPrice: string; salePrice: string; isActive: boolean };
 export type ProductFormValue = {
@@ -66,7 +67,7 @@ function withoutVariants(p: ProductFormValue): Omit<ProductFormValue, "variants"
 let seq = 1;
 const toRow = (v: Omit<Variant, "key" | "skuTouched">): Variant => ({ ...v, key: seq++, skuTouched: Boolean(v.sku) });
 const emptyVariant = (): Variant => ({ key: seq++, id: null, shadeName: "", hex: "#D9A98B", undertone: "", depth: "", sku: "", skuTouched: false, barcode: "", weightGram: "100", normalPrice: "", salePrice: "", isActive: true });
-const autoSku = (brand: string, productId: number | null, i: number) => `${brand.replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase() || "RONA"}-${String(productId ?? 0).padStart(3, "0")}-${String(i + 1).padStart(2, "0")}`;
+const autoSku = (brand: string, productId: number | null, i: number) => `${brand.replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase() || MEREK.prefiksPesanan}-${String(productId ?? 0).padStart(3, "0")}-${String(i + 1).padStart(2, "0")}`;
 
 function Field({ label, error, hint, children, className }: { label: string; error?: string; hint?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
@@ -78,7 +79,7 @@ function Field({ label, error, hint, children, className }: { label: string; err
   );
 }
 
-const textarea = "w-full rounded-lg border border-garis bg-putih px-3 py-2 text-sm text-kopi outline-none focus-visible:border-rona";
+const textarea = "w-full rounded-lg border border-garis bg-putih px-3 py-2 text-sm text-kopi outline-none focus-visible:border-aksen";
 
 export function ProductForm({ id, initial, brands, categories, hasOrders, siteUrl, photosEnabled, initialMessage, aiWriter = false, aiDraft = null }: { id: number | null; initial: ProductFormValue; brands: Brand[]; categories: CategoryGroup[]; hasOrders: boolean; siteUrl: string; photosEnabled: boolean; initialMessage?: string; aiWriter?: boolean; aiDraft?: { draft: Record<string, string>; issues: Record<string, ClaimIssue[]>; by: string } | null }) {
   const router = useRouter();
@@ -98,7 +99,7 @@ export function ProductForm({ id, initial, brands, categories, hasOrders, siteUr
   const set = <K extends keyof typeof v>(k: K, val: (typeof v)[K]) => setV((x) => ({ ...x, [k]: val }));
   const setRow = (key: number, patch: Partial<Variant>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   const skuOf = (r: Variant, i: number) => (r.skuTouched ? r.sku : r.sku || autoSku(brand?.name ?? "", id, i));
-  const metaTitle = v.seoTitle || `${v.name || "Nama produk"} | Rona Beauty`;
+  const metaTitle = v.seoTitle || `${v.name || "Nama produk"} | ${MEREK.namaLengkap}`;
   const metaDesc = v.seoDescription || v.shortDescription || "Deskripsi singkat produk tampil di sini.";
   const slug = v.slug || slugify(v.name);
 
@@ -428,7 +429,7 @@ export function ProductForm({ id, initial, brands, categories, hasOrders, siteUr
               />
             </Field>
             <Field label="Judul meta" error={errors.seoTitle} hint={<span className={cn("tabular-nums", metaTitle.length > 60 && "text-bahaya")}>{metaTitle.length}/60 karakter{v.seoTitle ? "" : " (otomatis dari nama)"}</span>}>
-              <input value={v.seoTitle} onChange={(e) => set("seoTitle", e.target.value.slice(0, 120))} placeholder={`${v.name || "Nama produk"} | Rona Beauty`} className={fieldClass} />
+              <input value={v.seoTitle} onChange={(e) => set("seoTitle", e.target.value.slice(0, 120))} placeholder={`${v.name || "Nama produk"} | ${MEREK.namaLengkap}`} className={fieldClass} />
             </Field>
             <Field label="Deskripsi meta" error={errors.seoDescription} hint={<span className={cn("tabular-nums", metaDesc.length > 160 && "text-bahaya")}>{metaDesc.length}/160 karakter{v.seoDescription ? "" : " (otomatis dari deskripsi singkat)"}</span>}>
               <textarea rows={2} value={v.seoDescription} onChange={(e) => set("seoDescription", e.target.value.slice(0, 300))} className={textarea} />
@@ -498,7 +499,7 @@ export function ProductForm({ id, initial, brands, categories, hasOrders, siteUr
         <div className="rounded-xl border border-garis bg-putih p-4">
           <p className="text-xs font-semibold tracking-wide text-abu-hangat uppercase">Pratinjau langsung</p>
           <div className="mx-auto mt-2 w-48" data-testid="pratinjau-productart">
-            <ProductArt packaging={v.packaging} shade={/^#[0-9a-f]{6}$/i.test(preview?.hex ?? "") ? preview!.hex : "#D9A98B"} brandColor={brand?.color ?? "#B8475D"} brandName={brand?.name ?? "Rona"} title={`Pratinjau ${v.name}`} />
+            <ProductArt packaging={v.packaging} shade={/^#[0-9a-f]{6}$/i.test(preview?.hex ?? "") ? preview!.hex : "#D9A98B"} brandColor={brand?.color ?? "#B8475D"} brandName={brand?.name ?? MEREK.nama} title={`Pratinjau ${v.name}`} />
           </div>
           <p className="mt-2 text-center text-sm font-medium">{v.name || "Nama produk"}</p>
           <p className="text-center text-xs text-abu-hangat">
@@ -517,7 +518,7 @@ export function ProductForm({ id, initial, brands, categories, hasOrders, siteUr
           </div>
         </div>
         {id && v.status === "aktif" ? (
-          <Link href={`/p/${initial.slug}`} target="_blank" className="block text-center text-sm font-semibold text-rona hover:underline">
+          <Link href={`/p/${initial.slug}`} target="_blank" className="block text-center text-sm font-semibold text-aksen hover:underline">
             Buka di toko
           </Link>
         ) : null}

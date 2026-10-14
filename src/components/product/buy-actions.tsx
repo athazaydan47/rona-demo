@@ -10,6 +10,7 @@ import { flyToCart } from "@/lib/cart/fly-to-cart";
 import { toggleWishlist, useWishlist } from "@/lib/cart/wishlist";
 import { cn } from "@/lib/utils";
 import { RestockDialog } from "./restock-dialog";
+import { MEREK } from "@/config/merek";
 
 type Props = {
   productId: number;
@@ -102,7 +103,7 @@ export function BuyActions({ productId, productName, shadeName, variantId, maxQt
           variant="outline"
           aria-pressed={wished}
           aria-label={wished ? "Hapus dari wishlist" : "Simpan ke wishlist"}
-          className={cn(wished && "border-rona text-rona")}
+          className={cn(wished && "border-aksen text-aksen")}
           onClick={async () => {
             const r = await toggleWishlist(productId);
             if (r.message) toast({ title: r.message, tone: "info" });
@@ -112,7 +113,7 @@ export function BuyActions({ productId, productName, shadeName, variantId, maxQt
           <Heart className={cn(wished && "fill-current")} />
         </Button>
         <Button size="icon" variant="outline" aria-label="Bagikan ke WhatsApp" asChild>
-          <a href={`https://wa.me/?text=${encodeURIComponent(`${label} di Rona Beauty: ${shareUrl}`)}`} target="_blank" rel="noreferrer">
+          <a href={`https://wa.me/?text=${encodeURIComponent(`${label} di ${MEREK.namaLengkap}: ${shareUrl}`)}`} target="_blank" rel="noreferrer">
             <Share2 />
           </a>
         </Button>
@@ -125,7 +126,7 @@ export function BuyActions({ productId, productName, shadeName, variantId, maxQt
             productName={productName}
             shadeName={shadeName || "Standar"}
             trigger={
-              <button type="button" className="inline-flex items-center gap-1 font-semibold text-rona hover:underline">
+              <button type="button" className="inline-flex items-center gap-1 font-semibold text-aksen hover:underline">
                 <BellRing className="size-3.5" /> Kabari aku saat bisa dikirim
               </button>
             }

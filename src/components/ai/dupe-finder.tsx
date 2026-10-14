@@ -1,74 +1,16 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Link from "next/link";
 import { ExternalLink, ImageUp, Link2, Loader2, Search, X } from "lucide-react";
-import { ProductArt } from "@/components/product-art";
 import { Button } from "@/components/ui/button";
-import { PriceTag } from "@/components/ui/price-tag";
-import type { Packaging } from "@/db/schema/enums";
-import { addToCart } from "@/lib/cart/client-cart";
 import { shrinkImage } from "@/lib/image/shrink";
 import { cn } from "@/lib/utils";
+import { MEREK } from "@/config/merek";
+import { KartuProdukAi, type KartuAi } from "./kartu-produk-ai";
 
-type CardVariant = { id: number; shadeName: string; hex: string; price: number; normalPrice: number; inStock: boolean };
-type DupeCard = { id: number; name: string; slug: string; brandName: string; brandColor: string; packaging: Packaging; price: number; normalPrice: number; primaryHex: string; variantCount: number; variants: CardVariant[]; alasan: string; varianPilihan: number | null; stokOnline: number };
+type DupeCard = KartuAi & { alasan: string; varianPilihan: number | null };
 type Source = { platform: "tiktok" | "youtube"; url: string; title: string; author: string | null; authorUrl: string | null; thumbnailUrl: string | null };
 type Result = { ok: true; sumber: Source | null; tipe: "cocok" | "mirip" | "tidak_ada_sejenis" | "tidak_dikenali"; namaTerbaca: string | null; jenisProduk: string | null; produk: DupeCard[] } | { ok: false; message: string; suggestScreenshot?: boolean };
-
-function Card({ p }: { p: DupeCard }) {
-  const [variantId, setVariantId] = useState(p.varianPilihan ?? p.variants.find((v) => v.inStock)?.id ?? p.variants[0]?.id);
-  const [state, setState] = useState<"idle" | "busy" | "ok" | "fail">("idle");
-  const [msg, setMsg] = useState<string | null>(null);
-  const v = p.variants.find((x) => x.id === variantId) ?? p.variants[0];
-  return (
-    <li className="flex gap-3 rounded-xl border border-garis bg-putih p-3" data-testid="kartu-dupe">
-      <Link href={`/p/${p.slug}`} className="w-20 shrink-0 overflow-hidden rounded-lg">
-        <ProductArt packaging={p.packaging} shade={v?.hex ?? p.primaryHex} brandColor={p.brandColor} brandName={p.brandName} title={p.name} />
-      </Link>
-      <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-semibold tracking-wide text-abu-hangat uppercase">{p.brandName}</p>
-        <Link href={`/p/${p.slug}`} className="line-clamp-2 text-sm font-semibold text-kopi hover:underline">
-          {p.name}
-        </Link>
-        <PriceTag price={v?.price ?? p.price} normalPrice={v?.normalPrice ?? p.normalPrice} size="sm" />
-        <p className="mt-0.5 text-xs text-kopi/80" data-testid="alasan-dupe">
-          {p.alasan}
-        </p>
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          {p.variantCount > 1 ? (
-            <select value={variantId} onChange={(e) => setVariantId(Number(e.target.value))} className="h-9 max-w-[160px] rounded-lg border border-garis bg-putih px-2 text-xs" aria-label={`Pilih shade ${p.name}`}>
-              {p.variants.map((x) => (
-                <option key={x.id} value={x.id} disabled={!x.inStock}>
-                  {x.shadeName}
-                  {x.inStock ? "" : " (habis)"}
-                </option>
-              ))}
-            </select>
-          ) : null}
-          <Button
-            size="sm"
-            disabled={!v?.inStock || state === "busy"}
-            onClick={async () => {
-              if (!v) return;
-              setState("busy");
-              const r = await addToCart(v.id, 1, { source: "cari_video", openDrawer: false });
-              setState(r.ok ? "ok" : "fail");
-              setMsg(r.ok ? "Masuk keranjang" : (r.message ?? "Gagal"));
-            }}
-          >
-            {state === "busy" ? <Loader2 className="animate-spin" /> : null} {v?.inStock ? "Tambah ke keranjang" : "Habis"}
-          </Button>
-          {msg ? (
-            <span className={cn("text-[11px]", state === "ok" ? "text-sukses" : "text-bahaya")} role="status">
-              {msg}
-            </span>
-          ) : null}
-        </div>
-      </div>
-    </li>
-  );
-}
 
 function SourceBlock({ s }: { s: Source }) {
   return (
@@ -95,7 +37,7 @@ function SourceBlock({ s }: { s: Source }) {
             di {s.platform === "tiktok" ? "TikTok" : "YouTube"}
           </p>
         ) : null}
-        <a href={s.url} target="_blank" rel="noopener noreferrer nofollow" className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-rona hover:underline">
+        <a href={s.url} target="_blank" rel="noopener noreferrer nofollow" className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-aksen hover:underline">
           Lihat video asli <ExternalLink className="size-3" aria-hidden />
         </a>
       </div>
@@ -151,7 +93,7 @@ export function DupeFinder() {
             Link video TikTok atau YouTube
           </label>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <input id="link-video" value={link} onChange={(e) => setLink(e.target.value.slice(0, 500))} inputMode="url" placeholder="https://www.tiktok.com/@kreator/video/..." className="h-11 min-w-0 flex-1 rounded-pill border border-garis bg-putih px-4 text-sm outline-none focus-visible:border-rona" data-testid="input-link" />
+            <input id="link-video" value={link} onChange={(e) => setLink(e.target.value.slice(0, 500))} inputMode="url" placeholder="https://www.tiktok.com/@kreator/video/..." className="h-11 min-w-0 flex-1 rounded-pill border border-garis bg-putih px-4 text-sm outline-none focus-visible:border-aksen" data-testid="input-link" />
             <Button type="submit" disabled={busy || !link.trim()} data-aksi-utama>
               {busy ? <Loader2 className="animate-spin" /> : <Search />} Cari yang mirip
             </Button>
@@ -205,7 +147,7 @@ export function DupeFinder() {
 
       {busy ? (
         <p className="flex items-center gap-2 text-sm text-abu-hangat" role="status">
-          <Loader2 className="size-4 animate-spin" aria-hidden /> Membaca produknya dan mencari yang mirip di katalog Rona...
+          <Loader2 className="size-4 animate-spin" aria-hidden /> Membaca produknya dan mencari yang mirip di katalog {MEREK.nama}...
         </p>
       ) : null}
 
@@ -225,24 +167,24 @@ export function DupeFinder() {
               {result.sumber ? <SourceBlock s={result.sumber} /> : null}
               <p className="font-serif text-xl text-kopi" data-testid="judul-hasil-dupe">
                 {result.tipe === "cocok"
-                  ? `Ada di Rona: ${result.namaTerbaca}`
+                  ? `Ada di ${MEREK.nama}: ${result.namaTerbaca}`
                   : result.tipe === "mirip"
                     ? result.namaTerbaca
-                      ? `Rona tidak menjual ${result.namaTerbaca}, ini yang paling mirip`
-                      : `Ini yang paling mirip di Rona${result.jenisProduk ? ` untuk ${result.jenisProduk}` : ""}`
+                      ? `${MEREK.nama} tidak menjual ${result.namaTerbaca}, ini yang paling mirip`
+                      : `Ini yang paling mirip di ${MEREK.nama}${result.jenisProduk ? ` untuk ${result.jenisProduk}` : ""}`
                     : result.tipe === "tidak_ada_sejenis"
-                      ? "Rona belum punya produk sejenis ini"
+                      ? `${MEREK.nama} belum punya produk sejenis ini`
                       : "Produknya belum bisa kami kenali"}
               </p>
               {result.tipe === "tidak_dikenali" ? <p className="text-sm text-abu-hangat">Coba kirim screenshot yang lebih jelas, dengan kemasan atau warna produk terlihat, ya.</p> : null}
               {result.produk.length ? (
                 <ul className="grid gap-2 md:grid-cols-3">
                   {result.produk.map((p) => (
-                    <Card key={p.id} p={p} />
+                    <KartuProdukAi key={p.id} p={p} sumber="cari_video" testId="kartu-dupe" alasanTestId="alasan-dupe" labelTambah="Tambah ke keranjang" />
                   ))}
                 </ul>
               ) : null}
-              <p className="text-[11px] text-abu-hangat">Dikenali dengan bantuan AI, bisa keliru. Produk, harga, dan stok diambil langsung dari katalog Rona.</p>
+              <p className="text-[11px] text-abu-hangat">Dikenali dengan bantuan AI, bisa keliru. Produk, harga, dan stok diambil langsung dari katalog {MEREK.nama}.</p>
             </>
           )}
         </section>

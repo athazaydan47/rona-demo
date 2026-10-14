@@ -9,6 +9,7 @@ import { listInboxPage, unreadCount } from "@/lib/account/notifications";
 import { formatDateWib, formatTimeWib } from "@/lib/format";
 import { absoluteLinks } from "@/lib/notifications/links";
 import { siteUrl } from "@/lib/site";
+import { MEREK } from "@/config/merek";
 
 export const metadata: Metadata = { title: "Kotak Notifikasi" };
 
@@ -34,7 +35,7 @@ async function InboxContent({ searchParams }: Props) {
 export default function NotifikasiPage(props: Props) {
   return (
     <>
-      <AccountPageHead title="Kotak Notifikasi" description="Pratinjau pesan WhatsApp dan email dari Rona. Di demo ini tidak ada pesan yang benar-benar terkirim." />
+      <AccountPageHead title="Kotak Notifikasi" description={`Pratinjau pesan WhatsApp dan email dari ${MEREK.nama}. Di demo ini tidak ada pesan yang benar-benar terkirim.`} />
       <Suspense fallback={<AccountSkeleton />}>
         <InboxContent {...props} />
       </Suspense>

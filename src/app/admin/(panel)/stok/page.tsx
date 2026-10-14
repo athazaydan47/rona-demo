@@ -19,6 +19,8 @@ import { now } from "@/lib/clock";
 import { transferDraftHref, transferSuggestions } from "@/lib/inventory/saran";
 import { loadSettings } from "@/lib/settings/db";
 import { cn } from "@/lib/utils";
+import { MEREK } from "@/config/merek";
+import { fiturAktif } from "@/config/fitur";
 
 export const metadata: Metadata = { title: "Stok" };
 
@@ -36,6 +38,7 @@ function cellTone(available: number | null, threshold: number) {
 // "Buat draf transfer" membuka formulir transfer terisi; staf yang memeriksa dan menyimpan.
 async function TransferSuggestionsSection({ me }: { me: StaffPrincipal }) {
   const settings = await loadSettings(db);
+  if (!fiturAktif("multiCabang")) return null;
   const r = await transferSuggestions(db, { now: now(), kurangHari: settings.saran.kurangHari, lebihHari: settings.saran.lebihHari, keepMin: settings.lowStock, locationIds: stockLocationScope(me), limit: 6 });
   if (!r.suggestions.length) return null;
   return (
@@ -65,7 +68,7 @@ async function TransferSuggestionsSection({ me }: { me: StaffPrincipal }) {
           </li>
         ))}
       </ul>
-      {aiTersedia() ? (
+      {aiTersedia("asistenAdmin") ? (
         <div className="mt-2">
           <AskAssistantButton prompt="Jelaskan saran transfer hari ini" label="Jelaskan dengan Asisten" />
         </div>
@@ -96,7 +99,7 @@ async function Content({ searchParams }: Props) {
             </Link>
           </Button>
         ) : null}
-        {can(me, "stok.transfer") ? (
+        {can(me, "stok.transfer") && fiturAktif("multiCabang") ? (
           <Button asChild size="sm" variant="outline">
             <Link href="/admin/stok/transfer">
               <ArrowLeftRight /> Transfer
@@ -167,7 +170,7 @@ async function Content({ searchParams }: Props) {
                 const c = r.cells[l.id];
                 return (
                   <div key={l.id} className={cn("flex items-center justify-between rounded-md border border-garis px-2 py-1 text-xs", cellTone(c.available, m.threshold))}>
-                    <span className="truncate">{l.name.replace("Rona ", "")}</span>
+                    <span className="truncate">{l.name.replace(`${MEREK.nama} `, "")}</span>
                     <span className="font-semibold tabular-nums">
                       {c.available ?? "-"}
                       {c.reserved ? <span className="font-normal text-abu-hangat"> +{c.reserved}</span> : null}

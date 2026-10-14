@@ -32,7 +32,7 @@ export function FilterPanel({ filters, facets, labels, basePath, hide }: Omit<Pr
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-serif text-lg text-kopi">Filter</h2>
           {active > 0 ? (
-            <button type="button" onClick={() => apply(clearFilters(filters))} className="text-xs font-semibold text-rona hover:underline">
+            <button type="button" onClick={() => apply(clearFilters(filters))} className="text-xs font-semibold text-aksen hover:underline">
               Hapus semua ({active})
             </button>
           ) : null}
@@ -100,7 +100,7 @@ export function FilterSheet({ filters, facets, labels, basePath, scopeQuery, tot
             <Dialog.Title className="font-serif text-xl text-kopi">Filter</Dialog.Title>
             <div className="flex items-center gap-2">
               {countActiveFilters(pendingFilters) > 0 ? (
-                <button type="button" onClick={() => update(clearFilters(pendingFilters))} className="text-sm font-semibold text-rona hover:underline">
+                <button type="button" onClick={() => update(clearFilters(pendingFilters))} className="text-sm font-semibold text-aksen hover:underline">
                   Hapus semua
                 </button>
               ) : null}

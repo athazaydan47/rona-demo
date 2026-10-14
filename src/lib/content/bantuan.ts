@@ -1,6 +1,8 @@
 // Satu sumber teks halaman bantuan dan kebijakan toko (Fase 8A): FAQ, cara belanja, syarat, pengiriman, privasi, kontak.
 // Dipakai halaman /faq, /cara-belanja, /kebijakan/*, /hubungi, dan bisa dibaca fitur lain supaya tidak ada dua versi teks.
 import { RETURN_POLICY } from "./return-policy";
+import { MEREK } from "@/config/merek";
+import { fiturAktif } from "@/config/fitur";
 
 export type HelpLink = { href: string; label: string };
 export const HELP_LINKS: HelpLink[] = [
@@ -8,7 +10,7 @@ export const HELP_LINKS: HelpLink[] = [
   { href: "/cek-ongkir", label: "Cek ongkir" },
   { href: "/lacak", label: "Lacak pesanan" },
   { href: "/faq", label: "Pertanyaan umum" },
-  { href: "/toko", label: "Toko kami" },
+  ...(fiturAktif("multiCabang") ? [{ href: "/toko", label: "Toko kami" }] : []),
   { href: "/hubungi", label: "Hubungi kami" },
 ];
 export const POLICY_LINKS: HelpLink[] = [
@@ -21,7 +23,7 @@ export const POLICY_LINKS: HelpLink[] = [
 export type Section = { title: string; paragraphs?: string[]; items?: string[] };
 
 export const CARA_BELANJA: { title: string; text: string }[] = [
-  { title: "Cari produk yang kamu mau", text: "Ketik nama produk, merek, atau kategori di kotak cari. Salah ketik sedikit tidak apa-apa. Kamu juga bisa menulis kalimat, misalnya \"sunscreen yang ga lengket buat kulit berminyak\", atau bertanya ke Rona Advisor." },
+  { title: "Cari produk yang kamu mau", text: `Ketik nama produk, merek, atau kategori di kotak cari. Salah ketik sedikit tidak apa-apa. Kamu juga bisa menulis kalimat, misalnya "sunscreen yang ga lengket buat kulit berminyak", atau bertanya ke ${MEREK.asisten.nama}.` },
   { title: "Pilih shade dan cek stoknya", text: "Di halaman produk, pilih shade dengan swatch warna. Stok tiap cabang dan Gudang Online tampil apa adanya. Belum yakin shade-nya? Pakai Cari shade-ku atau Padanan Shade." },
   { title: "Masukkan ke keranjang", text: "Tekan Tambah ke Keranjang. Harga, promo, dan voucher selalu dihitung ulang di server saat checkout, jadi yang kamu lihat di keranjang itulah yang kamu bayar." },
   { title: "Checkout 3 langkah", text: "Alamat, Pengiriman, lalu Pembayaran. Pilih Kirim ke alamatmu atau Ambil di Toko di cabang yang punya stoknya. Ongkir muncul setelah kecamatan dipilih, lengkap dengan estimasi tiba." },
@@ -30,7 +32,7 @@ export const CARA_BELANJA: { title: string; text: string }[] = [
 ];
 
 export const FAQ: { q: string; a: string }[] = [
-  { q: "Apakah ini toko sungguhan?", a: "Bukan. Rona Beauty adalah toko demo dengan data fiktif: merek, produk, harga, cabang, ulasan, dan pesanan di sini dibuat untuk memamerkan fitur. Tidak ada barang yang dikirim dan tidak ada uang yang berpindah. Lihat halaman Tentang demo." },
+  { q: "Apakah ini toko sungguhan?", a: `Bukan. ${MEREK.namaLengkap} adalah toko demo dengan data fiktif: merek, produk, harga, cabang, ulasan, dan pesanan di sini dibuat untuk memamerkan fitur. Tidak ada barang yang dikirim dan tidak ada uang yang berpindah. Lihat halaman Tentang demo.` },
   { q: "Bagaimana cara tahu shade yang cocok untukku?", a: "Pakai Cari shade-ku di halaman produk (pilih kedalaman dan undertone kulitmu), atau Padanan Shade untuk mencari shade yang mirip dengan produk yang sudah kamu pakai. Hasilnya berupa 3 shade terdekat beserta alasannya." },
   { q: "Apakah produk yang habis bisa dipesan?", a: "Belum bisa, tapi kamu bisa menekan Kabari aku di shade yang habis. Kami beri tahu lewat WhatsApp atau email saat stoknya kembali. Kamu juga bisa melihat shade lain yang tersedia dan stok di cabang lain." },
   { q: "Bisa ambil di toko?", a: "Bisa. Pilih Ambil di Toko saat checkout di cabang yang punya stok semua barangmu. Pesanan sebelum pukul 16.00 WIB saat toko buka biasanya siap diambil sekitar 2 jam setelah dipesan. Bayar di tempat juga tersedia untuk pesanan ambil." },
@@ -51,16 +53,16 @@ export const PENGIRIMAN: Section[] = [
 ];
 
 export const SYARAT: Section[] = [
-  { title: "Tentang layanan ini", paragraphs: ["Rona Beauty adalah toko demo. Semua produk, harga, stok, cabang, dan transaksi bersifat fiktif dan dapat direset setiap hari. Dengan memakai situs ini, kamu memahami bahwa tidak ada barang yang dikirim dan tidak ada pembayaran sungguhan."] },
+  { title: "Tentang layanan ini", paragraphs: [`${MEREK.namaLengkap} adalah toko demo. Semua produk, harga, stok, cabang, dan transaksi bersifat fiktif dan dapat direset setiap hari. Dengan memakai situs ini, kamu memahami bahwa tidak ada barang yang dikirim dan tidak ada pembayaran sungguhan.`] },
   { title: "Akun", items: ["Akun dibuat dengan nomor WhatsApp dan kode OTP. Jaga kerahasiaan kode OTP.", "Kamu bertanggung jawab atas aktivitas di akunmu. Keluar dari semua perangkat tersedia di halaman Profil."] },
   { title: "Harga, promo, dan stok", items: ["Harga yang berlaku adalah harga saat pesanan dibuat, dihitung ulang di server.", "Flash sale punya kuota dan batas per pembeli. Voucher punya masa berlaku, kuota, dan minimal belanja.", "Stok dipesan saat pesanan dibuat dan dilepas bila pesanan kedaluwarsa atau dibatalkan."] },
   { title: "Pesanan dan pembayaran", items: ["Pesanan yang belum dibayar sampai batas waktunya dibatalkan otomatis.", "Pesanan ambil di toko yang tidak diambil dalam 3 hari setelah siap bisa dibatalkan oleh toko.", "Pesanan yang sudah dikirim otomatis dianggap selesai 3 hari setelah tanggal kirim bila tidak ada laporan."] },
   { title: "Retur", paragraphs: [`${RETURN_POLICY.window} ${RETURN_POLICY.scope}`] },
-  { title: "Konten dan AI", items: ["Ulasan yang melanggar aturan (kasar, promosi, atau tidak terkait produk) bisa disembunyikan oleh moderator.", "Jawaban Rona Advisor dan fitur AI lain bisa keliru; produk dan harga selalu diambil dari katalog, bukan dari jawaban AI."] },
+  { title: "Konten dan AI", items: ["Ulasan yang melanggar aturan (kasar, promosi, atau tidak terkait produk) bisa disembunyikan oleh moderator.", `Jawaban ${MEREK.asisten.nama} dan fitur AI lain bisa keliru; produk dan harga selalu diambil dari katalog, bukan dari jawaban AI.`] },
 ];
 
 export const PRIVASI: Section[] = [
-  { title: "Data yang kami kumpulkan", items: ["Akun dan pesanan: nama, nomor WhatsApp, email (opsional), alamat, dan isi pesanan yang kamu buat.", "Profil kulit dari kuis atau formulir: jenis kulit, masalah kulit, sensitivitas, budget, warna kulit, dan rutinitas. Tersimpan di akunmu, atau di perangkat ini (cookie) bila belum masuk.", "Pemakaian fitur AI: jenis fitur, jumlah token, lama proses, dan berhasil atau tidak, dengan penanda pengunjung yang sudah diacak. Isi percakapan Rona Advisor tidak disimpan di database Rona; riwayatnya hanya ada di browsermu.", "Catatan teknis: alamat IP yang diacak untuk membatasi percobaan OTP, dan log kesalahan tanpa data pribadi."] },
+  { title: "Data yang kami kumpulkan", items: ["Akun dan pesanan: nama, nomor WhatsApp, email (opsional), alamat, dan isi pesanan yang kamu buat.", "Profil kulit dari kuis atau formulir: jenis kulit, masalah kulit, sensitivitas, budget, warna kulit, dan rutinitas. Tersimpan di akunmu, atau di perangkat ini (cookie) bila belum masuk.", `Pemakaian fitur AI: jenis fitur, jumlah token, lama proses, dan berhasil atau tidak, dengan penanda pengunjung yang sudah diacak. Isi percakapan ${MEREK.asisten.nama} tidak disimpan di database ${MEREK.nama}; riwayatnya hanya ada di browsermu.`, "Catatan teknis: alamat IP yang diacak untuk membatasi percobaan OTP, dan log kesalahan tanpa data pribadi."] },
   { title: "Foto dan link yang kamu kirim", items: ["Semua fitur ini opsional. Kuis kulit, pencarian, dan belanja tetap bisa dipakai tanpa foto atau link.", "Foto wajah untuk bantu isi kuis hanya dipakai untuk memperkirakan kondisi kulit yang terlihat. Foto diperkecil dan metadatanya dibuang di perangkatmu sebelum dikirim, diproses di memori, lalu langsung dibuang. Tidak disimpan di server, database, penyimpanan berkas, atau log.", "AI tidak menilai usia, jenis kelamin, etnis, atau identitas, dan tidak memberi diagnosis atau saran pengobatan. Hasilnya hanya usulan jawaban kuis yang bisa kamu ubah.", "Screenshot untuk cari dupe diperlakukan sama: diproses lalu dibuang.", "Link TikTok atau YouTube: kami hanya mengambil judul atau caption, nama kreator, dan alamat gambar sampul dari layanan oEmbed resmi platform itu. Video tidak diunduh, sampul tidak disimpan. Hasil pengenalan produk (teks saja) disimpan 7 hari per link.", "Foto, screenshot, dan teks dikirim ke penyedia AI (Google Gemini lewat Cloudflare AI Gateway) hanya untuk diproses saat itu. Untuk foto dan screenshot, isi permintaan tidak dicatat di log gateway."] },
   { title: "Cookie", items: ["Cookie sesi untuk akun pembeli dan staf, cookie keranjang, cookie profil kulit tamu, dan penanda pengunjung acak untuk batas pemakaian AI.", "Penyimpanan browser (localStorage) untuk wishlist tamu, riwayat pencarian, riwayat chat, dan panduan demo. Tidak ada cookie iklan atau pelacak pihak ketiga."] },
   { title: "Hakmu sesuai UU Pelindungan Data Pribadi", items: ["Mengakses dan memperbaiki datamu lewat halaman Akun.", "Menghapus profil kulit dan alamat tersimpan kapan saja dari halaman Akun.", "Meminta penghapusan akun beserta datanya lewat kontak di bawah. Data pesanan yang wajib disimpan untuk pembukuan dianonimkan.", "Menarik persetujuan pemakaian foto: tidak ada yang perlu ditarik karena foto tidak pernah disimpan."] },

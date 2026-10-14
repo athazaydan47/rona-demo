@@ -10,13 +10,14 @@ import { loadCatalogItems } from "@/lib/catalog/load-items";
 import { now } from "@/lib/clock";
 import { rejectCrossOrigin } from "@/lib/security/origin";
 import { currentSkinProfile } from "@/lib/skin/current";
+import { MEREK } from "@/config/merek";
 
-// Rona Advisor. Jawaban dialirkan sebagai NDJSON: status per tool, potongan teks, lalu kartu produk dari data server.
+// Advisor pembeli. Jawaban dialirkan sebagai NDJSON: status per tool, potongan teks, lalu kartu produk dari data server.
 export const maxDuration = 60;
 
 export async function GET() {
   const cfg = aiConfig();
-  if (!aiTersedia(cfg)) return NextResponse.json({ tersedia: false }, { status: 404 });
+  if (!aiTersedia("aiPembeli", cfg)) return NextResponse.json({ tersedia: false }, { status: 404 });
   const [istirahat, profil] = await Promise.all([globalCapReached(db, cfg, now()).catch(() => false), currentSkinProfile().catch(() => null)]);
   return NextResponse.json({ tersedia: true, istirahat, pesanIstirahat: RESTING_MESSAGE, profil: Boolean(profil?.skinType) }, { headers: { "Cache-Control": "no-store" } });
 }
@@ -35,8 +36,8 @@ export async function POST(request: NextRequest) {
   const crossOrigin = rejectCrossOrigin(request);
   if (crossOrigin) return crossOrigin;
   const cfg = aiConfig();
-  const model = aiModel(cfg);
-  if (!model) return NextResponse.json({ ok: false, message: "Rona Advisor belum tersedia." }, { status: 404 });
+  const model = aiModel("aiPembeli", cfg);
+  if (!model) return NextResponse.json({ ok: false, message: `${MEREK.asisten.nama} belum tersedia.` }, { status: 404 });
   const body = (await request.json().catch(() => null)) as { pesan?: unknown; produkId?: unknown } | null;
   const history = parseHistory(body?.pesan);
   if (!history) return NextResponse.json({ ok: false, message: "Pesan tidak valid." }, { status: 400 });
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
   const limit = await checkChatLimit(db, cfg, hash, at);
   if (!limit.ok) return NextResponse.json({ ok: false, message: limit.message, alasan: limit.reason }, { status: 429 });
   const profile = await currentSkinProfile();
-  // Corong Rona Advisor (tab Laporan): satu pesan pembeli satu catatan, tanpa isi pesan.
+  // Corong Advisor (tab Laporan): satu pesan pembeli satu catatan, tanpa isi pesan.
   await db.insert(schema.advisorEvents).values({ kind: "percakapan", visitorHash: hash, createdAt: at }).catch(() => {});
 
   const encoder = new TextEncoder();

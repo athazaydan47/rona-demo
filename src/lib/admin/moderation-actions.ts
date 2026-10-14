@@ -11,6 +11,7 @@ import { currentStaff } from "./current";
 import { adjustPoints } from "./customers";
 import { resendNotification } from "./outbox";
 import { deleteReply, hideReviews, replyReview, showReview } from "./reviews";
+import { TIDAK_VALID, cocok, skema } from "@/lib/validasi";
 
 const DENIED = { ok: false as const, message: "Sesi staf berakhir. Masuk lagi, ya." };
 const productTagsFor = (slugs: string[]) => [cacheTags.products(), ...slugs.map(cacheTags.product)];
@@ -18,7 +19,9 @@ const productTagsFor = (slugs: string[]) => [cacheTags.products(), ...slugs.map(
 export async function hideReviewsAction(ids: number[], reason: string) {
   const me = await currentStaff();
   if (!me) return DENIED;
-  const r = await hideReviews(db, me, Array.isArray(ids) ? ids.map(Number) : [], String(reason ?? ""), { now: now() });
+  const input = cocok(skema.sembunyikanUlasan, { ids, reason });
+  if (!input) return TIDAK_VALID;
+  const r = await hideReviews(db, me, input.ids, input.reason, { now: now() });
   if (r.ok && r.slugs.length) updateCatalogNow(productTagsFor(r.slugs));
   return r;
 }
@@ -34,7 +37,9 @@ export async function showReviewAction(id: number) {
 export async function replyReviewAction(id: number, text: string, opts: { aiAssisted?: boolean } = {}) {
   const me = await currentStaff();
   if (!me) return DENIED;
-  const r = await replyReview(db, me, Number(id), String(text ?? ""), { now: now(), aiAssisted: opts.aiAssisted === true });
+  const input = cocok(skema.balasUlasan, { id, text, aiAssisted: opts?.aiAssisted });
+  if (!input) return TIDAK_VALID;
+  const r = await replyReview(db, me, input.id, input.text, { now: now(), aiAssisted: input.aiAssisted === true });
   if (r.ok) {
     updateCatalogNow(productTagsFor(r.slugs));
     if (r.notified) scheduleEmailDispatch();

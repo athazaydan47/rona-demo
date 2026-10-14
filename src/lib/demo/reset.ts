@@ -7,6 +7,7 @@ import { seedAll, type SeedSummary } from "@/db/seed/all";
 import { writeAudit } from "@/lib/admin/audit";
 import type { AnyDb } from "@/lib/db-types";
 import { deleteAllReviewPhotos } from "@/lib/reviews/storage";
+import { logEvent } from "@/lib/log";
 
 const LOCK_KEY = 726_277_001;
 export const MANUAL_RESET_COOLDOWN_MS = 5 * 60_000;
@@ -68,6 +69,7 @@ export async function resetDemoData(
     after: { durationMs, truncateMs: Math.round(truncateMs), seedMs: Math.round(seedMs), photos, ...summary },
     at: new Date(now.getTime() + durationMs),
   });
+  logEvent("demo.reset", { sumber: opts.source, durasiMs: durationMs, produk: summary.products, pesananRiwayat: summary.historyOrders });
   return { durationMs, seedMs: Math.round(seedMs), truncateMs: Math.round(truncateMs), photos, summary };
 }
 

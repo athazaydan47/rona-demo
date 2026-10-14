@@ -25,6 +25,8 @@ import { adminSearch } from "./search";
 import { createStaff, isDemoStaffEmail, resetStaffPassword, setStaffActive, updateStaff } from "./staff";
 import { receiveStock, searchVariants, submitOpname, transferStock } from "./stock";
 import { scheduleEmailDispatch } from "@/lib/email/schedule";
+import { MEREK } from "@/config/merek";
+import { cocok, daftarId, skema } from "@/lib/validasi";
 
 const DENIED = { ok: false as const, message: "Sesi staf berakhir. Masuk lagi, ya." };
 
@@ -44,7 +46,9 @@ async function setCookie(token: string, expiresAt: Date) {
 
 export type LoginResponse = { ok: true; redirectTo: string } | { ok: false; message: string };
 
-export async function staffLoginAction(input: { email: string; password: string; kembali?: string }): Promise<LoginResponse> {
+export async function staffLoginAction(raw: { email: string; password: string; kembali?: string }): Promise<LoginResponse> {
+  const input = cocok(skema.masukStaf, raw);
+  if (!input) return { ok: false, message: "Email atau kata sandi salah." };
   const secret = authSecret();
   if (!secret) return { ok: false, message: "Masuk staf belum tersedia: SESSION_SECRET belum diisi." };
   const meta = await requestMeta();
@@ -55,14 +59,16 @@ export async function staffLoginAction(input: { email: string; password: string;
 }
 
 // Masuk cepat akun demo tanpa kata sandi. Hanya ada dan hanya berfungsi saat DEMO_MODE=true.
-export async function demoStaffLoginAction(input: { email: string; kembali?: string }): Promise<LoginResponse> {
+export async function demoStaffLoginAction(raw: { email: string; kembali?: string }): Promise<LoginResponse> {
   if (!env.demoMode) return { ok: false, message: "Masuk cepat hanya tersedia di mode demo." };
+  const input = cocok(skema.masukStafDemo, raw);
+  if (!input) return { ok: false, message: "Akun demo tidak dikenal." };
   const email = normalizeEmail(input?.email ?? "");
   if (!isDemoStaffEmail(email)) return { ok: false, message: "Akun demo tidak dikenal." };
   const [s] = await db.select({ id: schema.staff.id, name: schema.staff.name, isActive: schema.staff.isActive }).from(schema.staff).where(eq(schema.staff.email, email)).limit(1);
   if (!s || !s.isActive) return { ok: false, message: "Akun demo belum disiapkan di database ini. Jalankan seed demo dulu." };
   const meta = await requestMeta();
-  const r = await finishStaffLogin(db, s, { email, ipHash: hashIp(authSecret() ?? "rona", meta.ip), now: now(), userAgent: meta.userAgent, via: "tombol akun demo" });
+  const r = await finishStaffLogin(db, s, { email, ipHash: hashIp(authSecret() ?? MEREK.kunci, meta.ip), now: now(), userAgent: meta.userAgent, via: "tombol akun demo" });
   if (!r.ok) return { ok: false, message: r.message };
   await setCookie(r.token, r.expiresAt);
   return { ok: true, redirectTo: safeReturn(input?.kembali) };
@@ -114,8 +120,9 @@ export async function processOrdersAction(numbers: string[]) {
   scheduleEmailDispatch(); // kirim email dari outbox setelah respons
   const me = await currentStaff();
   if (!me) return DENIED;
-  if (!Array.isArray(numbers)) return { ok: false as const, message: "Pilih pesanan dulu." };
-  const results = await processSelected(db, me, numbers.map((n) => String(n).toUpperCase()), { now: now(), siteUrl: siteUrl() });
+  const list = cocok(skema.nomorPesananList, numbers);
+  if (!list) return { ok: false as const, message: "Pilih pesanan dulu." };
+  const results = await processSelected(db, me, list, { now: now(), siteUrl: siteUrl() });
   return { ok: true as const, results };
 }
 
@@ -128,8 +135,9 @@ export async function searchVariantsAction(q: string) {
 // Stok tersedia per lokasi (yang boleh dilihat) untuk varian di formulir stok.
 export async function variantAvailabilityAction(variantIds: number[]) {
   const me = await currentStaff();
-  if (!me || !can(me, "stok.lihat") || !Array.isArray(variantIds)) return {};
-  const ids = variantIds.filter((n) => Number.isInteger(n)).slice(0, 60);
+  const parsed = cocok(daftarId(60), variantIds);
+  if (!me || !can(me, "stok.lihat") || !parsed) return {};
+  const ids = parsed;
   if (!ids.length) return {};
   const rows = await db.select({ variantId: schema.inventory.variantId, locationId: schema.inventory.locationId, onHand: schema.inventory.onHand, reserved: schema.inventory.reserved }).from(schema.inventory).where(inArray(schema.inventory.variantId, ids));
   const out: Record<number, Record<number, number>> = {};

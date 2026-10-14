@@ -16,6 +16,7 @@ import { formatDateWib } from "@/lib/format";
 import { matchesSource, numbersInText, unsourcedNumbers } from "./angka";
 import { formatCell, humanizeHeader } from "./label";
 import { executeTool, toolsFor, type ExecOutcome, type ToolResult } from "./tools";
+import { MEREK } from "@/config/merek";
 
 export type Door = "panel" | "kabar_harian" | "wa" | "eval";
 export type AsistenTurn = { role: "user" | "assistant"; text: string };
@@ -73,7 +74,7 @@ export const ANSWER_SCHEMA: Schema = {
 export function systemPrompt(staff: StaffPrincipal, now: Date, toolNames: string[], locationNames: string[] = []) {
   const role = ROLE_TEMPLATES[staff.roleSlug]?.name ?? staff.roleSlug;
   return [
-    "Kamu Asisten Admin Rona Beauty, toko kosmetik demo dengan data fiktif. Kamu membantu owner dan staf membaca data toko.",
+    `Kamu Asisten Admin ${MEREK.namaLengkap}, toko kosmetik demo dengan data fiktif. Kamu membantu owner dan staf membaca data toko.`,
     `Yang bertanya: ${staff.name}, peran ${role}${locationNames.length ? `, hanya untuk ${locationNames.join(", ")}` : ", semua lokasi"}. Hari ini ${formatDateWib(now)} (WIB).`,
     `Tool yang boleh kamu pakai: ${toolNames.join(", ")}.`,
     "Aturan wajib:",
@@ -154,6 +155,18 @@ const historyToContents = (history: AsistenTurn[]): Content[] =>
     .map((t) => ({ role: t.role === "user" ? ("user" as const) : ("model" as const), parts: [{ text: t.text.slice(0, MAX_QUESTION) }] }))
     .filter((c) => c.parts[0].text.trim());
 
+// Hari raya tanpa tanggal (Fase 8B): tanggalnya berubah tiap tahun dan periodenya relatif (sehari atau seminggu),
+// jadi asisten selalu bertanya balik sebelum memanggil tool, tanpa bergantung pada model. Model sempat mengubah
+// "Natal kemarin" menjadi satu tanggal sendiri dan menjawab omzet Rp0.
+const HARI_RAYA = /\b(natal|lebaran|idul ?fitri|idul ?adha|tahun baru|imlek|ramadh?an|harbolnas)\b/i;
+const ADA_TANGGAL = /\b\d{1,2}\s*(jan|feb|mar|apr|mei|jun|jul|agu|agt|ags|sep|okt|nov|des)[a-z]*\b|\b\d{1,2}[/-]\d{1,2}\b/i;
+export function tanyaTanggalHariRaya(question: string): string | null {
+  const m = HARI_RAYA.exec(question);
+  if (!m || ADA_TANGGAL.test(question)) return null;
+  const nama = m[1].toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
+  return `Periode ${nama} yang kamu maksud tanggal berapa sampai berapa? Misal 20 sampai 26 Des 2025.`;
+}
+
 export async function runAssistant(deps: AsistenDeps, history: AsistenTurn[], onStatus?: (text: string) => void): Promise<AsistenAnswer> {
   const t0 = Date.now();
   const tools = toolsFor(deps.staff);
@@ -170,6 +183,13 @@ export async function runAssistant(deps: AsistenDeps, history: AsistenTurn[], on
   const base = () => ({ toolCalls, denied, usage, regenerated, ms: Date.now() - t0 });
   const log = (a: AsistenAnswer) =>
     logAi(deps.db, { feature: deps.door === "eval" ? "eval" : "asisten", model: deps.model.name, inputTokens: usage.input, outputTokens: usage.output, latencyMs: a.ms, ok: a.ok, error: a.error ?? null, staffId: deps.staff.id, door: deps.door, tools: toolCalls, warning: a.peringatan, visitorHash: `staf:${deps.staff.id}`, at: deps.now }).catch(() => {});
+
+  const tanyaHariRaya = tanyaTanggalHariRaya(question);
+  if (tanyaHariRaya) {
+    const answer: AsistenAnswer = { ok: true, status: "langsung", teks: tanyaHariRaya, pilihan: [], angka: [], tabel: null, tautan: [], peringatan: null, ...base() };
+    await log(answer);
+    return answer;
+  }
 
   try {
     for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {

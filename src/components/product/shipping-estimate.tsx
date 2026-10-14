@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { Truck, Zap } from "lucide-react";
 import { formatRupiah } from "@/lib/format";
 import { cheapestAndFastest, quickCities, quoteShipping } from "@/lib/shipping";
+import { kunciLokal } from "@/config/merek";
 
-const KEY = "rona.kota";
+const KEY = kunciLokal("kota");
 
 export function ShippingEstimate({ weightGram, rates, active }: { weightGram: number; rates?: Parameters<typeof quoteShipping>[0]["rates"]; active?: Parameters<typeof quoteShipping>[0]["active"] }) {
   const [city, setCity] = useState<string>("");
@@ -26,7 +27,7 @@ export function ShippingEstimate({ weightGram, rates, active }: { weightGram: nu
     <div className="rounded-card border border-garis bg-putih p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-kopi">
-          <Truck className="size-4 text-rona" aria-hidden /> Estimasi ongkir
+          <Truck className="size-4 text-aksen" aria-hidden /> Estimasi ongkir
         </p>
         <label className="flex items-center gap-2 text-xs text-abu-hangat">
           Kirim ke
@@ -40,7 +41,7 @@ export function ShippingEstimate({ weightGram, rates, active }: { weightGram: nu
                 // abaikan
               }
             }}
-            className="h-9 rounded-pill border border-garis bg-putih px-3 text-sm text-kopi outline-none focus-visible:border-rona focus-visible:shadow-ring"
+            className="h-9 rounded-pill border border-garis bg-putih px-3 text-sm text-kopi outline-none focus-visible:border-aksen focus-visible:shadow-ring"
             aria-label="Kota tujuan"
           >
             <option value="">Pilih kota</option>

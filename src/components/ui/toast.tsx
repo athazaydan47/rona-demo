@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { CheckCircle2, Info, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -31,32 +30,36 @@ function subscribe(cb: () => void) {
   return () => listeners.delete(cb);
 }
 
+// Animasi masuk dan keluar dengan CSS (Fase 8B): Toaster ada di setiap halaman, jadi tidak memuat Motion.
 function ToastItem({ t }: { t: Toast }) {
-  const reduce = useReducedMotion();
+  const [keluar, setKeluar] = useState(false);
   useEffect(() => {
-    const timer = window.setTimeout(() => dismissToast(t.id), t.duration);
+    const timer = window.setTimeout(() => setKeluar(true), t.duration);
     return () => window.clearTimeout(timer);
   }, [t.id, t.duration]);
+  useEffect(() => {
+    if (!keluar) return;
+    const timer = window.setTimeout(() => dismissToast(t.id), 180);
+    return () => window.clearTimeout(timer);
+  }, [keluar, t.id]);
   const Icon = t.tone === "info" ? Info : CheckCircle2;
   return (
-    <motion.div
-      layout
-      initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={reduce ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.98 }}
-      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+    <div
       role="status"
-      className="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-card border border-garis bg-putih p-3.5 pr-2 shadow-lift"
+      className={cn(
+        "pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-card border border-garis bg-putih p-3.5 pr-2 shadow-lift transition-[opacity,transform] duration-[180ms] ease-[var(--ease-soft)] animate-muncul",
+        keluar && "translate-y-2 opacity-0",
+      )}
     >
-      <Icon className={cn("mt-0.5 size-5 shrink-0", t.tone === "info" ? "text-rona" : "text-sukses")} aria-hidden />
+      <Icon className={cn("mt-0.5 size-5 shrink-0", t.tone === "info" ? "text-aksen" : "text-sukses")} aria-hidden />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-kopi">{t.title}</p>
         {t.description ? <p className="mt-0.5 text-xs text-abu-hangat">{t.description}</p> : null}
       </div>
-      <button type="button" onClick={() => dismissToast(t.id)} className="grid size-8 shrink-0 place-items-center rounded-full text-abu-hangat hover:bg-porselen" aria-label="Tutup notifikasi">
+      <button type="button" onClick={() => setKeluar(true)} className="grid size-8 shrink-0 place-items-center rounded-full text-abu-hangat hover:bg-porselen" aria-label="Tutup notifikasi">
         <X className="size-4" />
       </button>
-    </motion.div>
+    </div>
   );
 }
 
@@ -64,11 +67,9 @@ export function Toaster() {
   const list = useSyncExternalStore(subscribe, () => toasts, () => toasts);
   return (
     <div className="pointer-events-none fixed inset-x-4 bottom-20 z-[60] flex flex-col items-center gap-2 md:inset-x-auto md:right-6 md:bottom-6 md:items-end" aria-live="polite">
-      <AnimatePresence initial={false}>
-        {list.map((t) => (
-          <ToastItem key={t.id} t={t} />
-        ))}
-      </AnimatePresence>
+      {list.map((t) => (
+        <ToastItem key={t.id} t={t} />
+      ))}
     </div>
   );
 }

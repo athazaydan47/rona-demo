@@ -4,23 +4,22 @@ import path from "node:path";
 import { normalizeName, trigramSimilarity } from "./cocok";
 
 export type Guide = { slug: string; title: string; keywords: string[]; body: string };
-const DIR = path.join(process.cwd(), "docs", "panduan-admin");
-
+// Path ditulis statis (tanpa parameter) supaya pelacak berkas Next hanya menyertakan docs/panduan-admin ke fungsi server,
+// bukan seluruh proyek (peringatan "Dynamic filesystem access" saat build, Fase 8B).
 let cache: Guide[] | null = null;
-export async function loadGuides(dir = DIR): Promise<Guide[]> {
-  if (cache && dir === DIR) return cache;
-  const files = (await readdir(dir)).filter((f) => f.endsWith(".md") && f !== "README.md").sort();
-  const guides = await Promise.all(
+export async function loadGuides(): Promise<Guide[]> {
+  if (cache) return cache;
+  const files = (await readdir(path.join(process.cwd(), "docs", "panduan-admin"))).filter((f) => f.endsWith(".md") && f !== "README.md").sort();
+  cache = await Promise.all(
     files.map(async (f) => {
-      const text = await readFile(path.join(dir, f), "utf8");
+      const text = await readFile(path.join(process.cwd(), "docs", "panduan-admin", f), "utf8");
       const title = /^#\s+(.+)$/m.exec(text)?.[1]?.trim() ?? f;
       const keywords = (/^Kata kunci:\s*(.+)$/m.exec(text)?.[1] ?? "").split(",").map((k) => k.trim()).filter(Boolean);
       const body = text.replace(/^#\s+.+$/m, "").replace(/^Kata kunci:.*$/m, "").trim();
       return { slug: f.replace(/\.md$/, ""), title, keywords, body };
     }),
   );
-  if (dir === DIR) cache = guides;
-  return guides;
+  return cache;
 }
 
 // Topik ke panduan: kata kunci yang muncul di topik, lalu kemiripan trigram dengan judul.

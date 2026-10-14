@@ -20,7 +20,7 @@ export function ScrollRow({ children, ariaLabel, className, desktop = "md:grid-c
       aria-label={ariaLabel}
       tabIndex={0}
       className={cn(
-        "-mx-4 snap-x snap-mandatory overflow-x-auto px-4 pb-1 scrollbar-none focus-visible:rounded-lg focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-rona md:mx-0 md:snap-none md:overflow-visible md:px-0 md:pb-0",
+        "-mx-4 snap-x snap-mandatory overflow-x-auto px-4 pb-1 scrollbar-none focus-visible:rounded-lg focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-aksen md:mx-0 md:snap-none md:overflow-visible md:px-0 md:pb-0",
         className,
       )}
     >

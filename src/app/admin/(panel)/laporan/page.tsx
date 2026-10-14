@@ -17,6 +17,7 @@ import { PERIOD_PRESETS } from "@/lib/reports";
 import { periodLabel } from "@/lib/reports/excel";
 import { reportForRequest, type ReportParams } from "@/lib/reports/request";
 import { cn } from "@/lib/utils";
+import { MEREK } from "@/config/merek";
 
 export const metadata: Metadata = { title: "Laporan" };
 
@@ -29,7 +30,7 @@ const TABS = [
   { key: "produk", label: "Produk terlaris" },
   { key: "promo", label: "Voucher dan flash sale" },
   { key: "pelanggan", label: "Pelanggan" },
-  { key: "advisor", label: "Rona Advisor" },
+  { key: "advisor", label: MEREK.asisten.nama },
   { key: "ai", label: "Kesehatan AI" },
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
@@ -131,7 +132,7 @@ async function Content({ searchParams }: { searchParams: Promise<SP> }) {
           </label>
         ) : null}
         <label className="flex h-10 items-center gap-2 text-sm">
-          <input type="checkbox" name="banding" value="1" defaultChecked={Boolean(compare)} className="size-4 accent-rona" /> Bandingkan periode sebelumnya
+          <input type="checkbox" name="banding" value="1" defaultChecked={Boolean(compare)} className="size-4 accent-aksen" /> Bandingkan periode sebelumnya
         </label>
         <div className="flex justify-end">
           <Button type="submit" size="sm">

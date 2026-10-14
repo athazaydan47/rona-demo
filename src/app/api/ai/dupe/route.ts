@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
   const crossOrigin = rejectCrossOrigin(request);
   if (crossOrigin) return crossOrigin;
   const cfg = aiConfig();
-  const model = aiModel(cfg);
+  const model = aiModel("aiFotoLink", cfg);
   if (!model) return NextResponse.json({ ok: false, message: "Fitur ini belum tersedia." }, { status: 404 });
   const at = now();
   const hash = await currentVisitorHash();

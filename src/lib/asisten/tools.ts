@@ -26,6 +26,8 @@ import { brandCandidates, categoryCandidates, locationCandidates, matchName, pro
 import { findGuide, loadGuides } from "./panduan";
 import { applyRole, lockedLocations } from "./peran";
 import { parsePembanding, parsePeriode, PERIODE_CONTOH, type Periode } from "./periode";
+import { MEREK } from "@/config/merek";
+import { fiturAktif, type Fitur } from "@/config/fitur";
 
 export type ToolCtx = { db: AnyDb; staff: StaffPrincipal; now: Date };
 export type ToolResult = Record<string, unknown>;
@@ -304,14 +306,14 @@ const TOOLS: ToolDef[] = [
   },
   {
     name: "cari_pesanan",
-    description: `Cari pesanan dengan nomor pesanan (RONA-...) atau nomor WA pembeli. Maksimal 5 pesanan terbaru. ${BUKAN_OMZET}`,
+    description: `Cari pesanan dengan nomor pesanan (${MEREK.prefiksPesanan}-...) atau nomor WA pembeli. Maksimal 5 pesanan terbaru. ${BUKAN_OMZET}`,
     parameters: obj({ cari: str("nomor pesanan atau nomor WA") }, ["cari"]),
     izin: ["pesanan.lihat"],
     async run(a, ctx) {
       const q = String(a.cari ?? "").trim();
       if (q.length < 4) throw new ToolProblem({ status: "kurang_informasi", pesan: "Sebutkan nomor pesanan atau nomor WA pembeli." });
       const digits = q.replace(/\D/g, "");
-      const term = /rona-/i.test(q) ? q.toUpperCase() : digits.length >= 6 ? digits.slice(-9) : q;
+      const term = q.toUpperCase().startsWith(`${MEREK.prefiksPesanan}-`) ? q.toUpperCase() : digits.length >= 6 ? digits.slice(-9) : q;
       const r = await listAdminOrders(ctx.db, ctx.staff, { q: term, pageSize: 5 });
       if (!r.rows.length) return { status: "tidak_ditemukan", dicari: q, pesan: "Tidak ada pesanan yang cocok di lokasi yang boleh kamu lihat." };
       return { ditemukan: r.total, pesanan: r.rows.map((o) => ({ nomor: o.number, status: statusLabels[o.status], metode: o.method === "kirim" ? "Kirim" : "Ambil di toko", cabang: o.locationName, dibuat: formatDateTimeWib(o.createdAt), totalRp: o.total, jumlahBarang: o.itemCount, nama: o.name, nomorWa: o.phone, tautan: `/admin/pesanan/${o.number}` })) };
@@ -389,7 +391,7 @@ const TOOLS: ToolDef[] = [
   },
   {
     name: "kinerja_advisor",
-    description: `Kinerja Rona Advisor dalam periode: pesan ke Advisor, tambah ke keranjang dari Advisor, pesanan berisi item Advisor, penjualan item itu, rata-rata nilai pesanan dengan dan tanpa item Advisor. Korelasi, bukan sebab-akibat. ${BUKAN_OMZET}`,
+    description: `Kinerja ${MEREK.asisten.nama} dalam periode: pesan ke Advisor, tambah ke keranjang dari Advisor, pesanan berisi item Advisor, penjualan item itu, rata-rata nilai pesanan dengan dan tanpa item Advisor. Korelasi, bukan sebab-akibat. ${BUKAN_OMZET}`,
     parameters: obj({ periode: PERIODE }),
     izin: ["laporan.lihat"],
     async run(a, ctx) {
@@ -447,9 +449,16 @@ export const TOOL_REGISTRY: ReadonlyMap<string, ToolDef> = new Map(TOOLS.map((t)
 
 export const toolAllowed = (staff: StaffPrincipal, t: Pick<ToolDef, "izin">) => !t.izin || t.izin.some((k) => can(staff, k));
 
-// Daftar tool yang diberikan ke model untuk staf ini (disaring can()).
+// Tool yang hanya ada bila fiturnya aktif (src/config/fitur.ts).
+const TOOL_FITUR: Partial<Record<string, Fitur>> = { kinerja_flash_sale: "flashSale", saran_flash_sale: "flashSale", saran_transfer_stok: "multiCabang", kinerja_advisor: "aiPembeli" };
+const toolAktif = (name: string) => {
+  const f = TOOL_FITUR[name];
+  return !f || fiturAktif(f);
+};
+
+// Daftar tool yang diberikan ke model untuk staf ini (disaring can() dan sakelar fitur).
 export function toolsFor(staff: StaffPrincipal): ToolDef[] {
-  return TOOLS.filter((t) => (READ_ONLY_TOOLS as readonly string[]).includes(t.name) && toolAllowed(staff, t));
+  return TOOLS.filter((t) => (READ_ONLY_TOOLS as readonly string[]).includes(t.name) && toolAllowed(staff, t) && toolAktif(t.name));
 }
 
 export type ExecOutcome = { name: string; ok: boolean; denied?: boolean; result: ToolResult };
@@ -457,7 +466,7 @@ export type ExecOutcome = { name: string; ok: boolean; denied?: boolean; result:
 // Eksekutor: hanya tool di daftar izin baca, diperiksa lagi dengan can() sebelum dijalankan, lalu hasilnya disaring
 // sesuai izin (kolom rupiah dan kontak).
 export async function executeTool(name: string, args: Record<string, unknown>, ctx: ToolCtx): Promise<ExecOutcome> {
-  const tool = (READ_ONLY_TOOLS as readonly string[]).includes(name) ? TOOL_REGISTRY.get(name) : undefined;
+  const tool = (READ_ONLY_TOOLS as readonly string[]).includes(name) && toolAktif(name) ? TOOL_REGISTRY.get(name) : undefined;
   if (!tool) return { name, ok: false, denied: true, result: { status: "ditolak", pesan: `Tool ${name} tidak ada di daftar tool baca.` } };
   if (!toolAllowed(ctx.staff, tool)) return { name, ok: false, denied: true, result: { status: "ditolak", pesan: "Kamu tidak punya izin untuk data ini." } };
   try {

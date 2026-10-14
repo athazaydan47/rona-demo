@@ -3,8 +3,9 @@ import Link from "next/link";
 import { Camera, PackageCheck, RotateCcw, Video } from "lucide-react";
 import { HelpPage, HelpSections } from "@/components/layout/help-page";
 import { RETURN_POLICY } from "@/lib/content/return-policy";
+import { MEREK } from "@/config/merek";
 
-export const metadata: Metadata = { title: "Kebijakan retur", description: "Syarat retur Rona Beauty: 2 x 24 jam setelah paket sampai, video unboxing tanpa jeda, dan produk yang bisa diretur." };
+export const metadata: Metadata = { title: "Kebijakan retur", description: `Syarat retur ${MEREK.namaLengkap}: 2 x 24 jam setelah paket sampai, video unboxing tanpa jeda, dan produk yang bisa diretur.` };
 
 const UNBOXING = [
   { icon: Video, title: "Rekam dari paket masih tersegel", text: "Mulai merekam sebelum segel atau lakban dibuka, tampakkan label pengiriman dan nomor pesanan." },
@@ -19,7 +20,7 @@ export default function ReturPage() {
       <div className="grid gap-3 sm:grid-cols-2">
         {UNBOXING.map((u) => (
           <div key={u.title} className="rounded-card border border-garis bg-putih p-4">
-            <u.icon className="size-5 text-rona" aria-hidden />
+            <u.icon className="size-5 text-aksen" aria-hidden />
             <h2 className="mt-2 font-semibold text-kopi">{u.title}</h2>
             <p className="mt-1 text-sm text-kopi/85">{u.text}</p>
           </div>
@@ -36,7 +37,7 @@ export default function ReturPage() {
       </div>
       <p className="mt-8 text-sm text-abu-hangat">
         Ini toko demo, jadi retur tidak benar-benar diproses. Untuk bertanya soal alur ini,{" "}
-        <Link href="/hubungi" className="font-semibold text-rona hover:underline">
+        <Link href="/hubungi" className="font-semibold text-aksen hover:underline">
           hubungi kami
         </Link>
         .

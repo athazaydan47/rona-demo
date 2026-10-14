@@ -5,7 +5,8 @@ import { asc } from "drizzle-orm";
 import { Denied, fieldClass, PageHead, Pager, Skeleton } from "@/components/admin/ui";
 import { db, schema } from "@/db/client";
 import { AUDIT_ACTIONS } from "@/lib/admin/audit";
-import { auditDiff, groupLogins, listAudit } from "@/lib/admin/audit-query";
+import { groupLogins, listAudit } from "@/lib/admin/audit-query";
+import { auditDiffView, auditObjectLabel, loadAuditNames } from "@/lib/admin/audit-view";
 import { requireStaff } from "@/lib/admin/current";
 import { can } from "@/lib/admin/permissions";
 import { formatDateTimeWib, wibDate } from "@/lib/format";
@@ -21,7 +22,6 @@ const parseDay = (v?: string) => {
   const m = v?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return m ? wibDate(Number(m[1]), Number(m[2]), Number(m[3])) : null;
 };
-const show = (v: unknown) => (v === undefined ? "" : typeof v === "string" ? v : JSON.stringify(v));
 
 async function Content({ searchParams }: Props) {
   await connection();
@@ -33,6 +33,7 @@ async function Content({ searchParams }: Props) {
     listAudit(db, { staffId: Number(sp.staf) || null, action: sp.aksi && AUDIT_ACTIONS[sp.aksi] ? sp.aksi : null, objectType: sp.objek && OBJECTS[sp.objek] ? sp.objek : null, object: sp.cari ?? null, from: parseDay(sp.dari), to: to ? new Date(to.getTime() + 86_400_000) : null, page: Number.parseInt(sp.hal ?? "1", 10) || 1, includeLogins: sp.login === "1" }),
     db.select({ id: schema.staff.id, name: schema.staff.name }).from(schema.staff).orderBy(asc(schema.staff.name)),
   ]);
+  const names = await loadAuditNames(db, r.rows);
   const href = (p: number) => `/admin/log?${new URLSearchParams(Object.entries({ ...sp, hal: String(p) }).filter(([, v]) => v) as [string, string][])}`;
   return (
     <>
@@ -73,14 +74,14 @@ async function Content({ searchParams }: Props) {
       </form>
       <ul className="space-y-2" data-testid="log-aktivitas">
         {groupLogins(r.rows).map((row) => {
-          const diff = auditDiff(row.before, row.after);
+          const diff = auditDiffView(row.action, row.before, row.after, names);
           return (
             <li key={row.id} className="rounded-xl border border-garis bg-putih p-3">
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
                 <span className={cn("rounded-full px-2 text-[11px] font-semibold", row.action.endsWith("gagal") ? "bg-[#F7E3E1] text-bahaya" : "bg-porselen text-kopi")}>{AUDIT_ACTIONS[row.action] ?? row.action}</span>
                 <span className="font-semibold">{row.actorName || "sistem"}</span>
                 <span className="text-abu-hangat">
-                  {OBJECTS[row.objectType] ?? row.objectType} {row.objectId}
+                  {OBJECTS[row.objectType] ?? row.objectType} {auditObjectLabel(row.objectType, row.objectId, names)}
                 </span>
                 {row.repeat > 1 ? <span className="rounded-full bg-porselen px-2 text-[11px] text-abu-hangat">{row.repeat} kali, sejak {formatDateTimeWib(row.firstAt)}</span> : null}
                 <span className="ml-auto text-xs text-abu-hangat">{formatDateTimeWib(row.createdAt)}</span>
@@ -97,10 +98,10 @@ async function Content({ searchParams }: Props) {
                   </thead>
                   <tbody>
                     {diff.slice(0, 12).map((d) => (
-                      <tr key={d.key} className="align-top">
-                        <td className="py-0.5 pr-2 font-mono text-abu-hangat">{d.key}</td>
-                        <td className="py-0.5 pr-2 break-words">{d.before !== undefined ? <span className="rounded bg-[#F7E3E1] px-1 text-bahaya line-through decoration-bahaya/40">{show(d.before)}</span> : <span className="text-abu-hangat">-</span>}</td>
-                        <td className="py-0.5 break-words">{d.after !== undefined ? <span className="rounded bg-[#DFF0E6] px-1 text-sukses">{show(d.after)}</span> : <span className="text-abu-hangat">-</span>}</td>
+                      <tr key={d.key} className="align-top" data-kunci={d.key}>
+                        <td className="py-0.5 pr-2 text-abu-hangat">{d.label}</td>
+                        <td className="py-0.5 pr-2 break-words">{d.before !== undefined ? <span className="rounded bg-[#F7E3E1] px-1 text-bahaya line-through decoration-bahaya/40">{d.before}</span> : <span className="text-abu-hangat">-</span>}</td>
+                        <td className="py-0.5 break-words">{d.after !== undefined ? <span className="rounded bg-[#EAF6EF] px-1 text-sukses">{d.after}</span> : <span className="text-abu-hangat">-</span>}</td>
                       </tr>
                     ))}
                   </tbody>

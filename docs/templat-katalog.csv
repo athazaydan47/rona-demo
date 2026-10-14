@@ -1,0 +1,4 @@
+merek,kategori,produk,slug_produk,kemasan,deskripsi_singkat,bahan_aktif,jenis_kulit,masalah_kulit,finish,spf,netto,bpom,status,shade,hex,sku,harga_normal,harga_jual,berat_gram,stok_gudang-online,stok_dinoyo,stok_sawojajar,stok_soekarno-hatta
+Lumi,lip-tint,Lumi Juicy Lip Tint,lumi-juicy-lip-tint,lip_tint,"Lip tint ringan dengan hasil segar seperti habis makan buah.",Ekstrak delima,normal;kering,,glowy,,4 g,NA18260100001,draf,01 Semangka,#E2475E,LUMI-JLT-01,79000,69000,40,24,6,4,0
+Lumi,lip-tint,Lumi Juicy Lip Tint,lumi-juicy-lip-tint,lip_tint,"Lip tint ringan dengan hasil segar seperti habis makan buah.",Ekstrak delima,normal;kering,,glowy,,4 g,NA18260100001,draf,02 Ceri,#B32142,LUMI-JLT-02,79000,69000,40,18,0,3,5
+Teduh,serum-dan-essence,Teduh Calming Serum,,serum_dropper,"Serum penenang untuk kulit yang mudah kemerahan.","Centella Asiatica 5%;Panthenol",sensitif;kombinasi,jerawat,,,30 ml,NA18260100002,draf,Standar,#DCEBDD,TEDUH-CS-30,129000,119000,90,40,8,8,8

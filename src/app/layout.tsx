@@ -9,6 +9,7 @@ import { PromoBar } from "@/components/layout/promo-bar";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { AdvisorLauncher } from "@/components/ai/advisor";
 import { MobileMenuProvider, MobileMenuSheet } from "@/components/layout/mobile-menu";
 import { Toaster } from "@/components/ui/toast";
 import { CartDrawer } from "@/components/cart/cart-drawer";
@@ -57,6 +58,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             demoMode={env.demoMode}
           />
           <BottomNav />
+          {/* Memakai usePathname, jadi dibungkus Suspense supaya kerangka statis tetap terprarender. */}
+          <Suspense fallback={null}>
+            <AdvisorLauncher />
+          </Suspense>
           <MobileMenuSheet categories={categories} />
           {/* usePathname di dalam laci butuh Suspense pada rute dinamis. */}
           <Suspense fallback={null}>

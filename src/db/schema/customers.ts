@@ -101,6 +101,8 @@ export const cartItems = pgTable(
     // Harga terakhir yang dilihat pembeli, untuk memberi tahu bila harga berubah (misal flash sale berakhir).
     seenPrice: integer(),
     seenSource: text(),
+    // Asal item (Fase 7A), misal "advisor" bila ditambahkan dari Rona Advisor; diteruskan ke order_items.
+    source: text(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },

@@ -28,8 +28,9 @@ import { ShippingEstimate } from "./shipping-estimate";
 import { StickyBuyBar } from "./sticky-buy-bar";
 import { StockByStore } from "./stock-by-store";
 import { SwatchPicker } from "./swatch-picker";
+import { saveShadeProfileAction } from "@/lib/skin/actions";
 
-type Props = { product: ProductDetail; live: ProductLive; siteUrl: string };
+type Props = { product: ProductDetail; live: ProductLive; siteUrl: string; shadeProfile?: SkinProfile | null; extras?: React.ReactNode; shadeTools?: React.ReactNode };
 
 const textureFor = (p: ProductDetail["packaging"], finish: string | null): SwatchTexture => {
   if (p === "eyeshadow_palette" || (p === "cushion" && finish === "matte")) return "bubuk";
@@ -38,7 +39,7 @@ const textureFor = (p: ProductDetail["packaging"], finish: string | null): Swatc
   return "krim";
 };
 
-export function ProductView({ product, live, siteUrl }: Props) {
+export function ProductView({ product, live, siteUrl, shadeProfile = null, extras, shadeTools }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -54,13 +55,14 @@ export function ProductView({ product, live, siteUrl }: Props) {
   useEffect(() => {
     const t = window.setTimeout(() => {
       try {
-        setProfile(parseProfile(window.localStorage.getItem(SHADE_PROFILE_KEY)));
+        // Profil kulit dari akun atau cookie (kuis, Shade Finder) didahulukan; localStorage untuk kunjungan lama.
+        setProfile(shadeProfile ?? parseProfile(window.localStorage.getItem(SHADE_PROFILE_KEY)));
       } catch {
         // abaikan
       }
     }, 0);
     return () => window.clearTimeout(t);
-  }, []);
+  }, [shadeProfile]);
 
   // Ganti shade: URL ikut berubah dengan replace supaya bisa dibagikan tanpa memenuhi riwayat.
   const selectShade = useCallback(
@@ -161,6 +163,7 @@ export function ProductView({ product, live, siteUrl }: Props) {
             ) : null}
           </div>
           <p className="mt-3 text-sm text-abu-hangat">{product.shortDescription}</p>
+          {extras ? <div className="mt-3 space-y-3">{extras}</div> : null}
 
           <div className="mt-5 rounded-card border border-garis bg-putih p-4">
             <div className="flex flex-wrap items-center gap-2" data-testid="harga-produk">
@@ -186,6 +189,7 @@ export function ProductView({ product, live, siteUrl }: Props) {
                 matchIds={matches.ids}
                 bestMatchId={matches.best}
                 action={
+                  <div className="flex flex-wrap items-center gap-2">
                   <ShadeFinderDialog
                     variants={variants}
                     profile={profile}
@@ -196,9 +200,13 @@ export function ProductView({ product, live, siteUrl }: Props) {
                       } catch {
                         // abaikan
                       }
+                      // Simpan juga ke profil kulit (akun bila masuk, cookie bila tamu).
+                      void saveShadeProfileAction(p).catch(() => {});
                     }}
                     onPick={selectShade}
                   />
+                    {shadeTools}
+                  </div>
                 }
               />
             </div>

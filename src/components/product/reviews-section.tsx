@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BadgeCheck, Camera, ThumbsUp } from "lucide-react";
+import { BadgeCheck, Camera, Sparkles, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { RatingStars } from "@/components/ui/rating-stars";
@@ -24,7 +24,9 @@ function readHelpful(): number[] {
   }
 }
 
-export function ReviewsSection({ reviews, ratingAvg }: { reviews: ProductReview[]; ratingAvg: number }) {
+export type ReviewSummaryView = { pros: string[]; cons: string[]; suitableFor: string; reviewCount: number };
+
+export function ReviewsSection({ reviews, ratingAvg, summary }: { reviews: ProductReview[]; ratingAvg: number; summary?: ReviewSummaryView | null }) {
   const [star, setStar] = useState<number | null>(null);
   const [skin, setSkin] = useState<string | null>(null);
   const [shade, setShade] = useState<string | null>(null);
@@ -77,6 +79,37 @@ export function ReviewsSection({ reviews, ratingAvg }: { reviews: ProductReview[
       <h2 id="ulasan-heading" className="font-serif text-2xl text-kopi md:text-3xl">
         Ulasan pembeli
       </h2>
+      {summary ? (
+        <div className="mt-4 rounded-card border border-garis bg-blush/30 p-4" data-testid="ringkasan-ulasan">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-rona">
+            <Sparkles className="size-3.5" aria-hidden /> Diringkas AI dari {summary.reviewCount} ulasan
+          </p>
+          <div className="mt-2 grid gap-3 text-sm sm:grid-cols-2">
+            {summary.pros.length ? (
+              <div>
+                <p className="font-semibold text-kopi">Yang disukai</p>
+                <ul className="mt-1 list-inside list-disc space-y-0.5 text-kopi/85">
+                  {summary.pros.map((x) => (
+                    <li key={x}>{x}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {summary.cons.length ? (
+              <div>
+                <p className="font-semibold text-kopi">Keluhan yang sering muncul</p>
+                <ul className="mt-1 list-inside list-disc space-y-0.5 text-kopi/85">
+                  {summary.cons.map((x) => (
+                    <li key={x}>{x}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+          {summary.suitableFor ? <p className="mt-2 text-sm text-kopi/85">{summary.suitableFor}</p> : null}
+          <p className="mt-2 text-[11px] text-abu-hangat">Ringkasan AI bisa keliru. Baca ulasan lengkap di bawah.</p>
+        </div>
+      ) : null}
       <div className="mt-4 grid gap-4 md:grid-cols-[260px_1fr]">
         <div className="rounded-card border border-garis bg-putih p-5">
           <p className="font-serif text-5xl text-kopi tabular-nums">{ratingAvg.toFixed(1).replace(".", ",")}</p>

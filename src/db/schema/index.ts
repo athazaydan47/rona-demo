@@ -6,3 +6,4 @@ export * from "./promos";
 export * from "./reviews";
 export * from "./staff";
 export * from "./content";
+export * from "./ai";

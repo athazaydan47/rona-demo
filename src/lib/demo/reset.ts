@@ -24,6 +24,8 @@ export class DemoResetError extends Error {
 export const demoModeOn = (env: Record<string, string | undefined>) => env.DEMO_MODE === "true";
 export const dailyResetOn = (env: Record<string, string | undefined>) => demoModeOn(env) && env.DEMO_DAILY_RESET === "true";
 
+export const AI_TABLES_KEPT = ["ai_cache", "ai_logs", "review_summaries", "__drizzle_migrations"];
+
 export type DemoResetResult = { durationMs: number; seedMs: number; truncateMs: number; photos: { kind: string; deleted: number }; summary: SeedSummary };
 
 export async function resetDemoData(
@@ -41,7 +43,12 @@ export async function resetDemoData(
     const [lock] = (await tx.execute(sql`select pg_try_advisory_xact_lock(${LOCK_KEY}) as ok`)) as unknown as { ok: boolean }[];
     if (!lock?.ok) throw new DemoResetError("Reset data demo sedang berjalan. Coba lagi sebentar lagi.", "sedang_berjalan");
     const tables = (await tx.execute(sql`select tablename from pg_tables where schemaname = 'public' order by tablename`)) as unknown as { tablename: string }[];
-    const list = tables.map((t) => `"${t.tablename.replace(/"/g, "")}"`).join(", ");
+    // Tabel AI (cache hasil, ringkasan ulasan, log pemakaian) tidak ikut dikosongkan: seed deterministik menghasilkan
+    // data yang sama, jadi cache tetap berlaku, dan log dipakai untuk batas harian serta biaya.
+    const list = tables
+      .filter((t) => !AI_TABLES_KEPT.includes(t.tablename))
+      .map((t) => `"${t.tablename.replace(/"/g, "")}"`)
+      .join(", ");
     const t1 = performance.now();
     await tx.execute(sql.raw(`truncate table ${list} restart identity cascade`));
     truncateMs = performance.now() - t1;

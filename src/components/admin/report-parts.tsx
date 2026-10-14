@@ -80,7 +80,39 @@ export function ReportTable<T>({ title, rows, cols, finance, empty = "Belum ada 
         <h2 className="text-sm font-semibold">{title}</h2>
         {note ? <p className="text-xs text-abu-hangat">{note}</p> : null}
       </div>
-      <div className="overflow-x-auto">
+      {/* HP: tiap baris jadi dua baris (nama di atas; angka di bawah, rata kanan), tanpa gulir ke samping. */}
+      <ul className="divide-y divide-garis text-sm sm:hidden" data-testid={testId ? `${testId}-hp` : undefined}>
+        {rows.map((r, i) => (
+          <li key={i} className="px-3 py-2">
+            <div className="min-w-0 break-words font-medium">{shown[0].cell(r)}</div>
+            <div className="mt-0.5 flex flex-wrap justify-end gap-x-3 gap-y-0.5 text-right">
+              {shown.slice(1).map((c) => (
+                <span key={c.header} className="tabular-nums whitespace-nowrap">
+                  <span className="mr-1 text-[11px] text-abu-hangat">{c.header}</span>
+                  {c.cell(r)}
+                </span>
+              ))}
+            </div>
+          </li>
+        ))}
+        {!rows.length ? <li className="px-3 py-6 text-center text-abu-hangat">{empty}</li> : null}
+        {hasTotal && rows.length ? (
+          <li className="px-3 py-2 font-semibold">
+            <div>Total</div>
+            <div className="mt-0.5 flex flex-wrap justify-end gap-x-3 text-right">
+              {shown.slice(1).map((c) =>
+                c.total != null ? (
+                  <span key={c.header} className="tabular-nums whitespace-nowrap">
+                    <span className="mr-1 text-[11px] font-normal text-abu-hangat">{c.header}</span>
+                    {c.total}
+                  </span>
+                ) : null,
+              )}
+            </div>
+          </li>
+        ) : null}
+      </ul>
+      <div className="hidden overflow-x-auto sm:block">
         <table className="w-full min-w-[480px] text-sm">
           <thead className="bg-porselen/60 text-left text-xs text-abu-hangat">
             <tr>

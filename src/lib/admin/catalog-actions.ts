@@ -7,6 +7,8 @@ import { db } from "@/db/client";
 import { packagingValues } from "@/db/schema/enums";
 import { cacheTags, updateCatalogNow } from "@/lib/cache-tags";
 import { now } from "@/lib/clock";
+import { aiModel } from "@/lib/ai";
+import { refreshReviewSummary } from "@/lib/ai/review-summary";
 import { env } from "@/lib/env";
 import type { StoreSettings } from "@/lib/settings";
 import { currentStaff } from "./current";
@@ -255,4 +257,17 @@ export async function saveLocationAction(id: number, input: LocationForm) {
   const r = await saveLocation(db, me, Number(id), input, { now: now() });
   if (r.ok) updateCatalogNow([cacheTags.locations()]);
   return r;
+}
+
+// ---------- Ringkasan ulasan AI ----------
+
+export async function refreshReviewSummaryAction(productId: number) {
+  const me = await currentStaff();
+  if (!me) return DENIED;
+  if (!can(me, "produk.kelola") && !can(me, "ulasan.kelola")) return { ok: false as const, message: "Kamu tidak punya izin." };
+  const model = aiModel();
+  if (!model) return { ok: false as const, message: "AI belum tersedia di server ini." };
+  const r = await refreshReviewSummary(db, model, Number(productId), now());
+  const messages: Record<string, string> = { dibuat: "Ringkasan diperbarui.", sama: "Ulasan belum berubah, ringkasan tetap.", terlalu_sedikit: "Butuh minimal 5 ulasan tampil.", dihapus: "Ulasan kurang dari 5, ringkasan dihapus.", gagal: "AI gagal meringkas. Coba lagi nanti." };
+  return { ok: r !== "gagal", message: messages[r], outcome: r };
 }

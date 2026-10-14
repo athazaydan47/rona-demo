@@ -137,6 +137,27 @@ async function Content({ searchParams }: { searchParams: Promise<SP> }) {
             <ReportStat label="Tingkat pembatalan" value={pct(s.cancelRate)} hint={`${num(s.cancelled)} dari ${num(s.created)} pesanan dibuat`} change={<ChangeChip current={s.cancelRate} previous={compare?.cancelRate} inverse />} />
             <ReportStat label="Tingkat retur" value={pct(s.returnRate)} hint={`${num(s.returned)} dari ${num(s.paid)} pesanan dibayar`} change={<ChangeChip current={s.returnRate} previous={compare?.returnRate} inverse />} />
           </div>
+          {finance ? (
+            <section className="rounded-xl border border-garis bg-putih p-4" data-testid="rekonsiliasi-omzet">
+              <h2 className="text-sm font-semibold">Dari penjualan barang ke omzet</h2>
+              <p className="mb-2 text-xs text-abu-hangat">Voucher gratis ongkir dihitung di baris ongkir, bukan di potongan voucher belanja, jadi tidak terhitung dua kali.</p>
+              <dl className="grid max-w-md grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1 text-sm tabular-nums">
+                <dt>Penjualan barang</dt>
+                <dd className="text-right">{rp(report.reconciliation.itemSales)}</dd>
+                <dt>Dikurangi potongan voucher belanja</dt>
+                <dd className="text-right">-{rp(report.reconciliation.voucherDiscount)}</dd>
+                <dt>Dikurangi poin dipakai</dt>
+                <dd className="text-right">-{rp(report.reconciliation.pointsUsed)}</dd>
+                <dt>Ditambah ongkir dibayar pembeli</dt>
+                <dd className="text-right">+{rp(report.reconciliation.shippingPaid)}</dd>
+                <dt className="pl-3 text-xs text-abu-hangat">Tarif ongkir {rp(report.reconciliation.shippingCost)}, gratis ongkir otomatis -{rp(report.reconciliation.autoFreeShipping)}, voucher gratis ongkir -{rp(report.reconciliation.voucherShipping)}</dt>
+                <dd />
+                <dt className="border-t border-garis pt-1 font-semibold">Omzet</dt>
+                <dd className="border-t border-garis pt-1 text-right font-semibold">{rp(report.reconciliation.revenue)}</dd>
+              </dl>
+              {!report.reconciliation.balanced ? <p className="mt-2 text-xs text-bahaya">Selisih {rp(report.reconciliation.revenue - report.reconciliation.computed)}. Hubungi tim teknis.</p> : null}
+            </section>
+          ) : null}
           <section className="rounded-xl border border-garis bg-putih p-4">
             <h2 className="mb-2 text-sm font-semibold">{finance ? "Omzet harian" : "Pesanan harian"}</h2>
             <DailyChart series={report.daily} finance={finance} />

@@ -70,6 +70,15 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 - Email: belum ada webhook status dari Resend (terpantul, ditandai spam). Status Terkirim berarti diterima Resend, belum tentu sampai kotak masuk. (Fase 6C)
 - Notifikasi yang dibuat saat halaman dibuka (kedaluwarsa bayar dan Selesai otomatis) baru terkirim pada aksi berikutnya atau cron harian. (Fase 6C)
 
+## AI pembeli (Fase 7A)
+
+- Chat Advisor mengalirkan status per tool lalu teks jawaban per potongan kata; teks model sendiri tidak di-stream token demi token karena jawaban akhir harus divalidasi dulu (id produk dan nama produk) sebelum ditampilkan. (Fase 7A)
+- Evaluasi `npm run eval:ai` belum dijalankan ke Gemini sungguhan: gateway di `.env.local` memakai Authenticated Gateway tetapi `CF_AIG_TOKEN` kosong (401), dan model langsung sempat menjawab 503 karena permintaan tinggi. Isi `CF_AIG_TOKEN` lalu jalankan ulang. (Fase 7A)
+- Perkiraan biaya memakai tarif pihak ketiga Gemini 3.5 Flash (US$1,50 per 1 juta token masuk, US$9,00 per 1 juta token keluar); cek halaman harga resmi Google dan ai_logs setelah dipakai. Pertimbangkan thinkingLevel rendah untuk tafsiran pencarian setelah diuji di model sungguhan. (Fase 7A)
+- Deteksi "nama produk di luar hasil tool" hanya mengenali nama produk katalog Rona; nama yang benar-benar dikarang model (tidak ada di katalog) tidak terdeteksi, tetapi tidak pernah menjadi kartu produk karena kartu hanya dari id hasil tool. (Fase 7A)
+- Stok online serum retinal di seed kebetulan 0, jadi contoh peringatan "retinoid dan BHA di malam yang sama" jarang terlihat di rutinitas demo; aturannya tetap teruji di uji unit. (Fase 7A)
+- Penanda sumber item tidak ditimpa bila produk yang sama ditambah lagi dari halaman biasa; laporan penjualan per sumber dijadwalkan Fase 7B. (Fase 7A)
+
 ## Deploy
 
 - Build membaca database (slug dan detail produk, kategori, cabang, PromoBar, merek, artikel) karena data katalog di-cache dan diprarender; build gagal bila Neon tidak terjangkau. Bila ini mengganggu, pertimbangkan prarender sebagian produk saja atau fallback saat build. (Fase 4.1)
@@ -85,6 +94,9 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 - `getBrands` di-cache dengan tag brands dan products karena memuat jumlah produk dan produk terlaris per merek; perubahan status produk di admin harus merevalidasi tag products. (Fase 2.1)
 
 ## Selesai
+
+- Laporan di HP: tabel rincian tampil dua baris per baris data, tanpa gulir ke samping; Ringkasan dan sheet Excel memuat rekonsiliasi omzet. Notifikasi keluar menampilkan "Pratinjau" untuk email saat EMAIL_PROVIDER=preview, dan pratinjau isinya memakai tautan absolut. (Fase 7A, dari review 6C)
+- Sebaran pelanggan riwayat diperbaiki (seed versi 8). (Fase 7A)
 
 - Kanban di HP membuka tab status aktif pertama yang berisi (urutan Dibayar, Diproses, Menunggu Pembayaran, Siap Diambil, Dikirim) dan mengingat pilihan tab per staf selama sesi; tab kosong berisi kalimat yang membantu. (Fase 6C)
 - Pencarian pelanggan di Cmd+K kini membuka detail pelanggan. (Fase 6C)

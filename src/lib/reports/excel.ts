@@ -74,6 +74,7 @@ export async function buildReportWorkbook(report: Report, data: ReportData, meta
   wb.creator = "Rona Beauty (demo)";
   wb.created = meta.printedAt;
   const s = report.summary;
+  const rc = report.reconciliation;
 
   sheet(
     wb,
@@ -102,6 +103,14 @@ export async function buildReportWorkbook(report: Report, data: ReportData, meta
       ["Tingkat retur (%)", null, s.returnRate],
       ["Pembeli baru", null, report.customers.newBuyers],
       ["Pembeli kembali", null, report.customers.returningBuyers],
+      [null, null, null],
+      ["Rekonsiliasi: penjualan barang", rc.itemSales, null],
+      ["Dikurangi potongan voucher belanja", -rc.voucherDiscount, null],
+      ["Dikurangi poin dipakai", -rc.pointsUsed, null],
+      ["Ditambah tarif ongkir", rc.shippingCost, null],
+      ["Dikurangi gratis ongkir otomatis", -rc.autoFreeShipping, null],
+      ["Dikurangi voucher gratis ongkir", -rc.voucherShipping, null],
+      ["Sama dengan omzet", rc.computed, null],
     ],
   );
 

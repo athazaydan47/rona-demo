@@ -15,6 +15,16 @@ import { concernLabels, skinTypeLabels } from "@/lib/catalog/filters";
 import { getActiveProductSlugs, getProductDetail, getProductLive, getProductReviews, getRelatedProducts, type ProductDetail } from "@/lib/product/queries";
 import { formatRupiah } from "@/lib/format";
 import { siteUrl } from "@/lib/site";
+import { AskAboutProduct } from "@/components/ai/advisor";
+import { SkinFit } from "@/components/product/skin-fit";
+import { ShadeMatchDialog } from "@/components/shade/shade-match";
+import { db } from "@/db/client";
+import { aiTersedia } from "@/lib/ai";
+import { getReviewSummary } from "@/lib/ai/review-summary";
+import { currentSkinProfile } from "@/lib/skin/current";
+import { isProfileUsable } from "@/lib/skin/profile";
+import { fitForProfile } from "@/lib/skin/rules";
+import { SHADE_GROUPS } from "@/lib/skin/shade";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ shade?: string }> };
 
@@ -50,7 +60,12 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 
 async function ProductRoute({ product, searchParams }: { product: ProductDetail; searchParams: Props["searchParams"] }) {
   const sp = await searchParams;
-  const [live, reviews, related] = await Promise.all([getProductLive(product), getProductReviews(product.id), getRelatedProducts(product)]);
+  const [live, reviews, related, skin, summary] = await Promise.all([getProductLive(product), getProductReviews(product.id), getRelatedProducts(product), currentSkinProfile(), getReviewSummary(db, product.id)]);
+  const aiOn = aiTersedia();
+  const fit = isProfileUsable(skin)
+    ? fitForProfile(skin, { categorySlug: product.category.slug, parentSlug: product.parent?.slug ?? product.category.slug, skinTypes: product.skinTypes, concerns: product.concerns, finish: product.finish, activeIngredients: product.activeIngredients, ingredients: product.ingredients, variants: product.variants })
+    : null;
+  const shadeGroup = SHADE_GROUPS[product.category.slug];
   const selected = product.variants.find((v) => v.shadeSlug === sp.shade) ?? product.variants[0];
   const base = siteUrl();
 
@@ -82,7 +97,19 @@ async function ProductRoute({ product, searchParams }: { product: ProductDetail;
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <ProductView product={product} live={live} siteUrl={base} />
+      <ProductView
+        product={product}
+        live={live}
+        siteUrl={base}
+        shadeProfile={skin?.depth && skin.undertone ? { depth: skin.depth, undertone: skin.undertone } : null}
+        shadeTools={product.hasShades && shadeGroup ? <ShadeMatchDialog group={shadeGroup} productId={product.id} productName={product.name} aiAvailable={aiOn} /> : null}
+        extras={
+          <>
+            <SkinFit fit={fit} />
+            <AskAboutProduct productId={product.id} productName={product.name} />
+          </>
+        }
+      />
 
       <div className="container-rona grid grid-cols-1 gap-6 pb-8 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
         <div className="min-w-0 space-y-6">
@@ -113,7 +140,7 @@ async function ProductRoute({ product, searchParams }: { product: ProductDetail;
       </div>
 
       <div className="container-rona space-y-12 pb-10">
-        <ReviewsSection reviews={reviews} ratingAvg={product.ratingAvg} />
+        <ReviewsSection reviews={reviews} ratingAvg={product.ratingAvg} summary={summary ? { ...summary.summary, reviewCount: summary.reviewCount } : null} />
         <FrequentlyBought current={{ name: product.name, variantId: selected.id, price: live.prices[selected.id]?.price ?? selected.salePrice, packaging: product.packaging, hex: selected.hex, brandColor: product.brand.color, brandName: product.brand.name, shadeName: product.variants.length > 1 ? selected.shadeName : "" }} items={related.together} />
         {related.similar.length > 0 ? (
           <section aria-labelledby="serupa-heading">

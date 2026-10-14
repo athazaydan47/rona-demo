@@ -31,6 +31,17 @@ export const concernLabels: Record<string, string> = {
 export const finishLabels: Record<string, string> = { matte: "Matte", satin: "Satin", glowy: "Glowy" };
 export const undertoneLabels: Record<string, string> = { warm: "Warm", neutral: "Neutral", cool: "Cool" };
 
+// Atribut produk dari teks manfaat, deskripsi, dan komposisi (dipakai tafsiran pencarian bahasa sehari-hari).
+export const ATTRIBUTES: Record<string, { label: string; test: (text: string) => boolean }> = {
+  melembapkan: { label: "Melembapkan", test: (t) => /melembap|lembap|hidrasi|hydrat|moistur/.test(t) },
+  tahan_lama: { label: "Tahan lama", test: (t) => /tahan lama|long ?lasting|tidak mudah luntur|transfer ?proof|tahan seharian/.test(t) },
+  ringan: { label: "Ringan", test: (t) => /ringan|lightweight|tidak lengket|tidak berat/.test(t) },
+  tanpa_parfum: { label: "Tanpa parfum", test: (t) => !/\b(parfum|fragrance|pewangi)\b/.test(t.split("bahan aktif utama")[0]) },
+  tahan_air: { label: "Tahan air", test: (t) => /waterproof|tahan air|water ?resistant|tahan keringat/.test(t) },
+  mencerahkan: { label: "Mencerahkan", test: (t) => /cerah|brighten|kusam|glow/.test(t) },
+  menenangkan: { label: "Menenangkan", test: (t) => /menenangkan|calming|centella|kemerahan|soothing/.test(t) },
+};
+
 export type CatalogFilters = {
   q: string;
   brands: string[];
@@ -44,6 +55,10 @@ export type CatalogFilters = {
   spf: boolean;
   location: string | null; // slug cabang
   promo: boolean;
+  category: string | null; // slug kategori atau induk (dari tafsiran pencarian)
+  attributes: string[]; // kunci ATTRIBUTES
+  interpreted: boolean; // hasil tafsiran AI (tafsir=1): jangan ditafsirkan ulang
+  keyword: string; // kata kunci sisa tafsiran (kata) untuk pencarian teks
   sort: SortKey;
   page: number;
 };
@@ -84,6 +99,7 @@ export type CatalogItem = {
   finish: string | null;
   spf: number | null;
   relevance: number; // skor pencarian, 0 bila tanpa kata kunci
+  attrText: string; // manfaat, deskripsi, bahan aktif, dan komposisi (huruf kecil) untuk filter atribut
   variants: CatalogVariant[];
 };
 
@@ -119,6 +135,10 @@ export function parseCatalogParams(params: RawParams): CatalogFilters {
     spf: first(params.spf) === "1",
     location: first(params.cabang).trim().toLowerCase() || null,
     promo: first(params.promo) === "1",
+    category: /^[a-z0-9-]{1,60}$/.test(first(params.kategori)) ? first(params.kategori) : null,
+    attributes: list(params.atribut).filter((a) => a in ATTRIBUTES),
+    interpreted: first(params.tafsir) === "1",
+    keyword: first(params.kata).trim().slice(0, 60),
     sort: SORT_KEYS.includes(sort) ? sort : "relevan",
     page: Math.max(1, page),
   };
@@ -141,6 +161,10 @@ export function serializeCatalogParams(f: CatalogFilters, opts: { omitPage?: boo
   if (f.spf) p.set("spf", "1");
   if (f.location) p.set("cabang", f.location);
   if (f.promo) p.set("promo", "1");
+  if (f.category) p.set("kategori", f.category);
+  if (f.attributes.length) p.set("atribut", f.attributes.join(","));
+  if (f.interpreted) p.set("tafsir", "1");
+  if (f.keyword) p.set("kata", f.keyword);
   if (f.sort !== "relevan") p.set("urut", f.sort);
   if (!opts.omitPage && f.page > 1) p.set("hal", String(f.page));
   return p.toString();
@@ -159,12 +183,14 @@ export function countActiveFilters(f: CatalogFilters) {
     f.undertones.length +
     (f.spf ? 1 : 0) +
     (f.location ? 1 : 0) +
-    (f.promo ? 1 : 0)
+    (f.promo ? 1 : 0) +
+    (f.category ? 1 : 0) +
+    f.attributes.length
   );
 }
 
 export function clearFilters(f: CatalogFilters): CatalogFilters {
-  return { ...emptyFilters(), q: f.q, sort: f.sort };
+  return { ...emptyFilters(), q: f.q, sort: f.sort, interpreted: f.interpreted, keyword: f.keyword };
 }
 
 // Varian cocok dengan filter tingkat varian (harga, undertone, cabang, promo).
@@ -187,6 +213,8 @@ export function productMatches(item: CatalogItem, f: CatalogFilters, skip?: Face
   if (skip !== "concerns" && f.concerns.length && !f.concerns.some((c) => item.concerns.includes(c))) return false;
   if (skip !== "finishes" && f.finishes.length && (!item.finish || !f.finishes.includes(item.finish))) return false;
   if (skip !== "spf" && f.spf && !(item.spf && item.spf > 0)) return false;
+  if (f.category && item.categorySlug !== f.category && item.parentSlug !== f.category) return false;
+  if (f.attributes.length && !f.attributes.every((a) => ATTRIBUTES[a]?.test(item.attrText) ?? true)) return false;
   return item.variants.some((v) => variantMatches(v, f, skip));
 }
 
@@ -226,11 +254,12 @@ export function paginate<T>(items: T[], page: number, size = PAGE_SIZE) {
   return { items: items.slice(start, start + size), total: items.length, hasMore: start + size < items.length };
 }
 
-export type ActiveChip = { key: FacetKey; label: string; next: CatalogFilters };
+export type ActiveChip = { key: FacetKey | "category" | "attributes"; label: string; next: CatalogFilters };
 
 // Chip filter aktif, masing-masing membawa filter baru bila chip itu dihapus.
-export function activeFilterChips(f: CatalogFilters, labels: { brands?: Record<string, string>; locations?: Record<string, string> } = {}): ActiveChip[] {
+export function activeFilterChips(f: CatalogFilters, labels: { brands?: Record<string, string>; locations?: Record<string, string>; categories?: Record<string, string> } = {}): ActiveChip[] {
   const chips: ActiveChip[] = [];
+  if (f.category) chips.push({ key: "category", label: labels.categories?.[f.category] ?? f.category, next: { ...f, category: null, page: 1 } });
   for (const b of f.brands) chips.push({ key: "brands", label: labels.brands?.[b] ?? b, next: { ...f, brands: f.brands.filter((x) => x !== b), page: 1 } });
   if (f.priceMin != null || f.priceMax != null) {
     const fmt = formatRupiah;
@@ -250,5 +279,6 @@ export function activeFilterChips(f: CatalogFilters, labels: { brands?: Record<s
   if (f.spf) chips.push({ key: "spf", label: "Ada SPF", next: { ...f, spf: false, page: 1 } });
   if (f.location) chips.push({ key: "location", label: `Tersedia di ${labels.locations?.[f.location] ?? f.location}`, next: { ...f, location: null, page: 1 } });
   if (f.promo) chips.push({ key: "promo", label: "Sedang promo", next: { ...f, promo: false, page: 1 } });
+  for (const a of f.attributes) chips.push({ key: "attributes", label: ATTRIBUTES[a]?.label ?? a, next: { ...f, attributes: f.attributes.filter((x) => x !== a), page: 1 } });
   return chips;
 }

@@ -21,7 +21,10 @@ async function insertReturningIds<T extends Record<string, unknown>>(db: AnyDb, 
 }
 
 export async function insertHistory(db: AnyDb, out: HistoryOutput, inventory: { variantId: number; locationId: number; onHand: number }[]) {
-  const customerIds = await insertReturningIds(db, schema.customers, out.customers.map((c) => ({ name: c.name, phone: c.phone, email: c.email, points: c.points, registeredAt: c.registeredAt, lastLoginAt: c.lastLoginAt })), 1000);
+  const customerIds = await insertReturningIds(db, schema.customers, out.customers.map((c) => ({ name: c.name, phone: c.phone, email: c.email, points: c.points, registeredAt: c.registeredAt, lastLoginAt: c.lastLoginAt, skinProfile: c.skinProfile })), 1000);
+  // Alamat tersimpan = alamat kirim pesanan pelanggan itu (satu alamat utama per pelanggan yang pernah mengirim).
+  const addressRows = out.customers.flatMap((c, i) => (c.address ? [{ customerId: customerIds[i], label: "Rumah", recipient: c.address.recipient, phone: c.address.phone, province: c.address.province, city: c.address.city, district: c.address.district, postalCode: c.address.postalCode, street: c.address.street, isPrimary: true, createdAt: c.registeredAt }] : []));
+  if (addressRows.length) await db.insert(schema.addresses).values(addressRows);
   const saleIds = out.flashSales.length ? await insertReturningIds(db, schema.flashSales, out.flashSales.map((s) => ({ ...s, isActive: true, source: "otomatis" })), 1000) : [];
   const itemIds = out.flashItems.length ? await insertReturningIds(db, schema.flashSaleItems, out.flashItems.map((f) => ({ flashSaleId: saleIds[f.sale], variantId: f.variantId, flashPrice: f.flashPrice, quota: f.quota, sold: f.sold, maxPerCustomer: f.maxPerCustomer })), 1500) : [];
   const orderIds = await insertReturningIds(

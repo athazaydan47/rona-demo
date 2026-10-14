@@ -63,6 +63,8 @@ export async function loadReportData(
       paymentMethod: sql<
         string | null
       >`(select p.method::text from payments p where p.order_id = "orders"."id" order by p.id limit 1)`,
+      // Potongan dari voucher gratis ongkir (bagian dari shipping_discount), untuk rekonsiliasi omzet.
+      voucherShippingDiscount: sql<number>`coalesce((select sum(r.discount) from voucher_redemptions r join vouchers v on v.id = r.voucher_id where r.order_id = "orders"."id" and v.type = 'ongkir'), 0)::int`,
     })
     .from(schema.orders)
     .innerJoin(
@@ -105,6 +107,7 @@ export async function loadReportData(
     voucherDiscount: o.voucherDiscount,
     shippingCost: o.shippingCost,
     shippingDiscount: o.shippingDiscount,
+    voucherShippingDiscount: Number(o.voucherShippingDiscount),
     pointsUsed: o.pointsUsed,
     total: o.total,
     voucherCode: o.voucherCode,

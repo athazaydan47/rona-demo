@@ -96,6 +96,33 @@ describe.skipIf(!dbUrl)("reset data demo (integrasi, database rona_demo_uji)", (
     expect(mix.metode).toBe(6);
   }, 120_000);
 
+  it("cache AI, ringkasan ulasan, dan log AI tidak ikut dikosongkan reset", async () => {
+    await db.execute(sql`insert into ai_cache (key, feature, value, expires_at) values ('uji:reset', 'uji', '{"a":1}'::jsonb, now() + interval '1 day') on conflict (key) do nothing`);
+    await db.execute(sql`insert into ai_logs (feature, model, visitor_hash) values ('uji', 'uji', 'uji-reset')`);
+    await resetDemoData(db, { env: ON, source: "uji", deletePhotos: noPhotos });
+    const [row] = (await db.execute(sql`select (select count(*) from ai_cache where key = 'uji:reset')::int as cache, (select count(*) from ai_logs where visitor_hash = 'uji-reset')::int as logs`)) as unknown as { cache: number; logs: number }[];
+    expect(row).toEqual({ cache: 1, logs: 1 });
+    await db.execute(sql`delete from ai_cache where key = 'uji:reset'`);
+    await db.execute(sql`delete from ai_logs where visitor_hash = 'uji-reset'`);
+  }, 120_000);
+
+  it("pelanggan riwayat: sebaran pesanan realistis, alamat tersimpan, sebagian punya profil kulit", async () => {
+    const [d] = (await db.execute(sql`
+      select max(n)::int as maks, count(*) filter (where n between 1 and 3)::int as kecil, count(*) filter (where n > 3)::int as setia,
+        (select round(100.0 * count(*) filter (where customer_id is null) / count(*))::int from orders) as tamu,
+        (select count(*)::int from addresses a join customers c on c.id = a.customer_id where c.phone like '08001%') as alamat,
+        (select count(*)::int from customers where phone like '08001%' and skin_profile is not null) as profil
+      from (select c.id, count(o.id) as n from customers c left join orders o on o.customer_id = c.id where c.phone like '08001%' group by c.id) x`)) as unknown as Record<string, number>[];
+    expect(d.maks).toBeLessThanOrEqual(15);
+    expect(d.kecil).toBeGreaterThan(d.setia);
+    expect(d.tamu).toBeGreaterThanOrEqual(50);
+    expect(d.alamat).toBeGreaterThan(100);
+    expect(d.profil).toBeGreaterThan(40);
+    // Alamat tersimpan sama dengan alamat kirim pesanan pelanggan itu.
+    const [mismatch] = (await db.execute(sql`select count(*)::int as n from orders o join addresses a on a.customer_id = o.customer_id join customers c on c.id = o.customer_id where c.phone like '08001%' and o.method = 'kirim' and o.shipping_address->>'street' <> a.street`)) as unknown as { n: number }[];
+    expect(mismatch.n).toBe(0);
+  }, 60_000);
+
   it("dua reset bersamaan: satu jalan, yang lain ditolak (bukan data dobel)", async () => {
     const results = await Promise.allSettled([1, 2].map(() => resetDemoData(db, { env: ON, source: "uji", deletePhotos: noPhotos })));
     const failed = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];

@@ -17,6 +17,7 @@ import { capturePage, formatBytes, labelWib, launchBrowser, screenshotHtmlToJpeg
 import { captureAdminFlow } from "./cuplik-admin.mjs";
 import { captureAdmin6bFlow } from "./cuplik-admin-6b.mjs";
 import { captureAdmin6cFlow } from "./cuplik-admin-6c.mjs";
+import { captureAiBuyerFlow } from "./cuplik-ai-pembeli.mjs";
 import { captureAccountFlow } from "./cuplik-akun.mjs";
 import { captureBuyFlow } from "./cuplik-alur-beli.mjs";
 
@@ -55,6 +56,8 @@ const ACTIONS = {
   "admin-6b": { flow: true, label: "alur admin 6B", capture: captureAdmin6bFlow, covers: ["/admin"] },
   // Alur admin Fase 6C: laporan, pelanggan, moderasi ulasan, notifikasi keluar, laporan di HP.
   "admin-6c": { flow: true, label: "alur admin 6C", capture: captureAdmin6cFlow, covers: ["/admin"] },
+  // Alur AI pembeli Fase 7A (server dengan AI_PROVIDER=mock): Advisor, tafsiran, kuis, rutinitas, padanan, ringkasan.
+  "ai-pembeli": { flow: true, label: "alur AI pembeli", capture: captureAiBuyerFlow, covers: ["/"] },
 };
 
 function parseArgs(argv) {

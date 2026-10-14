@@ -28,6 +28,7 @@ const order = (over: Partial<ReportOrder>): ReportOrder => {
     voucherDiscount: 0,
     shippingCost: 0,
     shippingDiscount: 0,
+    voucherShippingDiscount: 0,
     pointsUsed: 0,
     total: 0,
     voucherCode: null,
@@ -243,5 +244,24 @@ describe("Excel laporan", () => {
     expect(headers).not.toContain("Total");
     expect(headers).toContain("Nomor");
     expect(String(detail.getCell("A3").value)).toMatch(/tidak ditampilkan/);
+  });
+});
+
+describe("rekonsiliasi omzet", () => {
+  it("penjualan barang - voucher belanja - poin + ongkir dibayar = omzet; voucher gratis ongkir tidak terhitung dua kali", () => {
+    // Pesanan dengan voucher gratis ongkir: tarif 20 ribu, gratis ongkir otomatis 0, voucher ongkir 15 ribu.
+    const ship = order({ paidAt: wibDate(2026, 10, 12, 10), subtotal: 120_000, shippingCost: 20_000, shippingDiscount: 15_000, voucherShippingDiscount: 15_000, voucherCode: "ONGKIR", total: 125_000 });
+    const d: ReportData = { ...data, orders: [...data.orders, ship], items: [...data.items, item(ship.id, { quantity: 1, unitPrice: 120_000 })] };
+    const rc = buildReport(d).reconciliation;
+    expect(rc.balanced).toBe(true);
+    expect(rc.computed).toBe(rc.revenue);
+    expect(rc.voucherShipping).toBe(15_000);
+    expect(rc.voucherDiscount).toBe(20_000); // hanya voucher belanja (o2), voucher ongkir tidak ikut
+    expect(rc.itemSales - rc.voucherDiscount - rc.pointsUsed + rc.shippingCost - rc.autoFreeShipping - rc.voucherShipping).toBe(rc.revenue);
+  });
+  it("selisih terdeteksi bila total pesanan tidak cocok dengan rinciannya", () => {
+    const bad = order({ paidAt: wibDate(2026, 10, 12, 10), subtotal: 50_000, total: 51_000 });
+    const d: ReportData = { ...data, orders: [...data.orders, bad], items: [...data.items, item(bad.id, { unitPrice: 50_000 })] };
+    expect(buildReport(d).reconciliation.balanced).toBe(false);
   });
 });

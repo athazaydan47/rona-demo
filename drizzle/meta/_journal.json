@@ -43,6 +43,13 @@
       "when": 1791960171321,
       "tag": "0005_ulasan_email",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791967620648,
+      "tag": "0006_ai_pembeli",
+      "breakpoints": true
     }
   ]
 }

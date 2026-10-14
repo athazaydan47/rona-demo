@@ -110,6 +110,8 @@ export const orderItems = pgTable(
     priceSource: priceSourceEnum().notNull().default("normal"),
     flashSaleItemId: integer().references(() => flashSaleItems.id, { onDelete: "set null" }),
     weightGram: integer().notNull().default(0),
+    // Asal item dari keranjang (Fase 7A), misal "advisor" untuk mengukur penjualan dari Rona Advisor.
+    source: text(),
   },
   (t) => [index("order_items_order_idx").on(t.orderId), index("order_items_flash_idx").on(t.flashSaleItemId)],
 );

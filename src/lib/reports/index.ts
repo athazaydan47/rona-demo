@@ -111,7 +111,8 @@ export type ReportOrder = {
   productDiscount: number;
   voucherDiscount: number;
   shippingCost: number;
-  shippingDiscount: number;
+  shippingDiscount: number; // gratis ongkir otomatis + voucher gratis ongkir
+  voucherShippingDiscount: number; // bagian shippingDiscount yang berasal dari voucher bertipe ongkir
   pointsUsed: number;
   total: number;
   voucherCode: string | null;
@@ -376,10 +377,43 @@ export function newVsReturning(data: ReportData) {
   return out;
 }
 
+// Rekonsiliasi omzet: penjualan barang - potongan voucher belanja - poin + ongkir dibayar = omzet.
+// Voucher gratis ongkir TIDAK masuk potongan voucher belanja (orders.voucher_discount = 0 untuk voucher ongkir);
+// potongannya bagian dari potongan ongkir, jadi ditampilkan terpisah di baris ongkir dan tidak terhitung dua kali.
+export type Reconciliation = {
+  itemSales: number;
+  voucherDiscount: number;
+  pointsUsed: number;
+  shippingCost: number;
+  autoFreeShipping: number;
+  voucherShipping: number;
+  shippingPaid: number;
+  revenue: number;
+  computed: number;
+  balanced: boolean;
+};
+
+export function reconcile(data: ReportData): Reconciliation {
+  const rev = revenueOrders(data);
+  const ids = new Set(rev.map((o) => o.id));
+  const itemSales = data.items.filter((i) => ids.has(i.orderId)).reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+  const sum = (f: (o: ReportOrder) => number) => rev.reduce((s, o) => s + f(o), 0);
+  const voucherDiscount = sum((o) => o.voucherDiscount);
+  const pointsUsed = sum((o) => o.pointsUsed);
+  const shippingCost = sum((o) => o.shippingCost);
+  const voucherShipping = sum((o) => o.voucherShippingDiscount);
+  const autoFreeShipping = sum((o) => o.shippingDiscount) - voucherShipping;
+  const shippingPaid = shippingCost - autoFreeShipping - voucherShipping;
+  const revenue = sum((o) => o.total);
+  const computed = itemSales - voucherDiscount - pointsUsed + shippingPaid;
+  return { itemSales, voucherDiscount, pointsUsed, shippingCost, autoFreeShipping, voucherShipping, shippingPaid, revenue, computed, balanced: computed === revenue };
+}
+
 // Laporan lengkap untuk satu periode (dipakai halaman Laporan dan Excel).
 export function buildReport(data: ReportData) {
   return {
     summary: summarize(data),
+    reconciliation: reconcile(data),
     daily: dailySeries(data),
     brands: byBrand(data),
     categories: byCategory(data),

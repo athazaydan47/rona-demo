@@ -31,13 +31,14 @@ export function openCartDrawer() {
 
 export type AddResult = { ok: boolean; message?: string };
 
-export async function addToCart(variantId: number, quantity = 1, opts: { openDrawer?: boolean } = {}): Promise<AddResult> {
+export async function addToCart(variantId: number, quantity = 1, opts: { openDrawer?: boolean; source?: string } = {}): Promise<AddResult> {
   return addManyToCart([{ variantId, quantity }], opts);
 }
 
-export async function addManyToCart(items: { variantId: number; quantity: number }[], opts: { openDrawer?: boolean } = {}): Promise<AddResult> {
+// source: asal item untuk atribusi penjualan ("advisor", "rutinitas", "padanan_shade").
+export async function addManyToCart(items: { variantId: number; quantity: number }[], opts: { openDrawer?: boolean; source?: string } = {}): Promise<AddResult> {
   try {
-    const r = await addToCartAction(items);
+    const r = await addToCartAction(items, { source: opts.source });
     setCartCount(r.count);
     if (r.ok && opts.openDrawer !== false) openCartDrawer();
     return { ok: r.ok, message: r.message };

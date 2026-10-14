@@ -19,7 +19,9 @@
     "test:e2e": "playwright test",
     "db:deploy": "tsx src/db/migrate.ts",
     "demo:ukur-reset": "tsx src/db/ukur-reset-demo.ts",
-    "cek:data": "tsx src/db/cek-data.ts"
+    "cek:data": "tsx src/db/cek-data.ts",
+    "eval:ai": "tsx scripts/eval-ai.ts",
+    "ai:ringkasan": "tsx scripts/ringkas-ulasan.ts"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",

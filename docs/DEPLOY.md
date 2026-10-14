@@ -42,10 +42,16 @@ Isi di Vercel (Settings, Environment Variables) untuk Production dan Preview. Un
 | `RESEND_API_KEY` | Hanya bila `resend` | `re_***` dari dashboard Resend | Dipanggil lewat REST API (fetch, tanpa SDK) dengan header Idempotency-Key per notifikasi. |
 | `EMAIL_FROM` | Hanya bila `resend` | `Rona Beauty <halo@domain-terverifikasi.id>` | Alamat pengirim; domainnya wajib terverifikasi di Resend. |
 | `EMAIL_ALLOWLIST` | Disarankan saat `DEMO_MODE=true` | `kamu@contoh.com,tim@contoh.com` | Mode demo: email sungguhan hanya ke alamat ini, alamat lain ditandai Dilewati supaya situs demo tidak dipakai untuk spam. Kosong berarti semua dilewati. |
+| `AI_GATEWAY_URL` | Opsional | `https://gateway.ai.cloudflare.com/v1/<account_id>/<gateway_id>/google-ai-studio` | Fitur AI pembeli (Fase 7A). Kosong berarti fitur AI tersembunyi; fitur berbasis aturan tetap jalan. |
+| `GEMINI_API_KEY` | Bersama `AI_GATEWAY_URL` | kunci dari Google AI Studio | Dikirim sebagai header `x-goog-api-key` lewat gateway. |
+| `AI_MODEL` | Opsional | `gemini-3.5-flash` (bawaan) | Model Gemini. |
+| `CF_AIG_TOKEN` | Wajib bila gateway terautentikasi | token dari pengaturan gateway | Header `cf-aig-authorization: Bearer <token>`. Tanpa ini gateway terautentikasi menjawab 401. |
+| `AI_DAILY_CAP` | Disarankan | `1000` | Batas panggilan AI per hari WIB (semua fitur). Bila tercapai, AI tampil "sedang istirahat". |
+| `AI_PROVIDER` | Jangan diisi di produksi | kosong | `mock` hanya untuk uji, Playwright, dan cuplik. |
 | `SKIP_BUILD_MIGRATION` | Jangan diisi, kecuali darurat | kosong | Isi `true` untuk melewati migrasi otomatis di build produksi (Fase 6B). |
 | `CONFIRM_RESET` | Hanya saat reset | `rona-demo` | Konfirmasi wajib untuk `db:reset` atau `db:seed` ke host selain localhost. Jangan disimpan di Vercel. |
 
-Fase 7 akan menambah `AI_GATEWAY_URL`, `GEMINI_API_KEY`, dan `AI_MODEL`.
+Variabel AI (Fase 7A) dijelaskan di bagian Pembaruan ke Fase 7A.
 
 Cara mendapatkan `BLOB_READ_WRITE_TOKEN`: di dashboard Vercel buka **Storage, Create Database, Blob**, beri nama misal `rona-ulasan`, lalu **Connect** ke project `rona-demo` untuk Production dan Preview. Vercel menambahkan variabelnya otomatis; redeploy supaya terbaca.
 
@@ -224,6 +230,44 @@ Kanal WhatsApp tetap pratinjau di Kotak Notifikasi. Antarmuka `WhatsAppSender` a
    - `kode_masuk` (kategori Authentication): kode OTP.
 4. **Kebijakan percakapan**: sistem tidak memulai chat duluan ke nomor yang belum pernah berinteraksi atau belum memberi izin (opt-in saat checkout). Ide masuk lewat WA yang dimulai pembeli: pembeli mengirim kode pendek ke nomor toko, toko membalas tautan masuk sekali pakai dalam jendela 24 jam, jadi tidak perlu template OTP berbayar.
 5. Env yang nanti dibutuhkan: `WA_PHONE_NUMBER_ID`, `WA_ACCESS_TOKEN`, `WA_APP_SECRET` (verifikasi webhook status kirim).
+
+## Pembaruan ke Fase 7A (AI untuk pembeli)
+
+Migrasi baru: `drizzle/0006_ai_pembeli.sql`. Isinya hanya menambah tabel `ai_logs`, `ai_cache`, dan `review_summaries`, serta kolom `source` (boleh kosong) di `cart_items` dan `order_items`. Aman dijalankan otomatis saat build selagi versi 6C masih tayang: versi lama tidak membaca tabel dan kolom baru. Ketiga tabel AI tidak ikut dikosongkan reset demo.
+
+### Menyiapkan Cloudflare AI Gateway dan kunci Gemini
+
+1. **Kunci Gemini.** Buka aistudio.google.com, menu **Get API key**, buat kunci untuk project Google Cloud milikmu. Simpan sebagai `GEMINI_API_KEY`.
+2. **Gateway.** Di dashboard Cloudflare buka **AI, AI Gateway, Create Gateway**, beri nama misal `rona-demo`. Catat *account ID* (di URL dashboard) dan nama gateway.
+3. **URL.** Isi `AI_GATEWAY_URL` dengan `https://gateway.ai.cloudflare.com/v1/<account_id>/<gateway_id>/google-ai-studio`, tanpa garis miring di akhir. Aplikasi menambahkan `/v1beta/models/<model>:generateContent` sendiri.
+4. **Autentikasi gateway (disarankan).** Di pengaturan gateway, nyalakan **Authenticated Gateway** dan buat token. Isi `CF_AIG_TOKEN` dengan token itu. Bila Authenticated Gateway menyala tapi `CF_AIG_TOKEN` kosong, setiap panggilan ditolak 401 (kode 2009) dan fitur AI menampilkan pesan gagal yang ramah.
+5. **Pengaman biaya di gateway.** Nyalakan **Rate limiting** (misal 60 permintaan per menit) dan **Logging**. Caching gateway boleh dimatikan; aplikasi sudah meng-cache tafsiran pencarian, penjelasan rutinitas, dan ringkasan ulasan di database.
+6. **Cek dari laptop** (ganti nilai dalam kurung sudut):
+
+   ```bash
+   curl -s "<AI_GATEWAY_URL>/v1beta/models/gemini-3.5-flash:generateContent" \
+     -H "x-goog-api-key: <GEMINI_API_KEY>" -H "cf-aig-authorization: Bearer <CF_AIG_TOKEN>" \
+     -H "content-type: application/json" \
+     -d '{"contents":[{"role":"user","parts":[{"text":"Jawab satu kata: halo"}]}]}'
+   ```
+
+   Jawaban berisi `candidates` berarti siap. Lalu jalankan `npm run eval:ai` di laptop dengan env yang sama untuk tabel skor Advisor.
+
+### Urutan memperbarui produksi
+
+1. **Env di Vercel** (Production): `AI_GATEWAY_URL`, `GEMINI_API_KEY`, `CF_AIG_TOKEN` (bila gateway terautentikasi), `AI_MODEL=gemini-3.5-flash`, `AI_DAILY_CAP=1000`. Jangan isi `AI_PROVIDER`.
+2. **Push** ke `main`. Log build harus menampilkan `Migrasi selesai: 0006_ai_pembeli`.
+3. **Reset data demo** dari Dashboard Owner (seed versi 8: sebaran pelanggan riwayat baru, alamat tersimpan, profil kulit).
+4. **Ringkasan ulasan**: panggil cron sekali (`curl -s -H "Authorization: Bearer <CRON_SECRET>" https://<domain-mu>/api/cron/kedaluwarsa`); lihat bagian `summaries` pada jawabannya. Atau tekan "Perbarui ringkasan" di halaman admin produk. Ringkasan tidak pernah dibuat saat pengunjung membuka halaman.
+5. Verifikasi:
+   - Tombol "Tanya Rona" muncul di kanan bawah (tidak di /checkout dan /bayar). Tanya "Sunscreen untuk kulit berminyak di bawah 100 ribu": jawaban berisi kartu produk dengan harga yang sama dengan halaman produk.
+   - `/cari?q=lipstik yang ga bikin bibir kering buat kondangan` menampilkan "Kami artikan sebagai".
+   - `/kuis-kulit`, `/rutinitas`, `/padanan-shade` berjalan.
+   - Kosongkan sementara `AI_GATEWAY_URL` di Preview untuk memastikan toko tetap jalan tanpa AI.
+
+### Biaya dan batas pemakaian
+
+Pemakaian tercatat di tabel `ai_logs` (fitur, model, token masuk dan keluar, latensi, berhasil atau gagal, hash pengunjung; isi percakapan tidak disimpan). Batas: 20 pesan Advisor per pengunjung per hari saat DEMO_MODE, 5 per menit, dan `AI_DAILY_CAP` untuk semua fitur. Perkiraan biaya ada di laporan Fase 7A dan BACKLOG.
 
 ## 5. Bagian build yang butuh database
 

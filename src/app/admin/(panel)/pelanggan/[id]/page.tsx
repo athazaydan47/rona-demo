@@ -14,6 +14,7 @@ import { contactView, customerDetail, SEGMENT_LABELS, SEGMENT_TONE, waNumber } f
 import { can } from "@/lib/admin/permissions";
 import { concernLabels, skinTypeLabels } from "@/lib/catalog/filters";
 import { now } from "@/lib/clock";
+import { emailConfig, emailReady } from "@/lib/email";
 import { formatDateTimeWib, formatDateWib, formatNumber, formatRupiah } from "@/lib/format";
 import { statusLabels, type OrderStatus } from "@/lib/orders/status";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
   const c = d.customer;
   const contact = contactView(me, c);
   const sp = c.skinProfile;
+  const emailLive = emailReady(emailConfig());
   return (
     <>
       <PageHead
@@ -208,7 +210,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
                       {n.subject}
                     </span>
                     <span className="shrink-0 text-xs text-abu-hangat">
-                      {n.channel === "wa" ? "Pratinjau" : NOTIF_STATUS[n.status]} · {formatDateWib(n.createdAt)}
+                      {n.channel === "wa" || (n.status === "antre" && !emailLive) ? "Pratinjau" : NOTIF_STATUS[n.status]} · {formatDateWib(n.createdAt)}
                     </span>
                   </li>
                 ))}

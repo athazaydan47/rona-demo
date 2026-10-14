@@ -47,6 +47,7 @@ const item = (over: Partial<CatalogItem> = {}): CatalogItem => ({
   finish: "matte",
   spf: null,
   relevance: 0,
+  attrText: "",
   variants: [variant()],
   ...over,
 });

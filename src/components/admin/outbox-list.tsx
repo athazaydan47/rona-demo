@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { resendNotificationAction } from "@/lib/admin/moderation-actions";
 import { cn } from "@/lib/utils";
 
-export type OutboxRow = { id: number; channel: "wa" | "email"; kind: string; recipient: string; subject: string; body: string; status: string; statusLabel: string; attempts: number; lastError: string | null; createdLabel: string; sentLabel: string | null };
+export type OutboxRow = { id: number; channel: "wa" | "email"; kind: string; recipient: string; subject: string; body: string; status: string; preview: boolean; statusLabel: string; attempts: number; lastError: string | null; createdLabel: string; sentLabel: string | null };
 
 const TONE: Record<string, "sukses" | "netral" | "habis" | "menipis"> = { terkirim: "sukses", antre: "netral", gagal: "habis", dilewati: "menipis" };
 
@@ -39,8 +39,8 @@ export function OutboxList({ rows }: { rows: OutboxRow[] }) {
                 {r.lastError ? <p className="mt-0.5 text-xs text-bahaya">Error terakhir: {r.lastError}</p> : null}
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
-                <Badge variant={r.channel === "wa" ? "netral" : (TONE[r.status] ?? "netral")}>{r.channel === "wa" ? "Pratinjau" : r.statusLabel}</Badge>
-                {r.channel === "email" ? <span className="text-[11px] text-abu-hangat tabular-nums">{r.attempts}x</span> : null}
+                <Badge variant={r.preview ? "netral" : (TONE[r.status] ?? "netral")}>{r.preview ? "Pratinjau" : r.statusLabel}</Badge>
+                {r.channel === "email" && !r.preview ? <span className="text-[11px] text-abu-hangat tabular-nums">{r.attempts}x</span> : null}
                 {r.channel === "email" && (r.status === "gagal" || r.status === "dilewati") ? (
                   <Button
                     size="sm"

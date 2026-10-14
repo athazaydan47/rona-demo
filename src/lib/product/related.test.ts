@@ -25,6 +25,7 @@ const item = (name: string, categorySlug: string, parentSlug: string, soldCount:
   finish: null,
   spf: null,
   relevance: 0,
+  attrText: "",
   variants: [v(hex, price)],
 });
 

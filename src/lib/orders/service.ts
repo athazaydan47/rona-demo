@@ -114,7 +114,7 @@ export async function placeOrder(db: AnyDb, input: PlaceOrderInput): Promise<Pla
       const [cart] = await tx.select({ id: schema.carts.id }).from(schema.carts).where(eq(schema.carts.id, input.cartId)).for("update");
       if (!cart) throw fail("keranjang_kosong", "Keranjangmu kosong.");
       const items = await tx
-        .select({ variantId: schema.cartItems.variantId, quantity: schema.cartItems.quantity })
+        .select({ variantId: schema.cartItems.variantId, quantity: schema.cartItems.quantity, source: schema.cartItems.source })
         .from(schema.cartItems)
         .where(and(eq(schema.cartItems.cartId, cart.id), eq(schema.cartItems.savedForLater, false)))
         .orderBy(asc(schema.cartItems.id));
@@ -215,6 +215,8 @@ export async function placeOrder(db: AnyDb, input: PlaceOrderInput): Promise<Pla
         })
         .returning({ id: schema.orders.id });
 
+      // Atribusi (Fase 7A): sumber item keranjang (misal "advisor") diteruskan ke order_items.
+      const sourceByVariant = new Map(items.filter((c) => c.source).map((c) => [c.variantId, c.source]));
       const orderItemRows = pricing.lines.flatMap((pl, idx) => {
         const m = meta.get(pl.variantId)!;
         return pl.segments.map((s) => ({
@@ -229,6 +231,7 @@ export async function placeOrder(db: AnyDb, input: PlaceOrderInput): Promise<Pla
           priceSource: s.source,
           flashSaleItemId: s.flashSaleItemId,
           weightGram: m.weightGram,
+          source: sourceByVariant.get(pl.variantId) ?? null,
         }));
       });
       await tx.insert(schema.orderItems).values(orderItemRows);

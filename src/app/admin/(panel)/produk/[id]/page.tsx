@@ -11,6 +11,10 @@ import { can } from "@/lib/admin/permissions";
 import { getProductForEdit } from "@/lib/admin/products";
 import { storageKind } from "@/lib/reviews/storage";
 import { siteUrl } from "@/lib/site";
+import { SummaryRefresh } from "@/components/admin/summary-refresh";
+import { aiTersedia } from "@/lib/ai";
+import { getReviewSummary } from "@/lib/ai/review-summary";
+import { formatDateTimeWib } from "@/lib/format";
 import { productFormData, toFormValue } from "../form-data";
 
 export const metadata: Metadata = { title: "Ubah produk" };
@@ -24,10 +28,11 @@ async function Content({ params, searchParams }: Props) {
   if (!can(me, "produk.kelola")) return <Denied />;
   const found = await getProductForEdit(db, Number.parseInt(id, 10) || 0);
   if (!found) return <Denied message="Produk tidak ditemukan." />;
-  const { brands, categories } = await productFormData();
+  const [{ brands, categories }, summary] = await Promise.all([productFormData(), getReviewSummary(db, found.product.id)]);
   return (
     <>
       <PageHead title={found.product.name} description={sp.baru === "salinan" ? "Salinan dibuat sebagai draf. Ubah nama dan SKU sebelum mengaktifkan." : sp.baru ? "Produk tersimpan." : `Status ${found.product.status}. ${found.hasOrders ? "Sudah pernah dipesan, jadi hanya bisa diarsipkan." : "Belum pernah dipesan."}`} />
+      {aiTersedia() ? <SummaryRefresh productId={found.product.id} info={summary ? `Ringkasan ulasan AI dari ${summary.reviewCount} ulasan, diperbarui ${formatDateTimeWib(summary.updatedAt)}.` : "Belum ada ringkasan ulasan AI (butuh minimal 5 ulasan tampil)."} /> : null}
       <ProductForm key={found.product.updatedAt.toISOString()} id={found.product.id} initial={toFormValue(found)} brands={brands} categories={categories} hasOrders={found.hasOrders} siteUrl={siteUrl()} photosEnabled={storageKind() !== "nonaktif"} initialMessage={sp.disimpan ? "Produk tersimpan." : undefined} />
     </>
   );

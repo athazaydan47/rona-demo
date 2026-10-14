@@ -4,7 +4,7 @@ import { ProductCardSkeleton, type CardBadge } from "@/components/product-card";
 import { getCatalogResult, getProductCards, type CatalogScope } from "@/lib/catalog/catalog-queries";
 import { scopeToParams } from "@/lib/catalog/scope";
 import { serializeCatalogParams, type CatalogFilters } from "@/lib/catalog/filters";
-import { getBrands, getLocations } from "@/lib/catalog/queries";
+import { getBrands, getCategoryTree, getLocations } from "@/lib/catalog/queries";
 import { ActiveChips } from "./active-chips";
 import { Breadcrumb, type Crumb } from "./breadcrumb";
 import { CatalogGrid } from "./catalog-grid";
@@ -26,14 +26,16 @@ type CatalogPageProps = {
   lockedFilters?: string[];
   hideBadges?: CardBadge[];
   header?: React.ReactNode; // blok tambahan di bawah judul (misal header merek)
+  chipsPrefix?: string; // misal "Kami artikan sebagai:" untuk tafsiran pencarian
 };
 
 // Halaman katalog bersama untuk kategori, pencarian, merek, dan promo. Data produk dibaca tanpa cache.
-export async function CatalogPage({ scope, filters, basePath, title, description, breadcrumb, subChips, hideFacets, lockedFilters, hideBadges, header }: CatalogPageProps) {
-  const [result, brands, locations] = await Promise.all([getCatalogResult(scope, filters), getBrands(), getLocations()]);
+export async function CatalogPage({ scope, filters, basePath, title, description, breadcrumb, subChips, hideFacets, lockedFilters, hideBadges, header, chipsPrefix }: CatalogPageProps) {
+  const [result, brands, locations, tree] = await Promise.all([getCatalogResult(scope, filters), getBrands(), getLocations(), getCategoryTree()]);
   const labels = {
     brands: Object.fromEntries(brands.map((b) => [b.slug, b.name])),
     locations: Object.fromEntries(locations.map((l) => [l.slug, l.name])),
+    categories: Object.fromEntries(tree.flatMap((c) => [[c.slug, c.name], ...c.children.map((x) => [x.slug, x.name])])),
   };
   const scopeQuery = new URLSearchParams(scopeToParams(scope)).toString();
   const apiQuery = [scopeQuery, serializeCatalogParams(filters, { omitPage: true })].filter(Boolean).join("&");
@@ -68,7 +70,7 @@ export async function CatalogPage({ scope, filters, basePath, title, description
         <FilterSheet filters={filters} facets={result.facets} labels={labels} basePath={basePath} scopeQuery={scopeQuery} total={result.total} hide={hideFacets} />
         <SortSelect filters={filters} basePath={basePath} />
         <div className="min-w-0 flex-1 basis-full md:basis-auto">
-          <ActiveChips filters={filters} labels={labels} basePath={basePath} locked={lockedFilters} />
+          <ActiveChips filters={filters} labels={labels} basePath={basePath} locked={lockedFilters} prefix={chipsPrefix} />
         </div>
       </div>
 

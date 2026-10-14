@@ -15,6 +15,7 @@ import { now } from "@/lib/clock";
 import { env } from "@/lib/env";
 import { normalizePhone } from "@/lib/orders/rules";
 import { currentCustomer, clearSessionCookie, setSessionCookie } from "./current";
+import { adoptGuestProfile } from "@/lib/skin/current";
 import { otpSender, requestOtp, verifyOtp, type OtpPurpose } from "./otp";
 import { authSecret } from "./secret";
 import { revokeAllSessions, revokeSession, SESSION_COOKIE } from "./session";
@@ -79,6 +80,7 @@ async function finishLogin(phone: string, kembali: unknown, guestWishlist: unkno
   const outcome = await completeLogin(db, { phone, now: now(), guestCartToken: jar.get(CART_COOKIE)?.value ?? null, guestWishlist, userAgent: h.get("user-agent") ?? "" });
   await setSessionCookie(outcome.token);
   jar.delete(CART_COOKIE);
+  await adoptGuestProfile(outcome.customerId);
   return { ok: true, needsName: outcome.needsName, redirectTo: safeReturn(kembali) };
 }
 

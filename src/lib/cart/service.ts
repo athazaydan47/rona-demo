@@ -86,7 +86,7 @@ const maxAvailable = (byLoc: Map<number, number> | undefined) => Math.max(0, ...
 export type AddResult = { ok: true; added: number; message?: string } | { ok: false; message: string };
 
 // Tambah item. Jumlah dibatasi stok terbanyak di satu lokasi dan maksimal 10 per item.
-export async function addItems(db: AnyDb, cartId: number, items: { variantId: number; quantity: number }[]): Promise<AddResult> {
+export async function addItems(db: AnyDb, cartId: number, items: { variantId: number; quantity: number }[], opts: { source?: string | null } = {}): Promise<AddResult> {
   const clean = items.filter((i) => Number.isInteger(i.variantId) && i.quantity > 0).map((i) => ({ variantId: i.variantId, quantity: Math.min(MAX_QTY_PER_ITEM, Math.trunc(i.quantity)) }));
   if (clean.length === 0) return { ok: false, message: "Tidak ada produk yang ditambahkan." };
   const { meta } = await buildPricingLines(db, clean, { customerId: null, phone: null }, new Date(0));
@@ -109,8 +109,9 @@ export async function addItems(db: AnyDb, cartId: number, items: { variantId: nu
     const base = cur && !cur.savedForLater ? cur.quantity : 0;
     const qty = Math.min(max, base + it.quantity);
     if (qty < base + it.quantity) message = `Stok tersedia tinggal ${max}, jumlah kami sesuaikan.`;
-    if (cur) await db.update(schema.cartItems).set({ quantity: qty, savedForLater: false, updatedAt: sql`now()` }).where(eq(schema.cartItems.id, cur.id));
-    else await db.insert(schema.cartItems).values({ cartId, variantId: it.variantId, quantity: qty });
+    // Sumber (misal "advisor") hanya ditulis bila ada; item yang sudah bersumber tidak ditimpa tambah biasa.
+    if (cur) await db.update(schema.cartItems).set({ quantity: qty, savedForLater: false, updatedAt: sql`now()`, ...(opts.source ? { source: opts.source } : {}) }).where(eq(schema.cartItems.id, cur.id));
+    else await db.insert(schema.cartItems).values({ cartId, variantId: it.variantId, quantity: qty, source: opts.source ?? null });
     added += qty - base;
   }
   await db.update(schema.carts).set({ updatedAt: sql`now()` }).where(eq(schema.carts.id, cartId));

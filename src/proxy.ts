@@ -75,7 +75,16 @@ export async function proxy(request: NextRequest) {
       return NextResponse.rewrite(new URL("/produk-tidak-ada", request.url));
     }
   }
-  return refreshSession(request, NextResponse.next());
+  return withVisitorId(request, refreshSession(request, NextResponse.next()));
+}
+
+// Id pengunjung acak (bukan data pribadi) untuk batas pemakaian AI per pengunjung; disimpan sebagai hash di ai_logs.
+const VISITOR_COOKIE = "rona_pengunjung";
+function withVisitorId(request: NextRequest, res: NextResponse) {
+  if (!request.cookies.get(VISITOR_COOKIE)) {
+    res.cookies.set(VISITOR_COOKIE, crypto.randomUUID(), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 24 * 365 });
+  }
+  return res;
 }
 
 export const config = {

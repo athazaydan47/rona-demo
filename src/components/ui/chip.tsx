@@ -37,7 +37,7 @@ export function Chip({ className, selected = false, asChild = false, onRemove, c
       {onRemove ? (
         <span
           role="button"
-          aria-label="Hapus filter"
+          aria-label={typeof children === "string" ? `Hapus filter ${children}` : "Hapus filter"}
           onClick={(e) => {
             e.stopPropagation();
             onRemove();

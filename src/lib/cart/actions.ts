@@ -19,10 +19,14 @@ export type AddToCartResponse = { ok: boolean; count: number; message?: string }
 const isItems = (items: unknown): items is { variantId: number; quantity: number }[] =>
   Array.isArray(items) && items.length <= 50 && items.every((i) => i && Number.isInteger(i.variantId) && Number.isInteger(i.quantity));
 
-export async function addToCartAction(items: { variantId: number; quantity: number }[]): Promise<AddToCartResponse> {
+// Sumber item yang diakui (atribusi penjualan). Nilai lain dari browser diabaikan.
+const SOURCES = ["advisor", "rutinitas", "padanan_shade"] as const;
+
+export async function addToCartAction(items: { variantId: number; quantity: number }[], opts: { source?: string } = {}): Promise<AddToCartResponse> {
   if (!isItems(items)) return { ok: false, count: 0, message: "Data tidak valid." };
   const cart = await currentCart(true);
-  const r = await addItems(db, cart!.id, items);
+  const source = SOURCES.find((s) => s === opts?.source) ?? null;
+  const r = await addItems(db, cart!.id, items, { source });
   return { ok: r.ok, count: await cartCount(db, cart!.id), message: r.message };
 }
 

@@ -1,7 +1,7 @@
 // Riwayat penjualan 90 hari yang realistis dan deterministik untuk demo. Fungsi murni: menerima katalog yang sudah
 // disisipkan seed (id nyata), waktu reset, dan RNG, lalu mengembalikan baris siap disisipkan massal.
 // Harga dihitung dengan mesin harga yang sama (priceCart); stok, poin, kuota flash, dan voucher dicatat konsisten.
-import type { OpeningHours, OrderAddressSnapshot, OrderPricingSnapshot, ShipmentEvent } from "../schema";
+import type { OpeningHours, OrderAddressSnapshot, OrderPricingSnapshot, ShipmentEvent, SkinProfile } from "../schema";
 import { toWibParts, wibDate } from "../../lib/format";
 import { formatOrderNumber, orderPeriod, paymentDeadline } from "../../lib/orders/rules";
 import { courierLabel, expiryReason, qrPayload, vaNumber, type PaymentMethod } from "../../lib/orders/service";
@@ -46,7 +46,7 @@ export type HistoryInput = {
   flashSlotsToday: number; // hari terakhir sampai hari ini; slot hari ini ikut riwayat
 };
 
-export type GenCustomer = { name: string; phone: string; email: string | null; registeredAt: Date; lastLoginAt: Date | null; points: number };
+export type GenCustomer = { name: string; phone: string; email: string | null; registeredAt: Date; lastLoginAt: Date | null; points: number; address: OrderAddressSnapshot | null; skinProfile: SkinProfile | null };
 export type GenFlashSale = { name: string; startsAt: Date; endsAt: Date };
 export type GenFlashItem = { sale: number; variantId: number; flashPrice: number; quota: number; sold: number; maxPerCustomer: number };
 export type GenOrder = {
@@ -162,10 +162,16 @@ export function generateHistory(input: HistoryInput, rng: Rng): HistoryOutput {
   };
   const historyStart = dayStart(HISTORY_DAYS - 1);
 
-  // Pelanggan fiktif (nomor 0800, bukan awalan seluler sungguhan). Sebagian membeli berulang (bobot Zipf).
+  // Pelanggan fiktif (nomor 0800, bukan awalan seluler sungguhan), masing-masing dengan alamat rumah tetap dan
+  // sebagian dengan profil kulit. Kuota pesanan 90 hari: 10 tanpa pesanan, sebagian besar 1 sampai 3, pelanggan setia
+  // 3 sampai 8, dan sedikit yang 9 sampai 15.
+  const homes: { zone: Zone; place: (typeof ZONE_PLACES)[Zone][number]; district: string; postal: string; street: string }[] = [];
   const customers: GenCustomer[] = Array.from({ length: 150 }, (_, i) => {
     const first = rng.pick(FIRST);
     const last = rng.pick(LAST);
+    const zone = weighted(rng, ["dalam_kota", "jatim", "jawa", "luar_jawa"] as Zone[], (z) => ({ dalam_kota: 4, jatim: 3, jawa: 2, luar_jawa: 1 })[z]);
+    const place = rng.pick(ZONE_PLACES[zone]);
+    homes.push({ zone, place, district: rng.pick(place.districts), postal: `${place.postal}${rng.int(10, 99)}`, street: `${rng.pick(STREETS)} No. ${rng.int(1, 120)}, RT ${rng.int(1, 9)} RW ${rng.int(1, 9)} (fiktif)` });
     return {
       name: `${first} ${last}`,
       phone: `08001${String(1_000_000 + i).slice(-7)}`,
@@ -173,9 +179,11 @@ export function generateHistory(input: HistoryInput, rng: Rng): HistoryOutput {
       registeredAt: new Date(historyStart.getTime() - rng.int(5, 300) * DAY),
       lastLoginAt: null,
       points: 0,
+      address: null,
+      skinProfile: rng.chance(0.45) ? randomSkinProfile(rng, historyStart) : null,
     };
   });
-  const customerWeight = customers.map((_, i) => 1 / Math.pow(i + 1, 0.75));
+  const quota = customers.map((_, i) => (i < 10 ? 0 : i < 95 ? rng.int(1, 3) : i < 137 ? rng.int(3, 8) : rng.int(9, 15)));
 
   // Slot flash sale riwayat sampai hari ini (pola sama dengan slot otomatis: produk terlaris bergiliran).
   const flashSales: GenFlashSale[] = [];
@@ -249,10 +257,12 @@ export function generateHistory(input: HistoryInput, rng: Rng): HistoryOutput {
 
   const staffFor = (loc: HistoryLocation) => (loc.type === "gudang" ? "Admin Online Demo" : loc.slug === "dinoyo" ? "Staf Dinoyo Demo" : `Staf ${loc.name.replace("Rona ", "")}`);
 
-  for (const t of times) {
+  for (const [ti, t] of times.entries()) {
     flushPoints(t);
-    const registered = rng.chance(0.65);
-    const cIdx = registered ? weighted(rng, customers.map((_, i) => i), (i) => customerWeight[i]) : null;
+    // Pesanan pelanggan terdaftar tersebar merata sampai kuota habis; sisanya tamu (sekitar 55 persen).
+    const remainingQuota = quota.reduce((a, b) => a + b, 0);
+    const registered = remainingQuota > 0 && rng.next() < remainingQuota / (times.length - ti);
+    const cIdx = registered ? weighted(rng, customers.map((_, i) => i).filter((i) => quota[i] > 0), (i) => quota[i]) : null;
     const c = cIdx != null ? customers[cIdx] : null;
     const guestFirst = rng.pick(FIRST);
     const name = c ? c.name : `${guestFirst} ${rng.pick(LAST)}`;
@@ -293,12 +303,18 @@ export function generateHistory(input: HistoryInput, rng: Rng): HistoryOutput {
     let courierCode: CourierCode = "ambil_di_toko";
     let address: OrderAddressSnapshot | null = null;
     if (method === "kirim") {
-      zone = weighted(rng, ["dalam_kota", "jatim", "jawa", "luar_jawa"] as Zone[], (z) => ({ dalam_kota: 4, jatim: 3, jawa: 2, luar_jawa: 1 })[z]);
+      zone = cIdx != null ? homes[cIdx].zone : weighted(rng, ["dalam_kota", "jatim", "jawa", "luar_jawa"] as Zone[], (z) => ({ dalam_kota: 4, jatim: 3, jawa: 2, luar_jawa: 1 })[z]);
       const options: CourierCode[] = ["jne_reg", "jnt_ez", "sicepat_reg", "jne_yes"];
       if (zone === "dalam_kota" && instantAvailability(t).available) options.push("instan");
       courierCode = weighted(rng, options, (o) => (o === "jne_reg" ? 4 : o === "jnt_ez" ? 3 : o === "sicepat_reg" ? 3 : o === "instan" ? 1.5 : 1));
-      const place = rng.pick(ZONE_PLACES[zone]);
-      address = { recipient: name, phone, province: place.province, city: place.city, district: rng.pick(place.districts), postalCode: `${place.postal}${rng.int(10, 99)}`, street: `${rng.pick(STREETS)} No. ${rng.int(1, 120)}, RT ${rng.int(1, 9)} RW ${rng.int(1, 9)} (fiktif)` };
+      if (cIdx != null) {
+        // Pelanggan terdaftar selalu mengirim ke alamat rumahnya, yang juga tersimpan di akunnya.
+        const h = homes[cIdx];
+        address = { recipient: name, phone, province: h.place.province, city: h.place.city, district: h.district, postalCode: h.postal, street: h.street };
+      } else {
+        const place = rng.pick(ZONE_PLACES[zone]);
+        address = { recipient: name, phone, province: place.province, city: place.city, district: rng.pick(place.districts), postalCode: `${place.postal}${rng.int(10, 99)}`, street: `${rng.pick(STREETS)} No. ${rng.int(1, 120)}, RT ${rng.int(1, 9)} RW ${rng.int(1, 9)} (fiktif)` };
+      }
     }
     const shipping = method === "kirim" ? { method: "kirim" as const, courierCode, zone: zone! } : { method: "ambil" as const };
 
@@ -391,6 +407,10 @@ export function generateHistory(input: HistoryInput, rng: Rng): HistoryOutput {
     };
     const completedAt = happened.find((e) => e.to === "selesai")?.at ?? null;
     const updatedAt = happened.length ? happened[happened.length - 1].at : t;
+    if (cIdx != null) {
+      quota[cIdx] -= 1;
+      if (address && !customers[cIdx].address) customers[cIdx].address = address;
+    }
     orders.push({
       number,
       customer: cIdx,
@@ -537,4 +557,22 @@ export function generateHistory(input: HistoryInput, rng: Rng): HistoryOutput {
   }
 
   return { customers, flashSales, flashItems, orders, items, payments, history, shipments, movements: [...initial, ...movements], ledger, redemptions, voucherUsed, soldByProduct, reserved, counters };
+}
+
+const SKIN_TYPES = ["normal", "kering", "berminyak", "kombinasi", "sensitif"] as const;
+const SKIN_CONCERNS = ["jerawat", "kusam", "pori", "penuaan", "dehidrasi"] as const;
+
+// Profil kulit acak untuk sebagian pelanggan riwayat (bentuk sama dengan formulir akun dan kuis).
+function randomSkinProfile(rng: Rng, at: Date): SkinProfile {
+  const concerns = SKIN_CONCERNS.filter(() => rng.chance(0.3)).slice(0, 2);
+  return {
+    skinType: rng.pick([...SKIN_TYPES]),
+    concerns: [...concerns],
+    sensitivity: rng.pick(["rendah", "sedang", "tinggi"] as const),
+    undertone: rng.pick(["warm", "neutral", "cool"] as const),
+    depth: rng.int(2, 5),
+    budget: rng.pick([75_000, 150_000, 250_000]),
+    source: rng.chance(0.5) ? "kuis" : "formulir",
+    updatedAt: at.toISOString(),
+  };
 }

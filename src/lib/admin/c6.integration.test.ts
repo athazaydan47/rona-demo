@@ -5,7 +5,7 @@ import { dbUrl, integration } from "@/test/integration";
 import { dispatchEmails, notificationIdempotencyKey } from "@/lib/email/dispatch";
 import { emailConfig, type EmailMessage, type EmailProvider, type SendResult } from "@/lib/email";
 import { checkPointsConsistency } from "@/lib/points";
-import { buildReport, resolvePeriod, summarize, topProducts } from "@/lib/reports";
+import { buildReport, resolvePeriod, summarize, topProducts, wibDayKey } from "@/lib/reports";
 import { loadReportData } from "@/lib/reports/load";
 import { loadPrincipal } from "./auth";
 import { adjustPoints, customerSegment, listCustomers, type Segment } from "./customers";
@@ -69,6 +69,15 @@ describe.skipIf(!dbUrl)("Fase 6C (integrasi)", () => {
     expect(dash.revenue?.series).toEqual(buildReport(data).daily);
     expect(dash.best.map((b) => [b.productId, b.qty])).toEqual(topProducts(data, "quantity").slice(0, 5).map((p) => [p.productId, p.quantity]));
     expect(s.revenue).toBeGreaterThan(0);
+  });
+
+  it("rekonsiliasi omzet selalu tepat pada data riwayat (90 hari dan per cabang)", async () => {
+    const range = resolvePeriod("kustom", now, { from: wibDayKey(new Date(now.getTime() - 89 * 86_400_000)), to: wibDayKey(now) });
+    const all = buildReport(await loadReportData(db, range));
+    expect(all.reconciliation.balanced).toBe(true);
+    expect(all.reconciliation.revenue).toBe(all.summary.revenue);
+    expect(all.reconciliation.voucherShipping).toBeGreaterThanOrEqual(0);
+    for (const loc of all.locations) expect(buildReport(await loadReportData(db, range, { locationIds: [Number(loc.key)] })).reconciliation.balanced).toBe(true);
   });
 
   it("laporan cabang hanya berisi pesanan cabang itu, dan jumlah per cabang sama dengan total", async () => {

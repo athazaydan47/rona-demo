@@ -10,6 +10,8 @@ import { listOutbox, OUTBOX_STATUS_LABELS } from "@/lib/admin/outbox";
 import { can } from "@/lib/admin/permissions";
 import { emailConfig, emailReady } from "@/lib/email";
 import { formatDateTimeWib, formatNumber, wibDate } from "@/lib/format";
+import { absoluteLinks } from "@/lib/notifications/links";
+import { siteUrl } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Notifikasi keluar" };
 
@@ -40,10 +42,10 @@ async function Content({ searchParams }: { searchParams: Promise<SP> }) {
             {cfg.demoMode ? (cfg.allowlist.length ? `Mode demo: hanya ke ${cfg.allowlist.length} alamat di EMAIL_ALLOWLIST, alamat lain ditandai Dilewati.` : "Mode demo tanpa EMAIL_ALLOWLIST: semua email ditandai Dilewati.") : "Semua alamat dikirimi."}
           </p>
         ) : (
-          <p>Mode pratinjau: email tidak dikirim ke mana pun dan tetap Menunggu. Isi EMAIL_PROVIDER=resend, RESEND_API_KEY, dan EMAIL_FROM untuk mengirim sungguhan.</p>
+          <p>Mode pratinjau: email tidak dikirim ke mana pun dan berstatus Pratinjau, sama seperti WhatsApp. Isi EMAIL_PROVIDER=resend, RESEND_API_KEY, dan EMAIL_FROM untuk mengirim sungguhan.</p>
         )}
         <p className="mt-1 text-xs text-abu-hangat">
-          Email: {formatNumber(emailCount("antre"))} menunggu, {formatNumber(emailCount("terkirim"))} terkirim, {formatNumber(emailCount("gagal"))} gagal, {formatNumber(emailCount("dilewati"))} dilewati. WhatsApp selalu pratinjau di Kotak Notifikasi pembeli.
+          Email: {formatNumber(emailCount("antre"))} {emailReady(cfg) ? "menunggu" : "pratinjau"}, {formatNumber(emailCount("terkirim"))} terkirim, {formatNumber(emailCount("gagal"))} gagal, {formatNumber(emailCount("dilewati"))} dilewati. WhatsApp selalu pratinjau di Kotak Notifikasi pembeli.
         </p>
       </div>
       <form method="get" className="mb-3 grid gap-2 rounded-xl border border-garis bg-putih p-3 sm:grid-cols-[repeat(4,minmax(0,1fr))_auto]" aria-label="Filter notifikasi">
@@ -68,7 +70,7 @@ async function Content({ searchParams }: { searchParams: Promise<SP> }) {
       </form>
       <p className="mb-2 text-sm text-abu-hangat">{formatNumber(r.total)} notifikasi</p>
       <OutboxList
-        rows={r.rows.map((n) => ({ id: n.id, channel: n.channel, kind: n.kind, recipient: n.recipient, subject: n.subject, body: n.body, status: n.status, statusLabel: OUTBOX_STATUS_LABELS[n.status] ?? n.status, attempts: n.attempts, lastError: n.lastError, createdLabel: formatDateTimeWib(n.createdAt), sentLabel: n.sentAt && n.channel === "email" ? formatDateTimeWib(n.sentAt) : null }))}
+        rows={r.rows.map((n) => ({ id: n.id, channel: n.channel, kind: n.kind, recipient: n.recipient, subject: n.subject, body: absoluteLinks(n.body, siteUrl()), status: n.status, preview: n.channel === "wa" || (!emailReady(cfg) && n.status === "antre"), statusLabel: OUTBOX_STATUS_LABELS[n.status] ?? n.status, attempts: n.attempts, lastError: n.lastError, createdLabel: formatDateTimeWib(n.createdAt), sentLabel: n.sentAt && n.channel === "email" ? formatDateTimeWib(n.sentAt) : null }))}
       />
       <Pager page={r.page} pageCount={r.pageCount} href={href} />
     </>

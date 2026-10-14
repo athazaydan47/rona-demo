@@ -36,6 +36,7 @@ const p = (over: Partial<CatalogItem>): CatalogItem => ({
   finish: null,
   spf: null,
   relevance: 0,
+  attrText: "",
   variants: [v({})],
   ...over,
 });

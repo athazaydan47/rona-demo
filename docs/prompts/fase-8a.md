@@ -8,9 +8,27 @@ Tujuan fase ini: Rona terasa seperti produk jadi dari studio kelas atas, bukan t
 
 Aturan produksi tetap berlaku: migrasi hanya menambah, env baru didokumentasikan, commit tanpa push.
 
-## 0. Perbaikan dari review fase sebelumnya
+## 0. Perbaikan dari review Fase 7B
 
-Bila bagian ini tidak berisi butir, lewati.
+1. **Judul kolom tabel di Asisten Admin masih nama kolom mentah**, misalnya `nama` dan `penjualanBarangRp`.
+   - Buat pemetaan kunci ke label manusiawi dalam bahasa Indonesia (Merek, Pesanan, Unit, Penjualan barang), angka rata kanan, dan rupiah berformat.
+   - Terapkan di semua tabel jawaban asisten, termasuk Kabar Harian bila relevan.
+   - Uji: tidak ada judul kolom bergaya camelCase atau snake_case yang tampil ke pengguna.
+2. **Klaim angka di penulis deskripsi.** Usulan untuk Teduh Calming Centella Toner menulis "Centella Asiatica 70%", padahal poin-poin admin hanya "menenangkan kulit yang mudah merah, tanpa alkohol, ringan".
+   - Periksa apakah angka 70% ada di data produk (bahan aktif atau acuan lain). Bila tidak ada, berarti pemeriksa klaim bocor. Perbaiki supaya setiap angka di usulan (persen, jam, SPF, ml) wajib ada di acuan.
+   - Tambahkan eval kecil penulis deskripsi: minimal 10 produk, termasuk acuan yang sengaja minim. Periksa tidak ada angka, bahan, atau klaim di luar acuan, dan laporkan skornya.
+3. **Draf balasan ulasan memakai nama lengkap pembeli** ("Terima kasih banyak, Zahra Khairunnisa!"), padahal ulasan lain tampil dengan nama singkat (misalnya "Rara P.").
+   - Balasan publik memakai nama panggilan saja dengan sapaan yang wajar ("Kak Zahra"), atau mengikuti nama tampilan ulasan.
+   - Jangan pernah menyebut data pesanan pribadi (alamat, nomor, nominal) di balasan publik.
+4. **Data stok cabang terlalu banyak yang habis.** Kabar Harian dan matriks menunjukkan sekitar 40 sampai 50 varian habis per cabang, dan daftar menipis sangat panjang, sehingga toko terlihat kurang terurus saat demo.
+   - Bedakan "tidak dijual di cabang ini" (varian yang memang tidak disediakan cabang, tampil "-" dan tidak dihitung habis) dari "habis" (biasanya ada, sekarang 0).
+   - Atur seed supaya proporsinya wajar: habis sekitar 3 sampai 8 persen, menipis sekitar 10 sampai 15 persen dari varian yang dijual di cabang.
+   - Pastikan Ambil di Toko, Kabari aku, saran transfer, dan laporan memakai definisi yang sama.
+   - Kabar Harian dan dashboard menampilkan 5 teratas yang paling kritis plus jumlahnya, bukan daftar panjang.
+   - Naikkan versi seed. Pemeriksa konsistensi tetap lulus.
+5. **Asisten Admin menebak saat pertanyaan perbandingan ambigu** (eval owner-31: "Bandingkan omzetnya dong" langsung dijawab hari ini dibanding kemarin).
+   - Untuk perbandingan tanpa periode yang jelas, asisten bertanya balik dengan pilihan cepat, misalnya "Hari ini dibanding kemarin, minggu ini dibanding minggu lalu, atau bulan ini dibanding bulan lalu?". Tampilkan pilihannya sebagai chip yang bisa diklik.
+   - Jalankan ulang `npm run eval:asisten` dan laporkan skornya.
 
 ## 1. Audit menyeluruh dulu, baru perbaiki
 

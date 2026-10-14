@@ -11,9 +11,27 @@ Tujuan fase ini ada tiga:
 
 Aturan produksi tetap berlaku: migrasi hanya menambah, env baru didokumentasikan, commit tanpa push. Tag rilis dibuat oleh Atha.
 
-## 0. Perbaikan dari review fase sebelumnya
+## 0. Perbaikan dari review Fase 8A
 
-Bila bagian ini tidak berisi butir, lewati.
+1. **Data uji bocor ke tampilan.** Lembar cuplik 8A memperlihatkan "Flash Uji E2E" di beranda, serta "Lip Tint Uji 8BBW6I" di matriks stok. Keduanya sisa uji Playwright di database lokal. Ini berbahaya untuk aset portofolio dan demo.
+   - Uji Playwright dan uji integrasi selalu memakai database terpisah (misalnya `rona_demo_e2e`, pola yang sama dengan `rona_demo_uji` untuk uji reset), atau membersihkan semua data yang dibuatnya sendiri.
+   - Database `rona_demo` hanya berisi seed.
+   - `npm run cuplik` dan `npm run aset:portofolio` selalu dijalankan setelah reset bersih, atau menolak jalan bila menemukan data bernama uji.
+   - Tambahkan pemeriksaan otomatis bahwa seed tidak mengandung nama seperti "Uji", "E2E", atau "test".
+   - Tambahkan pemeriksaan hanya-baca di `npm run uji:produksi` yang memastikan tidak ada produk, slot, atau voucher bernama uji di produksi.
+2. **Log aktivitas masih menampilkan data mentah.** Contohnya `baris [{"quantity":2,"variantId":208}]`, dan `ke 4`, `dari 1` berupa id lokasi.
+   - Tampilan beda sebelum dan sesudah harus menerjemahkan id menjadi nama: lokasi, varian, staf, pelanggan.
+   - Daftar baris tampil sebagai "Teduh Gentle Milk Cleanser 150 ml × 2".
+   - Kunci kolom tampil dengan label manusiawi.
+   - Data mentah tetap tersimpan di database. Yang berubah hanya cara tampilnya.
+3. **Kecepatan belum mencapai target, dan katalog mundur** (Performance 91 menjadi 84). Lakukan putaran khusus kecepatan tanpa mengorbankan aksesibilitas:
+   - **Motion:** pakai `LazyMotion` dengan fitur minimal (`domAnimation`) dan komponen `m`, supaya paket Motion yang sekitar 135 KB tidak ikut dimuat penuh di setiap halaman.
+   - **Komponen berat dimuat saat dibutuhkan:** panel Advisor, dialog, sheet, menu mega, peta, grafik admin, dan formulir besar dipisah dengan dynamic import dan dimuat saat interaksi pertama atau saat terlihat.
+   - **Audit komponen klien di beranda, katalog, dan produk:** yang tidak butuh interaksi dijadikan komponen server.
+   - **Gambar:** periksa preload dan prioritas gambar di atas lipatan, ukuran `sizes`, dan format.
+   - **Target Lighthouse mobile:** Performance minimal 90 di beranda, katalog, dan produk. Bila tidak tercapai karena batas simulasi 4G, laporkan sebab pastinya dengan angka (ukuran JS per route sebelum dan sesudah) dan apa yang tersisa.
+   - Katalog wajib kembali minimal ke angka sebelum 8A.
+4. **Halaman Laporan admin tidak ikut cuplik 8A.** Pastikan Laporan, Kesehatan AI, dan Asisten Admin ikut dalam `aset:portofolio`.
 
 ## 1. Keamanan
 

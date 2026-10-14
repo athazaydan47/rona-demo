@@ -238,9 +238,10 @@ export async function savePromoBar(db: AnyDb, staff: StaffPrincipal, messages: s
 
 
 // Pencarian varian untuk editor promo: harga normal, jual, promo, dan stok online tersedia.
-export async function searchPromoVariants(db: AnyDb, q: string, limit = 12) {
+// opts.ids: cari langsung per id varian (draf dari saran flash sale, Fase 7B).
+export async function searchPromoVariants(db: AnyDb, q: string, limit = 12, opts: { ids?: number[] } = {}) {
   const term = q.trim().replace(/[%_]/g, "");
-  if (term.length < 2) return [];
+  if (!opts.ids && term.length < 2) return [];
   const like = `%${term}%`;
   const rows = await db
     .select({
@@ -259,7 +260,7 @@ export async function searchPromoVariants(db: AnyDb, q: string, limit = 12) {
     .from(schema.variants)
     .innerJoin(schema.products, eq(schema.variants.productId, schema.products.id))
     .innerJoin(schema.brands, eq(schema.products.brandId, schema.brands.id))
-    .where(and(eq(schema.variants.isActive, true), sql`(${schema.products.name} ilike ${like} or ${schema.variants.shadeName} ilike ${like} or ${schema.variants.sku} ilike ${like} or ${schema.brands.name} ilike ${like})`))
+    .where(and(eq(schema.variants.isActive, true), opts.ids ? inArray(schema.variants.id, opts.ids.length ? opts.ids : [-1]) : sql`(${schema.products.name} ilike ${like} or ${schema.variants.shadeName} ilike ${like} or ${schema.variants.sku} ilike ${like} or ${schema.brands.name} ilike ${like})`))
     .orderBy(asc(schema.products.name), asc(schema.variants.sortOrder))
     .limit(limit);
   if (!rows.length) return [];

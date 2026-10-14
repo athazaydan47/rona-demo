@@ -64,7 +64,7 @@ test("Owner membuka Laporan 30 hari lalu mengunduh Excel dengan sheet yang benar
   await download.saveAs(file);
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile(file);
-  expect(wb.worksheets.map((w) => w.name)).toEqual(["Ringkasan", "Harian", "Per Merek", "Per Kategori", "Per Cabang", "Per Kanal", "Produk", "Voucher", "Detail Pesanan", "Detail Item"]);
+  expect(wb.worksheets.map((w) => w.name)).toEqual(["Ringkasan", "Harian", "Per Merek", "Per Kategori", "Per Cabang", "Per Kanal", "Produk", "Voucher", "Rona Advisor", "Detail Pesanan", "Detail Item"]);
   const ringkasan = wb.getWorksheet("Ringkasan")!;
   let omzet: unknown = null;
   ringkasan.eachRow((row) => {

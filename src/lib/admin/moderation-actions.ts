@@ -31,10 +31,10 @@ export async function showReviewAction(id: number) {
   return r;
 }
 
-export async function replyReviewAction(id: number, text: string) {
+export async function replyReviewAction(id: number, text: string, opts: { aiAssisted?: boolean } = {}) {
   const me = await currentStaff();
   if (!me) return DENIED;
-  const r = await replyReview(db, me, Number(id), String(text ?? ""), { now: now() });
+  const r = await replyReview(db, me, Number(id), String(text ?? ""), { now: now(), aiAssisted: opts.aiAssisted === true });
   if (r.ok) {
     updateCatalogNow(productTagsFor(r.slugs));
     if (r.notified) scheduleEmailDispatch();

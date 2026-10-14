@@ -14,6 +14,8 @@ import { uploadAdminPhoto } from "@/lib/client/compress-image";
 import { formatRupiah } from "@/lib/format";
 import { discountPercent } from "@/lib/pricing";
 import { cn, slugify } from "@/lib/utils";
+import type { ClaimIssue, DescriptionDraft, DescriptionField } from "@/lib/ai/penulis";
+import { DescriptionWriter } from "./description-writer";
 import { fieldClass } from "./ui";
 
 type Variant = { key: number; id: number | null; shadeName: string; hex: string; undertone: "warm" | "neutral" | "cool" | ""; depth: string; sku: string; skuTouched: boolean; barcode: string; weightGram: string; normalPrice: string; salePrice: string; isActive: boolean };
@@ -42,6 +44,8 @@ export type ProductFormValue = {
 };
 
 type Brand = { id: number; name: string; color: string };
+// Kolom usulan penulis AI ke kolom formulir produk.
+const WRITER_FIELDS = { ringkas: "shortDescription", manfaat: "benefits", kandungan: "ingredients", caraPakai: "howToUse", metaJudul: "seoTitle", metaDeskripsi: "seoDescription" } as const;
 type CategoryGroup = { id: number; name: string; children: { id: number; name: string }[] };
 
 const SKIN = ["normal", "kering", "berminyak", "kombinasi", "sensitif"];
@@ -76,12 +80,12 @@ function Field({ label, error, hint, children, className }: { label: string; err
 
 const textarea = "w-full rounded-lg border border-garis bg-putih px-3 py-2 text-sm text-kopi outline-none focus-visible:border-rona";
 
-export function ProductForm({ id, initial, brands, categories, hasOrders, siteUrl, photosEnabled, initialMessage }: { id: number | null; initial: ProductFormValue; brands: Brand[]; categories: CategoryGroup[]; hasOrders: boolean; siteUrl: string; photosEnabled: boolean; initialMessage?: string }) {
+export function ProductForm({ id, initial, brands, categories, hasOrders, siteUrl, photosEnabled, initialMessage, aiWriter = false, aiDraft = null }: { id: number | null; initial: ProductFormValue; brands: Brand[]; categories: CategoryGroup[]; hasOrders: boolean; siteUrl: string; photosEnabled: boolean; initialMessage?: string; aiWriter?: boolean; aiDraft?: { draft: Record<string, string>; issues: Record<string, ClaimIssue[]>; by: string } | null }) {
   const router = useRouter();
   const [v, setV] = useState<Omit<ProductFormValue, "variants">>(() => withoutVariants(initial));
   const [rows, setRows] = useState<Variant[]>(() => (initial.variants.length ? initial.variants.map(toRow) : [emptyVariant()]));
   const [slugTouched, setSlugTouched] = useState(Boolean(id));
-  const [tab, setTab] = useState<(typeof TABS)[number][0]>("info");
+  const [tab, setTab] = useState<(typeof TABS)[number][0]>(aiDraft ? "deskripsi" : "info");
   const [previewKey, setPreviewKey] = useState<number | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(initialMessage ? { ok: true, text: initialMessage } : null);
@@ -377,6 +381,25 @@ export function ProductForm({ id, initial, brands, categories, hasOrders, siteUr
 
         {tab === "deskripsi" ? (
           <section className="space-y-3 rounded-xl border border-garis bg-putih p-4" aria-label="Deskripsi">
+            {aiWriter ? (
+              <DescriptionWriter
+                source={{
+                  name: v.name,
+                  brand: brands.find((b) => b.id === v.brandId)?.name ?? "",
+                  category: categories.flatMap((c) => [c, ...c.children]).find((c) => c.id === v.categoryId)?.name ?? "",
+                  activeIngredients: v.activeIngredients.split(/[,\n]/).map((x) => x.trim()).filter(Boolean),
+                  skinTypes: v.skinTypes,
+                  finish: v.finish || null,
+                  spf: v.spf.trim() ? Number(v.spf) : null,
+                  netto: v.netto,
+                  bpom: v.bpom,
+                  current: { ringkas: v.shortDescription, manfaat: v.benefits, kandungan: v.ingredients, caraPakai: v.howToUse, metaJudul: v.seoTitle, metaDeskripsi: v.seoDescription },
+                }}
+                initial={aiDraft ? { draft: aiDraft.draft as DescriptionDraft, issues: aiDraft.issues as Record<DescriptionField, ClaimIssue[]> } : null}
+                initialBy={aiDraft?.by ?? null}
+                onAccept={(f, text) => set(WRITER_FIELDS[f], f === "ringkas" ? text.slice(0, 300) : text)}
+              />
+            ) : null}
             <Field label="Deskripsi singkat" hint={`${v.shortDescription.length}/300`}>
               <textarea rows={2} value={v.shortDescription} onChange={(e) => set("shortDescription", e.target.value.slice(0, 300))} className={textarea} />
             </Field>

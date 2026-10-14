@@ -9,20 +9,11 @@
 // Dilewati bila kunci AI tidak ada.
 import { readFileSync } from "node:fs";
 import { config } from "dotenv";
+import { costUsd, IDR_PER_USD, IDR_RATE_NOTE, nextPriceChange } from "../src/lib/ai/pricing";
 
 config({ path: ".env.local" });
 
 type Scenario = { id: string; pertanyaan: string; harapan: "rekomendasi" | "tolak" | "tolak_harga" | "dokter" | "tidak_dijual" | "tidak_ada" | "bebas"; kategori?: string[]; hargaMaks?: number; merek?: string };
-
-// Tarif resmi per 1 juta token (USD), dari https://ai.google.dev/gemini-api/docs/pricing, dicek 14 Okt 2026.
-// Gemini 3.5 Flash tidak lagi tercantum di halaman resmi, jadi biayanya tidak dihitung.
-export const OFFICIAL_PRICES: Record<string, { input: number; output: number; note?: string }> = {
-  "gemini-3.6-flash": { input: 0.75, output: 3.75, note: "naik menjadi 1,50 dan 7,50 mulai 1 Jan 2027" },
-  "gemini-3.8-flash": { input: 0.75, output: 3.75, note: "naik menjadi 1,50 dan 7,50 mulai 1 Jan 2027" },
-  "gemini-3.5-flash-lite": { input: 0.3, output: 2.5 },
-  "gemini-3.1-flash-lite": { input: 0.25, output: 1.5 },
-};
-const IDR_PER_USD = 16_500; // kurs asumsi untuk laporan
 
 const median = (xs: number[]) => {
   const s = [...xs].sort((a, b) => a - b);
@@ -31,11 +22,12 @@ const median = (xs: number[]) => {
 const avg = (xs: number[]) => (xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : 0);
 const arg = (name: string) => process.argv.find((a) => a.startsWith(`--${name}=`))?.split("=")[1];
 
-function costLine(model: string, input: number, output: number) {
-  const p = OFFICIAL_PRICES[model];
-  if (!p) return `biaya: model ${model} tidak ada di halaman harga resmi`;
-  const usd = (input * p.input + output * p.output) / 1_000_000;
-  return `biaya: $${usd.toFixed(5)} (sekitar Rp ${Math.round(usd * IDR_PER_USD).toLocaleString("id-ID")}) per permintaan, $${(usd * 1000).toFixed(2)} per 1.000${p.note ? `; tarif ${p.note}` : ""}`;
+// Tarif dan kurs dari satu sumber: src/lib/ai/pricing.ts (juga dipakai panel Kesehatan AI).
+export function costLine(model: string, input: number, output: number, at: Date = new Date()) {
+  const usd = costUsd(model, input, output, at);
+  if (usd == null) return `biaya: model ${model} tidak ada di halaman harga resmi`;
+  const next = nextPriceChange(model, at);
+  return `biaya: $${usd.toFixed(5)} (sekitar Rp ${Math.round(usd * IDR_PER_USD).toLocaleString("id-ID")}, ${IDR_RATE_NOTE}) per permintaan, $${(usd * 1000).toFixed(2)} per 1.000${next ? `; tarif naik menjadi ${next.input} dan ${next.output} mulai ${next.from}` : ""}`;
 }
 
 async function main() {

@@ -53,3 +53,28 @@ for (const width of [375, 1440]) {
     await context.close();
   });
 }
+
+test("di HP tombol Tanya Rona bulat ikon saja, menyingkir saat digulir ke bawah dan kembali saat digulir ke atas", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 375, height: 812 }, baseURL: "http://localhost:3210" });
+  const page = await context.newPage();
+  await page.goto("/cari-dari-video");
+  const btn = page.getByTestId("tombol-advisor");
+  await expect(btn).toBeVisible();
+  const box = (await btn.boundingBox())!;
+  expect(Math.round(box.width)).toBeLessThanOrEqual(50);
+  expect(Math.round(box.height)).toBeLessThanOrEqual(50);
+  await expect(btn.getByText("Tanya Rona")).toBeHidden(); // label hanya tampil di desktop
+  await page.goto("/");
+  await expect(btn).toBeVisible();
+  await page.mouse.wheel(0, 900);
+  await expect(btn).toHaveCSS("opacity", "0");
+  await page.mouse.wheel(0, -400);
+  await expect(btn).toHaveCSS("opacity", "1");
+  await context.close();
+});
+
+test("di desktop tombol Tanya Rona tetap berlabel", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(page.getByTestId("tombol-advisor").getByText("Tanya Rona")).toBeVisible();
+});

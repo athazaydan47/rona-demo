@@ -9,7 +9,7 @@ import { receiveStockAction, searchVariantsAction, transferStockAction, variantA
 import { cn } from "@/lib/utils";
 import { fieldClass } from "./ui";
 
-type Variant = { variantId: number; productName: string; shadeName: string; sku: string; hex: string; brandName: string };
+export type Variant = { variantId: number; productName: string; shadeName: string; sku: string; hex: string; brandName: string };
 type Line = { key: number; variant: Variant | null; quantity: string };
 type Loc = { id: number; name: string };
 
@@ -65,9 +65,10 @@ export function VariantPicker({ onPick, label = "Cari varian" }: { onPick: (v: V
 let keySeq = 1;
 const newLine = (): Line => ({ key: keySeq++, variant: null, quantity: "1" });
 
-export function StockLinesForm({ mode, locations, defaultFrom, defaultTo }: { mode: "masuk" | "transfer"; locations: Loc[]; defaultFrom?: number; defaultTo?: number }) {
+// initialLines: draf dari saran transfer (Fase 7B). Staf tetap memeriksa lalu menyimpan sendiri.
+export function StockLinesForm({ mode, locations, defaultFrom, defaultTo, initialLines, draftNote }: { mode: "masuk" | "transfer"; locations: Loc[]; defaultFrom?: number; defaultTo?: number; initialLines?: { variant: Variant; quantity: number }[]; draftNote?: string }) {
   const router = useRouter();
-  const [lines, setLines] = useState<Line[]>([newLine()]);
+  const [lines, setLines] = useState<Line[]>(() => (initialLines?.length ? initialLines.map((l) => ({ key: keySeq++, variant: l.variant, quantity: String(l.quantity) })) : [newLine()]));
   const [from, setFrom] = useState<number>(defaultFrom ?? locations[0]?.id ?? 0);
   const [to, setTo] = useState<number>(defaultTo ?? locations.find((l) => l.id !== (defaultFrom ?? locations[0]?.id))?.id ?? 0);
   const [reference, setReference] = useState("");
@@ -134,6 +135,11 @@ export function StockLinesForm({ mode, locations, defaultFrom, defaultTo }: { mo
 
   return (
     <div className="space-y-4">
+      {draftNote ? (
+        <p className="rounded-xl bg-[#FBEEDC] px-4 py-2.5 text-sm text-[#8A5512]" role="status" data-testid="draf-transfer">
+          {draftNote}
+        </p>
+      ) : null}
       <div className="grid gap-3 rounded-xl border border-garis bg-putih p-4 md:grid-cols-2">
         {mode === "transfer" ? (
           <>

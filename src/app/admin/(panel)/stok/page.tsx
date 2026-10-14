@@ -10,7 +10,14 @@ import { Button } from "@/components/ui/button";
 import { db, schema } from "@/db/client";
 import { requireStaff } from "@/lib/admin/current";
 import { allLocations, can } from "@/lib/admin/permissions";
+import { stockLocationScope } from "@/lib/admin/stock";
 import { stockMatrix } from "@/lib/admin/stock";
+import { AskAssistantButton } from "@/components/admin/asisten-panel";
+import { aiTersedia } from "@/lib/ai";
+import { canAll, type StaffPrincipal } from "@/lib/admin/permissions";
+import { now } from "@/lib/clock";
+import { transferDraftHref, transferSuggestions } from "@/lib/inventory/saran";
+import { loadSettings } from "@/lib/settings/db";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Stok" };
@@ -22,6 +29,48 @@ function cellTone(available: number, threshold: number) {
   if (available <= 0) return "bg-[#F7E3E1] text-bahaya";
   if (available <= threshold) return "bg-[#FBEEDC] text-peringatan";
   return "";
+}
+
+// Saran transfer (deterministik, src/lib/inventory/saran.ts): cabang yang akan habis dan lokasi yang berlebih.
+// "Buat draf transfer" membuka formulir transfer terisi; staf yang memeriksa dan menyimpan.
+async function TransferSuggestionsSection({ me }: { me: StaffPrincipal }) {
+  const settings = await loadSettings(db);
+  const r = await transferSuggestions(db, { now: now(), kurangHari: settings.saran.kurangHari, lebihHari: settings.saran.lebihHari, keepMin: settings.lowStock, locationIds: stockLocationScope(me), limit: 6 });
+  if (!r.suggestions.length) return null;
+  return (
+    <section id="saran-transfer" className="mb-5 scroll-mt-20 rounded-xl border border-garis bg-putih p-4" data-testid="saran-transfer">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-serif text-xl text-kopi">Saran transfer</h2>
+        <p className="text-xs text-abu-hangat">
+          {r.total} saran dari laju jual {r.windowDays} hari. Akan habis bila stok cukup kurang dari {r.kurangHari} hari; asal berlebih di atas {r.lebihHari} hari.
+        </p>
+      </div>
+      <ul className="divide-y divide-garis">
+        {r.suggestions.map((s) => (
+          <li key={`${s.variantId}-${s.toId}`} className="flex flex-col gap-2 py-2.5 md:flex-row md:items-center md:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-kopi">
+                {s.productName} · {s.shadeName}: {s.quantity} pcs dari {s.fromName} ke {s.toName}
+              </p>
+              <p className="text-xs text-abu-hangat">{s.alasan}</p>
+            </div>
+            {canAll(me, "stok.transfer", [s.fromId, s.toId]) ? (
+              <Button asChild size="sm" variant="outline" className="shrink-0">
+                <Link href={transferDraftHref([s])} data-testid="buat-draf-transfer">
+                  Buat draf transfer
+                </Link>
+              </Button>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {aiTersedia() ? (
+        <div className="mt-2">
+          <AskAssistantButton prompt="Jelaskan saran transfer hari ini" label="Jelaskan dengan Asisten" />
+        </div>
+      ) : null}
+    </section>
+  );
 }
 
 async function Content({ searchParams }: Props) {
@@ -61,6 +110,10 @@ async function Content({ searchParams }: Props) {
           </Button>
         ) : null}
       </PageHead>
+
+      <Suspense fallback={null}>
+        <TransferSuggestionsSection me={me} />
+      </Suspense>
 
       <div className="mb-3 flex flex-wrap gap-2" role="tablist" aria-label="Saring stok">
         {(["semua", "menipis", "habis"] as const).map((s) => (

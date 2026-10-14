@@ -139,6 +139,7 @@ export type ReportItem = {
   normalPrice: number;
   priceSource: string;
   flashSaleItemId: number | null;
+  source: string | null; // atribusi asal item (advisor, rutinitas, padanan_shade, cari_video), Fase 7A
 };
 
 export type ReportFlashSlot = { id: number; name: string; startsAt: Date; endsAt: Date; source: string; items: { id: number; quota: number; sold: number }[] };
@@ -151,6 +152,7 @@ export type ReportData = {
   firstRevenueAt: Map<string, Date>; // pesanan omzet pertama per pembeli, sepanjang masa
   flashSlots: ReportFlashSlot[];
   vouchers: ReportVoucher[];
+  advisor?: { conversations: number; cartAdds: number }; // corong Rona Advisor dalam rentang (semua lokasi)
 };
 
 export const isRevenueOrder = (o: Pick<ReportOrder, "paidAt" | "status">) => o.paidAt != null && !(REVENUE_EXCLUDED as readonly string[]).includes(o.status);
@@ -409,6 +411,48 @@ export function reconcile(data: ReportData): Reconciliation {
   return { itemSales, voucherDiscount, pointsUsed, shippingCost, autoFreeShipping, voucherShipping, shippingPaid, revenue, computed, balanced: computed === revenue };
 }
 
+// Omzet per jam bayar (WIB, 0 sampai 23).
+export function byHour(data: ReportData): OrderGroupRow[] {
+  const rows = groupOrders(data, (o) => {
+    const h = toWibParts(o.paidAt!).hour;
+    return [String(h).padStart(2, "0"), `${String(h).padStart(2, "0")}.00 sampai ${String(h).padStart(2, "0")}.59`];
+  });
+  return rows.sort((a, b) => a.key.localeCompare(b.key));
+}
+
+// Kinerja Rona Advisor (Fase 7B): korelasi, bukan bukti sebab-akibat. Pesanan Advisor = pesanan omzet yang memuat
+// minimal satu item bersumber Advisor; omzet Advisor = penjualan barang dari item itu saja.
+export type AdvisorPerformance = {
+  conversations: number;
+  cartAdds: number;
+  orders: number;
+  ordersShare: number; // persen dari pesanan omzet
+  itemSales: number;
+  aovWith: number;
+  aovWithout: number;
+  ordersWithout: number;
+};
+
+export function advisorPerformance(data: ReportData): AdvisorPerformance {
+  const rev = revenueOrders(data);
+  const ids = new Set(rev.map((o) => o.id));
+  const advisorItems = data.items.filter((i) => ids.has(i.orderId) && i.source === "advisor");
+  const withIds = new Set(advisorItems.map((i) => i.orderId));
+  const withOrders = rev.filter((o) => withIds.has(o.id));
+  const without = rev.filter((o) => !withIds.has(o.id));
+  const avg = (list: ReportOrder[]) => (list.length ? Math.round(list.reduce((s, o) => s + o.total, 0) / list.length) : 0);
+  return {
+    conversations: data.advisor?.conversations ?? 0,
+    cartAdds: data.advisor?.cartAdds ?? 0,
+    orders: withOrders.length,
+    ordersShare: rate(withOrders.length, rev.length),
+    itemSales: advisorItems.reduce((s, i) => s + i.unitPrice * i.quantity, 0),
+    aovWith: avg(withOrders),
+    aovWithout: avg(without),
+    ordersWithout: without.length,
+  };
+}
+
 // Laporan lengkap untuk satu periode (dipakai halaman Laporan dan Excel).
 export function buildReport(data: ReportData) {
   return {
@@ -424,6 +468,7 @@ export function buildReport(data: ReportData) {
     vouchers: voucherPerformance(data),
     flash: flashPerformance(data),
     customers: newVsReturning(data),
+    advisor: advisorPerformance(data),
   };
 }
 export type Report = ReturnType<typeof buildReport>;

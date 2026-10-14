@@ -137,6 +137,7 @@ export async function loadReportData(
       normalPrice: schema.orderItems.normalPrice,
       priceSource: schema.orderItems.priceSource,
       flashSaleItemId: schema.orderItems.flashSaleItemId,
+      source: schema.orderItems.source,
     })
     .from(schema.orderItems)
     .innerJoin(
@@ -232,10 +233,21 @@ export async function loadReportData(
         .where(inArray(schema.vouchers.code, codes))
     : [];
 
+  // Corong Advisor tidak terikat lokasi (Advisor hanya di toko online), jadi hanya dihitung untuk cakupan semua lokasi.
+  const events = scope.locationIds
+    ? []
+    : await db
+        .select({ kind: schema.advisorEvents.kind, n: sql<number>`count(*)::int` })
+        .from(schema.advisorEvents)
+        .where(and(gte(schema.advisorEvents.createdAt, from), lt(schema.advisorEvents.createdAt, to)))
+        .groupBy(schema.advisorEvents.kind);
+  const eventCount = (k: string) => Number(events.find((e) => e.kind === k)?.n ?? 0);
+
   return {
     range,
     orders,
     items,
+    advisor: { conversations: eventCount("percakapan"), cartAdds: eventCount("keranjang") },
     firstRevenueAt,
     flashSlots: slots.map((s) => ({
       ...s,

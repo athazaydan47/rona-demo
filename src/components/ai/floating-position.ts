@@ -75,3 +75,30 @@ export function useFloatingPosition(ref: RefObject<HTMLElement | null>, enabled:
   }, [ref, enabled, baseBottom.mobile, baseBottom.desktop]);
   return pos;
 }
+
+// Tombol melayang menyingkir saat halaman digulir ke bawah (membaca) dan muncul lagi saat digulir ke atas.
+export function useHideOnScroll(enabled: boolean, threshold = 120) {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    if (!enabled) return;
+    let last = window.scrollY;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const y = window.scrollY;
+        const delta = y - last;
+        if (Math.abs(delta) < 8) return;
+        setHidden(delta > 0 && y > threshold);
+        last = y;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [enabled, threshold]);
+  return enabled && hidden;
+}

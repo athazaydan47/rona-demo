@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { ReviewModeration } from "@/components/admin/review-moderation";
+import { aiTersedia } from "@/lib/ai";
 import { Denied, fieldClass, PageHead, Pager, Skeleton } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
 import { db } from "@/db/client";
@@ -77,6 +78,7 @@ async function Content({ searchParams }: { searchParams: Promise<SP> }) {
       </form>
       <p className="mb-2 text-sm text-abu-hangat">{r.total} ulasan</p>
       <ReviewModeration
+        aiDrafts={aiTersedia()}
         key={href(r.page)}
         rows={r.rows.map((x) => ({ ...x, createdLabel: formatDateWib(x.createdAt), repliedLabel: x.repliedAt ? formatDateTimeWib(x.repliedAt) : null }))}
       />

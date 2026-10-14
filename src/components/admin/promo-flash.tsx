@@ -77,7 +77,11 @@ function slotState(s: FlashSlotView, now: number) {
 
 type Draft = { variant: { variantId: number; productName: string; shadeName: string; hex: string; normalPrice: number; effective: number; onlineAvailable: number | null; sold?: number }; flashPrice: string; quota: string; maxPerCustomer: string };
 
-export function FlashManager({ weekStart, slots, nowIso, defaultDate, initialSlot, justCreated }: { weekStart: string; slots: FlashSlotView[]; nowIso: string; defaultDate: string; initialSlot?: number | null; justCreated?: boolean }) {
+// Draf dari saran flash sale (Fase 7B): varian, harga flash, dan kuota usulan. Dibawa sampai staf memilih slot dan
+// menyimpan item; tidak ada yang tersimpan otomatis.
+export type FlashSuggestionDraft = { variant: PromoVariant; flashPrice: number; quota: number; param: string };
+
+export function FlashManager({ weekStart, slots, nowIso, defaultDate, initialSlot, justCreated, suggestion = null }: { weekStart: string; slots: FlashSlotView[]; nowIso: string; defaultDate: string; initialSlot?: number | null; justCreated?: boolean; suggestion?: FlashSuggestionDraft | null }) {
   const router = useRouter();
   const now = new Date(nowIso).getTime();
   const start = new Date(weekStart);
@@ -86,7 +90,17 @@ export function FlashManager({ weekStart, slots, nowIso, defaultDate, initialSlo
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(() => (initialSlot && justCreated ? { ok: true, text: "Slot dibuat. Tambahkan produknya di bawah." } : null));
   const [pending, run] = useTransition();
   const [form, setForm] = useState<{ name: string; date: string; preset: string; start: string; end: string }>({ name: FLASH_PRESETS[0].name, date: defaultDate, preset: "0", start: "10:00", end: "12:00" });
-  const [draft, setDraft] = useState<Draft | null>(null);
+  const [carry, setCarry] = useState<FlashSuggestionDraft | null>(suggestion);
+  const toDraft = (c: FlashSuggestionDraft, slot: FlashSlotView | undefined): Draft | null =>
+    slot && new Date(slot.endsAt).getTime() > now
+      ? {
+          variant: { variantId: c.variant.variantId, productName: c.variant.productName, shadeName: c.variant.shadeName, hex: c.variant.hex, normalPrice: c.variant.normalPrice, effective: effectivePrice({ normalPrice: c.variant.normalPrice, salePrice: c.variant.salePrice, promoPrice: c.variant.promoPrice, promoStartsAt: c.variant.promoStartsAt, promoEndsAt: c.variant.promoEndsAt }, new Date(slot.startsAt)).price, onlineAvailable: c.variant.onlineAvailable },
+          flashPrice: String(c.flashPrice),
+          quota: String(c.quota),
+          maxPerCustomer: "2",
+        }
+      : null;
+  const [draft, setDraft] = useState<Draft | null>(() => (suggestion ? toDraft(suggestion, slots.find((s) => s.id === selected)) : null));
   const [confirm, setConfirm] = useState<{ text: string; go: () => Promise<string | null> } | null>(null);
 
   const days = Array.from({ length: 7 }, (_, i) => new Date(start.getTime() + i * DAY));
@@ -107,7 +121,7 @@ export function FlashManager({ weekStart, slots, nowIso, defaultDate, initialSlo
       const r = await createFlashSlotAction({ name: form.name, startsAt: s.toISOString(), endsAt: e.toISOString() });
       if (!r.ok) return setNotice({ ok: false, text: r.message });
       // Buka minggu yang memuat slot baru dan langsung pilih slotnya.
-      router.push(`/admin/promo?tab=flash&minggu=${form.date}&slot=${r.id}&dibuat=1`);
+      router.push(`/admin/promo?tab=flash&minggu=${form.date}&slot=${r.id}&dibuat=1${carry ? `&draf=${carry.param}` : ""}`);
     });
 
   const withConfirm = async (call: (confirmRunning: boolean) => Promise<{ ok: boolean; message?: string; needsConfirm?: boolean; warnings?: string[] }>, okText: string) => {
@@ -129,6 +143,7 @@ export function FlashManager({ weekStart, slots, nowIso, defaultDate, initialSlo
     if (!r.ok) return setNotice({ ok: false, text: r.message ?? "Gagal menyimpan." });
     setNotice({ ok: true, text: okText + (r.warnings?.length ? ` ${r.warnings.join(" ")}` : "") });
     setDraft(null);
+    setCarry(null);
     router.refresh();
   };
 
@@ -175,6 +190,14 @@ export function FlashManager({ weekStart, slots, nowIso, defaultDate, initialSlo
         <p className="mt-2 text-xs text-abu-hangat">Slot buatan admin selalu menang: slot otomatis yang bertabrakan dinonaktifkan dan tidak dibuat ulang.</p>
       </section>
 
+      {carry ? (
+        <p className="mb-3 rounded-xl bg-[#FBEEDC] px-4 py-2.5 text-sm text-[#8A5512]" role="status" data-testid="draf-flash">
+          Draf dari saran flash sale: {carry.variant.productName} · {carry.variant.shadeName}, harga flash {formatRupiah(carry.flashPrice)}, kuota {carry.quota}. Pilih atau buat slot, periksa isiannya, lalu simpan sendiri.{" "}
+          <button type="button" className="font-semibold underline" onClick={() => (setCarry(null), setDraft(null))}>
+            Batalkan draf
+          </button>
+        </p>
+      ) : null}
       {notice ? (
         <p className={cn("rounded-lg px-3 py-2 text-sm", notice.ok ? "bg-[#E5F2EA] text-sukses" : "bg-[#F7E3E1] text-bahaya")} role={notice.ok ? "status" : "alert"}>
           {notice.text}
@@ -208,7 +231,7 @@ export function FlashManager({ weekStart, slots, nowIso, defaultDate, initialSlo
                     list.map((s) => {
                       const st = slotState(s, now);
                       return (
-                        <button key={s.id} type="button" onClick={() => (setSelected(s.id), setDraft(null))} className={cn("block rounded-lg border px-2 py-1.5 text-left text-xs md:w-full", selected === s.id ? "border-rona ring-2 ring-rona/25" : "border-garis", !s.isActive && "opacity-60")} aria-pressed={selected === s.id} data-slot={s.id}>
+                        <button key={s.id} type="button" onClick={() => (setSelected(s.id), setDraft(carry ? toDraft(carry, s) : null))} className={cn("block rounded-lg border px-2 py-1.5 text-left text-xs md:w-full", selected === s.id ? "border-rona ring-2 ring-rona/25" : "border-garis", !s.isActive && "opacity-60")} aria-pressed={selected === s.id} data-slot={s.id}>
                           <span className="block font-semibold tabular-nums">
                             {time(s.startsAt)} sampai {time(s.endsAt)}
                           </span>

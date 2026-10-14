@@ -9,6 +9,7 @@ import { requireStaff } from "@/lib/admin/current";
 import { can } from "@/lib/admin/permissions";
 import { storageKind } from "@/lib/reviews/storage";
 import { siteUrl } from "@/lib/site";
+import { aiTersedia } from "@/lib/ai";
 import { productFormData } from "../form-data";
 
 export const metadata: Metadata = { title: "Tambah produk" };
@@ -26,6 +27,7 @@ async function Content() {
       hasOrders={false}
       siteUrl={siteUrl()}
       photosEnabled={storageKind() !== "nonaktif"}
+      aiWriter={aiTersedia()}
       initial={{ name: "", slug: "", brandId: brands[0]?.id ?? 0, categoryId: 0, packaging: "lipstick", shortDescription: "", benefits: "", ingredients: "", howToUse: "", activeIngredients: "", skinTypes: [], skinConcerns: [], finish: "", spf: "", bpom: "", netto: "", imageUrl: null, seoTitle: "", seoDescription: "", status: "draf", variants: [] }}
     />
   );

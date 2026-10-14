@@ -87,6 +87,19 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 - Facet di pencarian hasil tafsiran dihitung dengan filter wajib saja, jadi jumlah di panel filter tidak berubah saat chip lunak dihapus (urutannya yang berubah). (Fase 7C)
 - Pencocokan dupe tidak memakai harga produk aslinya (tidak diketahui), jadi alasan "harga paling hemat" berarti termurah di antara produk Rona yang sejenis. (Fase 7C)
 
+## Asisten AI admin (Fase 7B)
+
+- Pintu WA Asisten Admin baru disiapkan antarmukanya (`src/lib/asisten/pintu/wa.ts`): belum ada pemetaan nomor WA ke akun staf dan belum disambung ke penyedia WA. Aturannya sudah tertulis: hanya membalas pesan masuk satu per satu, tidak pernah siaran massal. (Fase 7B)
+- Kabar Harian masuk antrean notifikasi WA ke nomor owner, tetapi pengirim WA belum ada (sama dengan notifikasi WA lain); di mode demo tampil sebagai pratinjau di Notifikasi keluar. (Fase 7B)
+- Masukan suara memakai MediaRecorder: Chrome merekam webm, Safari merekam mp4. Belum dicoba di Safari iOS sungguhan; Permissions-Policy diubah menjadi `microphone=(self)`. (Fase 7B)
+- Riwayat chat Asisten Admin hanya di sesi browser; pertanyaan lanjutan ("bandingkan dengan bulan lalu") hanya memahami 8 giliran terakhir. (Fase 7B)
+- Saran transfer memakai lokasi pesanan sebagai lokasi penjualan (pesanan kirim dihitung di Gudang Online, ambil di toko di cabangnya). Bila nanti ada penjualan kasir di toko, laju jual cabang perlu ikut data kasir. (Fase 7B)
+- Usulan deskripsi massal disimpan 7 hari di `ai_cache` per slug dan tidak ikut dikosongkan reset; bila produk dihapus, usulannya kedaluwarsa sendiri. (Fase 7B)
+- Latensi di panel Kesehatan AI diukur dari awal sampai akhir permintaan di server (termasuk tool dan database), bukan waktu sampai byte pertama dari Gemini. (Fase 7B)
+- Tarif di `src/lib/ai/pricing.ts` diisi manual dari halaman harga resmi Google; perbarui saat Google mengubah tarif (perubahan 1 Jan 2027 sudah tercatat). Kurs Rp 16.500 per US$1 adalah asumsi. (Fase 7B)
+- Corong Advisor (`advisor_events`) dari pengunjung sungguhan ikut terhapus reset demo harian; angka di tab Rona Advisor saat demo sebagian besar berasal dari seed. (Fase 7B)
+- Uji penjaga hanya-baca memeriksa impor dan pemanggilan insert, update, delete di `src/lib/asisten`; fungsi baca yang dibungkus (misal `dashboardData`) tetap diasumsikan hanya membaca. (Fase 7B)
+
 ## Deploy
 
 - Build membaca database (slug dan detail produk, kategori, cabang, PromoBar, merek, artikel) karena data katalog di-cache dan diprarender; build gagal bila Neon tidak terjangkau. Bila ini mengganggu, pertimbangkan prarender sebagian produk saja atau fallback saat build. (Fase 4.1)
@@ -102,6 +115,8 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 - `getBrands` di-cache dengan tag brands dan products karena memuat jumlah produk dan produk terlaris per merek; perubahan status produk di admin harus merevalidasi tag products. (Fase 2.1)
 
 ## Selesai
+- Tombol Tanya Rona di HP bulat ikon saja dan menyingkir saat digulir ke bawah; panel Kesehatan AI di Laporan; tarif dan kurs di satu konfigurasi yang juga dipakai evaluasi. (Fase 7B, dari review 7C)
+- Asisten Admin, saran transfer dan flash sale yang menjadi draf, panduan gaya bahasa, penulis deskripsi, draf balasan ulasan, Kabar Harian, dan tab Rona Advisor. (Fase 7B)
 
 - Laporan di HP: tabel rincian tampil dua baris per baris data, tanpa gulir ke samping; Ringkasan dan sheet Excel memuat rekonsiliasi omzet. Notifikasi keluar menampilkan "Pratinjau" untuk email saat EMAIL_PROVIDER=preview, dan pratinjau isinya memakai tautan absolut. (Fase 7A, dari review 6C)
 - Sebaran pelanggan riwayat diperbaiki (seed versi 8). (Fase 7A)

@@ -30,6 +30,14 @@ export function validateSettings(s: StoreSettings): string | null {
   if (!Number.isInteger(s.lowStock) || s.lowStock < 0 || s.lowStock > 1000) return "Ambang stok menipis 0 sampai 1.000.";
   if (!Number.isInteger(s.freeShipping.threshold) || s.freeShipping.threshold < 0) return "Batas gratis ongkir tidak valid.";
   if (!Number.isInteger(s.freeShipping.cap) || s.freeShipping.cap < 0) return "Nilai gratis ongkir tidak valid.";
+  if (s.saran) {
+    const x = s.saran;
+    if (![x.kurangHari, x.lebihHari, x.flashDiskonMin, x.flashDiskonMaks].every(Number.isInteger)) return "Isian saran AI harus angka bulat.";
+    if (x.kurangHari < 1 || x.kurangHari > 60) return "Batas hari kurang 1 sampai 60.";
+    if (x.lebihHari <= x.kurangHari || x.lebihHari > 365) return "Batas hari lebih harus di atas batas hari kurang, maksimal 365.";
+    if (x.flashDiskonMin < 1 || x.flashDiskonMaks > 90 || x.flashDiskonMin > x.flashDiskonMaks) return "Diskon flash sale 1 sampai 90 persen, minimal tidak boleh di atas maksimal.";
+  }
+  if (s.gaya && (!s.gaya.nada.trim() || !s.gaya.sapaan.trim())) return "Isi nada dan sapaan di panduan gaya bahasa.";
   return null;
 }
 

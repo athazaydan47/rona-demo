@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
-import { asc } from "drizzle-orm";
+import { and, asc, ne, sql } from "drizzle-orm";
+import { BulkDescriptionPanel } from "@/components/admin/description-writer";
+import { aiTersedia } from "@/lib/ai";
 import { Plus } from "lucide-react";
 import { DuplicateProductButton } from "@/components/admin/product-row-actions";
 import { Denied, fieldClass, PageHead, Pager, Skeleton, tdClass, thClass } from "@/components/admin/ui";
@@ -35,6 +37,15 @@ async function Content({ searchParams }: Props) {
     db.select({ id: schema.brands.id, name: schema.brands.name }).from(schema.brands).orderBy(asc(schema.brands.name)),
     rootCategories(db),
   ]);
+  // Produk berdeskripsi pendek (tab Manfaat di bawah 200 karakter) untuk usulan massal penulis AI.
+  const short = aiTersedia()
+    ? await db
+        .select({ id: schema.products.id, name: schema.products.name, length: sql<number>`(length(${schema.products.benefits}) + length(${schema.products.shortDescription}))::int` })
+        .from(schema.products)
+        .where(and(ne(schema.products.status, "arsip"), sql`length(${schema.products.benefits}) < 200`))
+        .orderBy(sql`length(${schema.products.benefits}) + length(${schema.products.shortDescription})`, asc(schema.products.name))
+        .limit(12)
+    : [];
   const href = (p: number) => `/admin/produk?${new URLSearchParams(Object.entries({ ...sp, hal: String(p) }).filter(([, v]) => v) as [string, string][])}`;
   const price = (min: number, max: number) => (min === max ? formatRupiah(min) : `${formatRupiah(min)} sampai ${formatRupiah(max)}`);
   return (
@@ -46,6 +57,7 @@ async function Content({ searchParams }: Props) {
           </Link>
         </Button>
       </PageHead>
+      <BulkDescriptionPanel products={short} />
       <form action="/admin/produk" className="mb-4 grid grid-cols-2 gap-2 rounded-xl border border-garis bg-putih p-3 md:grid-cols-5">
         <input name="q" defaultValue={sp.q ?? ""} placeholder="Nama, slug, atau SKU" aria-label="Cari produk" className={cn(fieldClass, "col-span-2 md:col-span-1")} />
         <select name="merek" defaultValue={sp.merek ?? ""} aria-label="Merek" className={fieldClass}>

@@ -3,10 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog } from "radix-ui";
-import { EyeOff, Loader2, MessageSquareReply, Star, X } from "lucide-react";
+import { EyeOff, Loader2, MessageSquareReply, Sparkles, Star, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { bulkReplyDraftAction, draftReplyAction } from "@/lib/admin/ai-actions";
 import { deleteReplyAction, hideReviewsAction, replyReviewAction, showReviewAction } from "@/lib/admin/moderation-actions";
 import { cn } from "@/lib/utils";
 
@@ -39,13 +40,30 @@ function Stars({ n }: { n: number }) {
   );
 }
 
-export function ReviewModeration({ rows }: { rows: ModerationRow[] }) {
+export function ReviewModeration({ rows, aiDrafts = false }: { rows: ModerationRow[]; aiDrafts?: boolean }) {
   const router = useRouter();
   const [selected, setSelected] = useState<number[]>([]);
   const [hiding, setHiding] = useState<number[] | null>(null);
   const [replying, setReplying] = useState<ModerationRow | null>(null);
   const [replyText, setReplyText] = useState("");
   const [replyError, setReplyError] = useState<string | null>(null);
+  // Draf AI: penanda "dibantu AI" hanya untuk log aktivitas. Antrean draf massal ditinjau satu per satu.
+  const [aiAssisted, setAiAssisted] = useState(false);
+  const [drafting, setDrafting] = useState(false);
+  const [queue, setQueue] = useState<{ id: number; text: string }[]>([]);
+  const unreplied = rows.filter((r) => r.status === "tampil" && !r.storeReply);
+  const openReply = (r: ModerationRow, text?: string) => {
+    setReplying(r);
+    setReplyText(text ?? r.storeReply ?? "");
+    setAiAssisted(Boolean(text));
+    setReplyError(null);
+  };
+  const nextInQueue = (rest: { id: number; text: string }[]) => {
+    setQueue(rest);
+    const n = rest[0] ? rows.find((r) => r.id === rest[0].id) : null;
+    if (n) openReply(n, rest[0].text);
+    else setReplying(null);
+  };
   const [removingReply, setRemovingReply] = useState<ModerationRow | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
@@ -65,6 +83,26 @@ export function ReviewModeration({ rows }: { rows: ModerationRow[] }) {
           <input type="checkbox" className="size-4 accent-rona" checked={visible.length > 0 && visible.every((r) => selected.includes(r.id))} onChange={(e) => setSelected(e.target.checked ? visible.map((r) => r.id) : [])} aria-label="Pilih semua ulasan tayang di halaman ini" />
           Pilih semua yang tayang
         </label>
+        {aiDrafts && unreplied.length ? (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={drafting}
+            data-testid="draf-massal"
+            onClick={async () => {
+              setDrafting(true);
+              const r = await bulkReplyDraftAction(unreplied.map((x) => x.id));
+              setDrafting(false);
+              if (!r.ok) return setNotice({ ok: false, text: r.message });
+              const ready = r.drafts.filter((d): d is { id: number; text: string } => Boolean(d.text));
+              if (!ready.length) return setNotice({ ok: false, text: "Belum ada draf yang bisa dibuat." });
+              setNotice({ ok: true, text: `${ready.length} draf siap ditinjau satu per satu.` });
+              nextInQueue(ready);
+            }}
+          >
+            {drafting ? <Loader2 className="animate-spin" /> : <Sparkles />} Buat draf untuk semua yang belum dibalas ({Math.min(unreplied.length, 8)})
+          </Button>
+        ) : null}
         {selected.length ? (
           <Button size="sm" variant="dark" onClick={() => setHiding(selected)} data-testid="sembunyikan-massal">
             <EyeOff /> Sembunyikan {selected.length} ulasan
@@ -110,7 +148,7 @@ export function ReviewModeration({ rows }: { rows: ModerationRow[] }) {
                   </div>
                 ) : null}
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  <Button size="sm" variant="outline" onClick={() => (setReplying(r), setReplyText(r.storeReply ?? ""), setReplyError(null))}>
+                  <Button size="sm" variant="outline" onClick={() => openReply(r)}>
                     <MessageSquareReply /> {r.storeReply ? "Ubah balasan" : "Balas"}
                   </Button>
                   {r.storeReply ? (
@@ -187,7 +225,10 @@ export function ReviewModeration({ rows }: { rows: ModerationRow[] }) {
           <Dialog.Overlay className="fixed inset-0 z-50 bg-kopi/40" />
           <Dialog.Content className="fixed inset-x-3 top-[10dvh] z-50 mx-auto max-w-lg rounded-card bg-putih p-5 shadow-lift outline-none" data-testid="dialog-balas">
             <div className="flex items-start justify-between gap-3">
-              <Dialog.Title className="font-serif text-xl">{replying?.storeReply ? "Ubah balasan" : "Balas sebagai toko"}</Dialog.Title>
+              <Dialog.Title className="font-serif text-xl">
+                {replying?.storeReply ? "Ubah balasan" : "Balas sebagai toko"}
+                {queue.length ? <span className="ml-2 align-middle text-xs font-sans font-normal text-abu-hangat">Draf {queue.length} tersisa</span> : null}
+              </Dialog.Title>
               <Dialog.Close className="grid size-9 place-items-center rounded-full hover:bg-porselen" aria-label="Tutup">
                 <X className="size-5" />
               </Dialog.Close>
@@ -198,6 +239,29 @@ export function ReviewModeration({ rows }: { rows: ModerationRow[] }) {
                 <Stars n={replying.rating} /> <span className="font-semibold">{replying.authorName}</span>
                 <p className="mt-1 line-clamp-4 text-kopi/85">{replying.body}</p>
               </blockquote>
+            ) : null}
+            {aiDrafts ? (
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={drafting || !replying}
+                  data-testid="draf-ai"
+                  onClick={async () => {
+                    if (!replying) return;
+                    setDrafting(true);
+                    const r = await draftReplyAction(replying.id);
+                    setDrafting(false);
+                    if (!r.ok) return setReplyError(r.message);
+                    setReplyText(r.text);
+                    setAiAssisted(true);
+                    setReplyError(null);
+                  }}
+                >
+                  {drafting ? <Loader2 className="animate-spin" /> : <Sparkles />} Buat draf dengan AI
+                </Button>
+                {aiAssisted ? <span className="text-[11px] text-abu-hangat">Draf AI, periksa dan ubah sebelum menyimpan.</span> : null}
+              </div>
             ) : null}
             <label className="mt-3 block text-sm">
               <span className="mb-1 block font-medium">Balasan</span>
@@ -210,17 +274,24 @@ export function ReviewModeration({ rows }: { rows: ModerationRow[] }) {
               </p>
             ) : null}
             <div className="mt-3 flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setReplying(null)}>
-                Batal
-              </Button>
+              {queue.length ? (
+                <Button variant="ghost" onClick={() => nextInQueue(queue.slice(1))}>
+                  Lewati
+                </Button>
+              ) : (
+                <Button variant="ghost" onClick={() => setReplying(null)}>
+                  Batal
+                </Button>
+              )}
               <Button
                 disabled={pending}
                 onClick={() =>
                   run(async () => {
                     if (!replying) return;
-                    const res = await replyReviewAction(replying.id, replyText);
+                    const res = await replyReviewAction(replying.id, replyText, { aiAssisted });
                     if (!res.ok) return setReplyError(res.message);
-                    setReplying(null);
+                    if (queue.length) nextInQueue(queue.slice(1));
+                    else setReplying(null);
                     setNotice({ ok: true, text: res.notified ? "Balasan tersimpan dan pembeli diberi tahu." : "Balasan tersimpan." });
                     router.refresh();
                   })

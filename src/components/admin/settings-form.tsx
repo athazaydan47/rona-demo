@@ -53,7 +53,7 @@ function Field({ label, hint, children, className }: { label: string; hint?: str
   );
 }
 
-export function SettingsForm({ initial, demoMode }: { initial: StoreSettings; demoMode: boolean }) {
+export function SettingsForm({ initial, demoMode, products = [] }: { initial: StoreSettings; demoMode: boolean; products?: { slug: string; name: string }[] }) {
   const router = useRouter();
   const [s, setS] = useState<StoreSettings>(initial);
   // Nilai terakhir yang tersimpan, untuk menandai ada perubahan yang belum disimpan.
@@ -181,13 +181,83 @@ export function SettingsForm({ initial, demoMode }: { initial: StoreSettings; de
         </div>
       </Section>
 
+      <Section title="Saran AI" description="Batas yang dipakai saran transfer stok dan saran flash sale. Saran tidak pernah mengubah data sendiri.">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Cabang akan habis bila stok cukup kurang dari (hari)">
+            <input inputMode="numeric" value={s.saran.kurangHari} onChange={(e) => setS({ ...s, saran: { ...s.saran, kurangHari: Number(digits(e.target.value) || 0) } })} className={fieldClass} aria-label="Batas hari kurang" />
+          </Field>
+          <Field label="Lokasi asal berlebih bila stok cukup lebih dari (hari)">
+            <input inputMode="numeric" value={s.saran.lebihHari} onChange={(e) => setS({ ...s, saran: { ...s.saran, lebihHari: Number(digits(e.target.value) || 0) } })} className={fieldClass} aria-label="Batas hari lebih" />
+          </Field>
+          <Field label="Diskon flash sale minimal (persen)">
+            <input inputMode="numeric" value={s.saran.flashDiskonMin} onChange={(e) => setS({ ...s, saran: { ...s.saran, flashDiskonMin: Number(digits(e.target.value) || 0) } })} className={fieldClass} aria-label="Diskon flash minimal" />
+          </Field>
+          <Field label="Diskon flash sale maksimal (persen)">
+            <input inputMode="numeric" value={s.saran.flashDiskonMaks} onChange={(e) => setS({ ...s, saran: { ...s.saran, flashDiskonMaks: Number(digits(e.target.value) || 0) } })} className={fieldClass} aria-label="Diskon flash maksimal" />
+          </Field>
+        </div>
+      </Section>
+
+      <Section title="Panduan gaya bahasa" description="Acuan semua tulisan AI: deskripsi produk, SEO, balasan ulasan, dan Kabar Harian. Ubah sesuai suara tokomu.">
+        <div className="grid gap-3">
+          <Field label="Nada">
+            <textarea rows={2} value={s.gaya.nada} onChange={(e) => setS({ ...s, gaya: { ...s.gaya, nada: e.target.value.slice(0, 400) } })} className={cn(fieldClass, "h-auto py-2")} aria-label="Nada tulisan" />
+          </Field>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Sapaan">
+              <input value={s.gaya.sapaan} onChange={(e) => setS({ ...s, gaya: { ...s.gaya, sapaan: e.target.value.slice(0, 20) } })} className={fieldClass} aria-label="Sapaan" />
+            </Field>
+            <Field label="Kata yang dipakai" hint="Pisahkan dengan koma.">
+              <input value={s.gaya.kataDipakai.join(", ")} onChange={(e) => setS({ ...s, gaya: { ...s.gaya, kataDipakai: e.target.value.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 30) } })} className={fieldClass} aria-label="Kata yang dipakai" />
+            </Field>
+            <Field label="Kata yang dihindari" hint="Pisahkan dengan koma.">
+              <input value={s.gaya.kataDihindari.join(", ")} onChange={(e) => setS({ ...s, gaya: { ...s.gaya, kataDihindari: e.target.value.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 30) } })} className={fieldClass} aria-label="Kata yang dihindari" />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {(
+              [
+                ["ringkas", "Deskripsi singkat"],
+                ["manfaat", "Tab Manfaat"],
+                ["kandungan", "Tab Kandungan"],
+                ["caraPakai", "Tab Cara Pakai"],
+                ["metaJudul", "Judul meta"],
+                ["metaDeskripsi", "Deskripsi meta"],
+              ] as const
+            ).map(([k, label]) => (
+              <Field key={k} label={`${label} (karakter)`}>
+                <input inputMode="numeric" value={s.gaya.panjang[k]} onChange={(e) => setS({ ...s, gaya: { ...s.gaya, panjang: { ...s.gaya.panjang, [k]: Number(digits(e.target.value) || 0) } } })} className={fieldClass} aria-label={`Panjang ${label}`} />
+              </Field>
+            ))}
+          </div>
+          <Field label="Contoh deskripsi terbaik (2 sampai 3 produk)" hint="AI meniru gaya dan susunan deskripsi produk ini.">
+            <div className="grid gap-2 sm:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <select key={i} value={s.gaya.contohProduk[i] ?? ""} onChange={(e) => {
+                  const next = [...s.gaya.contohProduk];
+                  next[i] = e.target.value;
+                  setS({ ...s, gaya: { ...s.gaya, contohProduk: next.filter(Boolean).slice(0, 3) } });
+                }} className={fieldClass} aria-label={`Contoh produk ${i + 1}`}>
+                  <option value="">Tidak dipilih</option>
+                  {products.map((p) => (
+                    <option key={p.slug} value={p.slug}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              ))}
+            </div>
+          </Field>
+        </div>
+      </Section>
+
       {notice ? (
         <p className={cn("rounded-lg px-3 py-2 text-sm", notice.ok ? "bg-[#E5F2EA] text-sukses" : "bg-[#F7E3E1] text-bahaya")} role={notice.ok ? "status" : "alert"}>
           {notice.text}
         </p>
       ) : null}
 
-      <div className="fixed inset-x-0 bottom-16 z-30 border-t border-garis bg-putih/95 px-4 py-2.5 backdrop-blur md:sticky md:bottom-0 md:rounded-xl md:border">
+      <div className="fixed inset-x-0 bottom-16 z-30 border-t border-garis bg-putih/95 px-4 py-2.5 backdrop-blur md:sticky md:bottom-0 md:rounded-xl md:border" data-bilah-bawah>
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs text-abu-hangat">{dirty ? "Ada perubahan yang belum disimpan." : "Semua tersimpan."}</p>
           <div className="flex gap-2">

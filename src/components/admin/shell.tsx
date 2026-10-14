@@ -7,6 +7,8 @@ import { Dialog } from "radix-ui";
 import { FlaskConical, LogOut, MoreHorizontal, Search, X } from "lucide-react";
 import { staffLogoutAction } from "@/lib/admin/actions";
 import type { NavKey } from "@/lib/admin/nav";
+import type { RoleSlug } from "@/lib/admin/permissions";
+import { AdminAssistant, AssistantButton } from "./asisten-panel";
 import { cn } from "@/lib/utils";
 import { AdminSearch, openAdminSearch } from "./search";
 import { NAV_ICONS } from "./nav-icons";
@@ -48,7 +50,7 @@ function WithPath({ render }: { render: (pathname: string | null) => React.React
   );
 }
 
-export function AdminShell({ items, mobilePrimary, staff, demoMode, children }: { items: ShellItem[]; mobilePrimary: NavKey[]; staff: ShellStaff; demoMode: boolean; children: React.ReactNode }) {
+export function AdminShell({ items, mobilePrimary, staff, demoMode, assistantRole = null, children }: { items: ShellItem[]; mobilePrimary: NavKey[]; staff: ShellStaff; demoMode: boolean; assistantRole?: RoleSlug | null; children: React.ReactNode }) {
   const [more, setMore] = useState(false);
   const primary = mobilePrimary.map((k) => items.find((i) => i.key === k)).filter((i): i is ShellItem => Boolean(i)).slice(0, 4);
   const rest = items.filter((i) => !primary.includes(i));
@@ -78,6 +80,7 @@ export function AdminShell({ items, mobilePrimary, staff, demoMode, children }: 
             <Search className="size-4" aria-hidden /> <span className="flex-1">Cari</span>
             <kbd className="rounded border border-garis bg-putih px-1.5 text-[10px] font-semibold">⌘K</kbd>
           </button>
+          {assistantRole ? <AssistantButton /> : null}
           <nav className="flex-1 overflow-y-auto px-3" aria-label="Menu utama admin">
             <WithPath render={(p) => <SideLinks items={items} pathname={p} />} />
           </nav>
@@ -113,6 +116,7 @@ export function AdminShell({ items, mobilePrimary, staff, demoMode, children }: 
           </Link>
           {demoMode ? <span className="rounded-full bg-[#FBF4E6] px-2 py-0.5 text-[10px] font-semibold text-[#7A5A1E]">Demo</span> : null}
           <span className="ml-auto max-w-32 truncate text-xs text-abu-hangat">{staff.name}</span>
+          {assistantRole ? <AssistantButton variant="header" /> : null}
           <button type="button" onClick={openAdminSearch} className="grid size-10 place-items-center rounded-full hover:bg-blush/50" aria-label="Cari pesanan, produk, pelanggan">
             <Search className="size-5" />
           </button>
@@ -120,7 +124,8 @@ export function AdminShell({ items, mobilePrimary, staff, demoMode, children }: 
         <main className="px-4 pt-4 pb-24 lg:px-8 lg:pt-6 lg:pb-10">{children}</main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-garis bg-putih/97 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden" aria-label="Menu bawah admin">
+      {assistantRole ? <AdminAssistant role={assistantRole} /> : null}
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-garis bg-putih/97 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden" aria-label="Menu bawah admin" data-bilah-bawah>
         <WithPath
           render={(p) => (
             <ul className="flex h-16 items-stretch">

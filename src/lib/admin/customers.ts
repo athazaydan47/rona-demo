@@ -189,3 +189,13 @@ export async function adjustPoints(db: AnyDb, staff: StaffPrincipal, customerId:
     return { ok: true as const, balance: r.balance };
   });
 }
+
+// Jumlah pelanggan terdaftar per segmen (memakai SQL segmen yang sama dengan daftar pelanggan). Dipakai asisten.
+export async function segmentCounts(db: AnyDb, now: Date): Promise<Record<Segment, number>> {
+  const seg = segmentSql(now);
+  const per = db.select({ id: schema.customers.id, segment: seg.as("segment") }).from(schema.customers).leftJoin(schema.orders, eq(schema.orders.customerId, schema.customers.id)).groupBy(schema.customers.id).as("s");
+  const rows = await db.select({ segment: per.segment, n: count() }).from(per).groupBy(per.segment);
+  const out: Record<Segment, number> = { baru: 0, setia: 0, tidak_aktif: 0, lainnya: 0 };
+  for (const r of rows) out[r.segment as Segment] = Number(r.n);
+  return out;
+}

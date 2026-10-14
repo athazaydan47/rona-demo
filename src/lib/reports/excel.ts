@@ -6,7 +6,7 @@ import { formatDateTimeWib, formatDateWib, toWibParts } from "@/lib/format";
 import { statusLabels, type OrderStatus } from "@/lib/orders/status";
 import { isRevenueOrder, type Report, type ReportData } from "./index";
 
-export const REPORT_SHEETS = ["Ringkasan", "Harian", "Per Merek", "Per Kategori", "Per Cabang", "Per Kanal", "Produk", "Voucher", "Detail Pesanan", "Detail Item"] as const;
+export const REPORT_SHEETS = ["Ringkasan", "Harian", "Per Merek", "Per Kategori", "Per Cabang", "Per Kanal", "Produk", "Voucher", "Rona Advisor", "Detail Pesanan", "Detail Item"] as const;
 export const MONEY_FORMAT = '"Rp "#,##0';
 const DATE_FORMAT = "dd/mm/yyyy";
 const DATETIME_FORMAT = "dd/mm/yyyy hh:mm";
@@ -114,6 +114,19 @@ export async function buildReportWorkbook(report: Report, data: ReportData, meta
     ],
   );
 
+  // Sheet Rona Advisor ditulis setelah Voucher (urutan REPORT_SHEETS); datanya disiapkan di sini.
+  const adv = report.advisor;
+  const advisorRows: unknown[][] = [
+    ["Pesan ke Advisor", null, adv.conversations],
+    ["Tambah ke keranjang dari Advisor", null, adv.cartAdds],
+    ["Pesanan dengan item Advisor", null, adv.orders],
+    ["Persen dari pesanan omzet (%)", null, adv.ordersShare],
+    ["Penjualan item Advisor", adv.itemSales, null],
+    ["Rata-rata nilai pesanan dengan item Advisor", adv.aovWith, null],
+    ["Rata-rata nilai pesanan tanpa item Advisor", adv.aovWithout, null],
+    ["Catatan: korelasi, bukan bukti sebab-akibat", null, null],
+  ];
+
   sheet(
     wb,
     "Harian",
@@ -183,6 +196,18 @@ export async function buildReportWorkbook(report: Report, data: ReportData, meta
     ],
     report.vouchers.map((v) => [v.code, v.title, v.orders, v.revenue, v.discount, v.quota, v.used]),
     ["Total", null, sum(report.vouchers, (v) => v.orders), sum(report.vouchers, (v) => v.revenue), sum(report.vouchers, (v) => v.discount), null, null],
+  );
+
+  sheet(
+    wb,
+    "Rona Advisor",
+    meta,
+    [
+      { header: "Ukuran", width: 44 },
+      { header: "Nilai", width: 18, kind: "money", money: true },
+      { header: "Jumlah", width: 14, kind: "int" },
+    ],
+    advisorRows,
   );
 
   sheet(

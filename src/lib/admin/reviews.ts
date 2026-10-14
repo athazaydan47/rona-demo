@@ -115,7 +115,8 @@ export async function showReview(db: AnyDb, staff: StaffPrincipal, id: number, o
 }
 
 // Balas sebagai toko (atau ubah balasan). Balasan pertama memberi tahu pembeli lewat outbox notifikasi.
-export async function replyReview(db: AnyDb, staff: StaffPrincipal, id: number, text: string, opts: { now?: Date } = {}): Promise<ModerationResult & { notified?: number }> {
+// opts.aiAssisted: draf dibuat AI lalu disunting staf. Hanya dicatat di log aktivitas, tidak pernah tampil publik.
+export async function replyReview(db: AnyDb, staff: StaffPrincipal, id: number, text: string, opts: { now?: Date; aiAssisted?: boolean } = {}): Promise<ModerationResult & { notified?: number }> {
   if (!can(staff, "ulasan.kelola")) return DENIED;
   const err = validateReply(text);
   if (err) return { ok: false, message: err };
@@ -131,7 +132,7 @@ export async function replyReview(db: AnyDb, staff: StaffPrincipal, id: number, 
     if (!r) return { ok: false as const, message: "Ulasan tidak ditemukan." };
     const first = r.storeReply == null;
     await tx.update(schema.reviews).set({ storeReply: reply, repliedAt: at }).where(eq(schema.reviews.id, id));
-    await writeAudit(tx, { staff, action: "ulasan.balas", objectType: "ulasan", objectId: id, summary: `${first ? "Balas" : "Ubah balasan"} ulasan ${r.authorName} untuk ${r.productName}`, before: first ? undefined : { balasan: r.storeReply }, after: { balasan: reply }, at });
+    await writeAudit(tx, { staff, action: "ulasan.balas", objectType: "ulasan", objectId: id, summary: `${first ? "Balas" : "Ubah balasan"} ulasan ${r.authorName} untuk ${r.productName}`, before: first ? undefined : { balasan: r.storeReply }, after: { balasan: reply, ...(opts.aiAssisted ? { dibantuAi: true } : {}) }, at });
     let notified = 0;
     if (first && r.customerId != null) {
       const [c] = await tx.select({ name: schema.customers.name, phone: schema.customers.phone, email: schema.customers.email }).from(schema.customers).where(eq(schema.customers.id, r.customerId)).limit(1);

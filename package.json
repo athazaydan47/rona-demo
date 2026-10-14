@@ -21,7 +21,8 @@
     "demo:ukur-reset": "tsx src/db/ukur-reset-demo.ts",
     "cek:data": "tsx src/db/cek-data.ts",
     "eval:ai": "tsx scripts/eval-ai.ts",
-    "ai:ringkasan": "tsx scripts/ringkas-ulasan.ts"
+    "ai:ringkasan": "tsx scripts/ringkas-ulasan.ts",
+    "eval:asisten": "tsx scripts/eval-asisten.ts"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",

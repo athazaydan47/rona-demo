@@ -1,4 +1,5 @@
 // Seed data demo deterministik, tanpa efek samping saat diimpor (dipakai CLI dan reset harian demo di runtime).
+import { fillBriefHistory } from "@/lib/kabar";
 import { sql } from "drizzle-orm";
 import * as schema from "../schema";
 import { brandSeed } from "./brands";
@@ -424,6 +425,9 @@ export async function seedAll(db: AnyDb, now: Date): Promise<SeedSummary> {
 
     // 11. Pembeli demo: alamat, pesanan di berbagai status, poin, wishlist, profil kulit, dan notifikasi.
     const demo = await seedDemoBuyer(db, now);
+
+    // 12. Kabar Harian 14 hari terakhir (templat, tanpa AI dan tanpa WA) supaya halaman Kabar Harian tidak kosong.
+    await fillBriefHistory(db, now);
 
     return {
       brands: brandRows.length,

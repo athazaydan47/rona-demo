@@ -8,7 +8,9 @@ import { Denied, PageHead, Skeleton } from "@/components/admin/ui";
 import { db } from "@/db/client";
 import { requireStaff } from "@/lib/admin/current";
 import { can } from "@/lib/admin/permissions";
-import { flashCalendar, listBanners, listVariantPromos, listVouchers } from "@/lib/admin/promo";
+import { flashCalendar, listBanners, listVariantPromos, listVouchers, searchPromoVariants } from "@/lib/admin/promo";
+import { flashDraftHref, flashSuggestions, type FlashSuggestion } from "@/lib/flash/saran";
+import { formatRupiah } from "@/lib/format";
 import { listBrands, rootCategories } from "@/lib/admin/taxonomy";
 import { now } from "@/lib/clock";
 import { toWibInput, toWibParts, wibDate } from "@/lib/format";
@@ -25,13 +27,41 @@ const TABS = [
   { key: "banner", label: "Banner dan PromoBar" },
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
-type SP = { tab?: string; minggu?: string; slot?: string; dibuat?: string };
+type SP = { tab?: string; minggu?: string; slot?: string; dibuat?: string; draf?: string };
 
 // Senin 00.00 WIB dari minggu yang memuat tanggal tertentu.
 function mondayOf(date: Date) {
   const p = toWibParts(date);
   const back = (p.weekday + 6) % 7;
   return wibDate(p.year, p.month, p.day - back);
+}
+
+// Saran flash sale (deterministik, src/lib/flash/saran.ts). "Tambahkan ke slot" hanya mengisi formulir item.
+function FlashSuggestionList({ items, windowDays }: { items: FlashSuggestion[]; windowDays: number }) {
+  if (!items.length) return null;
+  return (
+    <section className="mb-4 rounded-xl border border-garis bg-putih p-4" data-testid="saran-flash">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-serif text-xl text-kopi">Saran flash sale</h2>
+        <p className="text-xs text-abu-hangat">Lambat laku {windowDays} hari terakhir, stok online banyak, rating baik, belum ikut flash sale.</p>
+      </div>
+      <ul className="divide-y divide-garis">
+        {items.map((s) => (
+          <li key={s.variantId} className="flex flex-col gap-2 py-2.5 md:flex-row md:items-center md:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-kopi">
+                {s.productName} · {s.shadeName}: {formatRupiah(s.flashPrice)} ({s.discountPercent}% dari {formatRupiah(s.normalPrice)}), kuota {s.quota}
+              </p>
+              <p className="text-xs text-abu-hangat">{s.alasan}</p>
+            </div>
+            <Link href={flashDraftHref(s)} className="inline-flex h-9 shrink-0 items-center rounded-pill border border-garis px-3 text-sm font-semibold hover:border-kopi/40" data-testid="tambah-ke-slot">
+              Tambahkan ke slot
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 
 async function Content({ searchParams }: { searchParams: Promise<SP> }) {
@@ -50,7 +80,18 @@ async function Content({ searchParams }: { searchParams: Promise<SP> }) {
     const slots = await flashCalendar(db, weekStart);
     const tomorrow = toWibInput(new Date(at.getTime() + 86_400_000)).slice(0, 10);
     const initialSlot = Number.parseInt(sp.slot ?? "", 10) || null;
-    body = <FlashManager key={`${weekStart.toISOString()}:${initialSlot ?? ""}`} initialSlot={initialSlot} justCreated={sp.dibuat === "1"} weekStart={weekStart.toISOString()} nowIso={nowIso} defaultDate={tomorrow} slots={slots.map((s) => ({ id: s.id, name: s.name, source: s.source, isActive: s.isActive, startsAt: s.startsAt.toISOString(), endsAt: s.endsAt.toISOString(), items: s.items }))} />;
+    // Draf dari saran flash sale: "draf=varianId:hargaFlash:kuota".
+    const d = /^(\d+):(\d+):(\d+)$/.exec(sp.draf ?? "");
+    const [dv] = d ? await searchPromoVariants(db, "", 1, { ids: [Number(d[1])] }) : [];
+    const suggestion = d && dv ? { variant: dv, flashPrice: Number(d[2]), quota: Math.min(10_000, Number(d[3])), param: sp.draf! } : null;
+    const flashSettings = (await loadSettings(db)).saran;
+    const saran = await flashSuggestions(db, { now: at, minDiscount: flashSettings.flashDiskonMin, maxDiscount: flashSettings.flashDiskonMaks, limit: 5 });
+    body = (
+      <>
+        <FlashSuggestionList items={saran.suggestions} windowDays={saran.windowDays} />
+        <FlashManager key={`${weekStart.toISOString()}:${initialSlot ?? ""}:${sp.draf ?? ""}`} suggestion={suggestion} initialSlot={initialSlot} justCreated={sp.dibuat === "1"} weekStart={weekStart.toISOString()} nowIso={nowIso} defaultDate={tomorrow} slots={slots.map((s) => ({ id: s.id, name: s.name, source: s.source, isActive: s.isActive, startsAt: s.startsAt.toISOString(), endsAt: s.endsAt.toISOString(), items: s.items }))} />
+      </>
+    );
   } else if (tab === "harga") {
     const rows = await listVariantPromos(db, at);
     body = <VariantPromoManager rows={rows.map((r) => ({ ...r, promoStartsAt: r.promoStartsAt?.toISOString() ?? null, promoEndsAt: r.promoEndsAt?.toISOString() ?? null }))} />;

@@ -1,4 +1,4 @@
-import { BarChart3, ClipboardList, FolderTree, LayoutDashboard, Mail, MessageSquareText, Package, ScrollText, Settings, ShieldCheck, Tag, Users, Warehouse } from "lucide-react";
+import { BarChart3, ClipboardList, Newspaper, FolderTree, LayoutDashboard, Mail, MessageSquareText, Package, ScrollText, Settings, ShieldCheck, Tag, Users, Warehouse } from "lucide-react";
 import type { NavKey } from "@/lib/admin/nav";
 
 export const NAV_ICONS: Record<NavKey, typeof LayoutDashboard> = {
@@ -11,6 +11,7 @@ export const NAV_ICONS: Record<NavKey, typeof LayoutDashboard> = {
   ulasan: MessageSquareText,
   pelanggan: Users,
   laporan: BarChart3,
+  kabar: Newspaper,
   pengaturan: Settings,
   notifikasi: Mail,
   staf: ShieldCheck,

@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { db } from "@/db/client";
 import { requireStaff } from "@/lib/admin/current";
 import { can } from "@/lib/admin/permissions";
+import { aiConfig } from "@/lib/ai";
+import { aiHealth } from "@/lib/ai/health";
 import { now } from "@/lib/clock";
 import { formatDateTimeWib } from "@/lib/format";
 import { PERIOD_PRESETS } from "@/lib/reports";
@@ -27,11 +29,46 @@ const TABS = [
   { key: "produk", label: "Produk terlaris" },
   { key: "promo", label: "Voucher dan flash sale" },
   { key: "pelanggan", label: "Pelanggan" },
+  { key: "advisor", label: "Rona Advisor" },
+  { key: "ai", label: "Kesehatan AI" },
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
 type SP = ReportParams & { tab?: string };
 
 const sumOf = <T,>(rows: T[], f: (r: T) => number) => rows.reduce((s, r) => s + f(r), 0);
+
+// Kesehatan AI (Owner): dari ai_logs 30 hari, tidak terikat periode laporan.
+async function AiHealthPanel() {
+  const cfg = aiConfig();
+  const h = await aiHealth(db, cfg, now());
+  return (
+    <section className="space-y-4" data-testid="tab-kesehatan-ai">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <ReportStat label="Permintaan AI hari ini" value={num(h.totals.today)} hint={`Batas harian ${num(h.cap)}, terpakai ${pct(h.capUsedPercent)}`} testId="ai-hari-ini" />
+        <ReportStat label="Permintaan 30 hari" value={num(h.totals.month)} />
+        <ReportStat label="Token 30 hari" value={num(h.totals.inputTokens + h.totals.outputTokens)} hint={`Masuk ${num(h.totals.inputTokens)}, keluar ${num(h.totals.outputTokens)}`} />
+        <ReportStat label="Perkiraan biaya 30 hari" value={h.totals.costIdr == null ? "Sebagian belum bertarif" : rp(h.totals.costIdr)} hint={h.rateNote} />
+      </div>
+      <ReportTable
+        title="Per fitur, 30 hari terakhir"
+        finance
+        testId="tabel-kesehatan-ai"
+        note={`Latensi diukur di server yang menjalankan aplikasi (di produksi: Vercel), dari awal sampai akhir permintaan. Biaya dari tarif resmi di src/lib/ai/pricing.ts.${h.unpricedModels.length ? ` Model tanpa tarif resmi: ${h.unpricedModels.join(", ")}.` : ""}`}
+        rows={h.rows}
+        cols={[
+          { header: "Fitur", cell: (x) => x.label },
+          { header: "Hari ini", align: "right", cell: (x) => num(x.today) },
+          { header: "30 hari", align: "right", cell: (x) => num(x.month) },
+          { header: "Gagal", align: "right", cell: (x) => pct(x.failRate) },
+          { header: "Median", align: "right", cell: (x) => `${num(x.p50)} ms` },
+          { header: "p95", align: "right", cell: (x) => `${num(x.p95)} ms` },
+          { header: "Token", align: "right", cell: (x) => num(x.inputTokens + x.outputTokens) },
+          { header: "Biaya", align: "right", money: true, cell: (x) => (x.costIdr == null ? "tanpa tarif" : rp(x.costIdr)) },
+        ]}
+      />
+    </section>
+  );
+}
 
 async function Content({ searchParams }: { searchParams: Promise<SP> }) {
   await connection();
@@ -287,6 +324,40 @@ async function Content({ searchParams }: { searchParams: Promise<SP> }) {
             ]}
           />
         </div>
+      ) : null}
+
+      {tab === "advisor" ? (
+        <section className="space-y-4" data-testid="tab-advisor">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <ReportStat label="Pesan ke Advisor" value={num(report.advisor.conversations)} hint={r.locationIds ? "Corong Advisor hanya untuk semua cabang." : undefined} testId="advisor-percakapan" />
+            <ReportStat label="Tambah ke keranjang dari Advisor" value={num(report.advisor.cartAdds)} />
+            <ReportStat label="Pesanan dengan item Advisor" value={num(report.advisor.orders)} hint={`${pct(report.advisor.ordersShare)} dari pesanan omzet`} testId="advisor-pesanan" />
+            <ReportStat label="Penjualan item Advisor" value={finance ? rp(report.advisor.itemSales) : "Tersembunyi"} hint="Harga barang x jumlah dari item bersumber Advisor" />
+          </div>
+          <ReportTable
+            title="Rata-rata nilai pesanan"
+            finance={finance}
+            testId="tabel-advisor"
+            note="Ini korelasi, bukan bukti sebab-akibat: pembeli yang bertanya ke Advisor bisa saja memang berniat belanja lebih banyak."
+            rows={[
+              { label: "Dengan item Advisor", orders: report.advisor.orders, aov: report.advisor.aovWith },
+              { label: "Tanpa item Advisor", orders: report.advisor.ordersWithout, aov: report.advisor.aovWithout },
+            ]}
+            cols={[
+              { header: "Kelompok", cell: (x) => x.label },
+              { header: "Pesanan", align: "right", cell: (x) => num(x.orders) },
+              { header: "Rata-rata nilai pesanan", align: "right", money: true, cell: (x) => rp(x.aov) },
+            ]}
+          />
+        </section>
+      ) : null}
+
+      {tab === "ai" ? (
+        finance ? (
+          <AiHealthPanel />
+        ) : (
+          <p className="rounded-xl border border-garis bg-putih p-4 text-sm text-abu-hangat">Kesehatan AI memuat perkiraan biaya, jadi butuh izin melihat angka keuangan.</p>
+        )
       ) : null}
 
       {tab === "pelanggan" ? (

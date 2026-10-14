@@ -19,6 +19,33 @@ export type StoreSettings = {
   freeShipping: { threshold: number; cap: number };
   promoBar: string[];
   seedVersion: number;
+  saran: SuggestionSettings;
+  gaya: StyleGuide;
+};
+
+// Saran transfer stok dan flash sale (Fase 7B). Cabang dianggap akan habis bila stoknya cukup kurang dari kurangHari;
+// lokasi lain dianggap berlebih bila cukup lebih dari lebihHari. Diskon flash sale yang diusulkan dalam batas persen.
+export type SuggestionSettings = { kurangHari: number; lebihHari: number; flashDiskonMin: number; flashDiskonMaks: number };
+
+// Panduan gaya bahasa toko: acuan semua tulisan AI (deskripsi produk, SEO, balasan ulasan, Kabar Harian).
+// Bagian dari kesiapan reskin: bisa diubah per klien di Pengaturan.
+export type StyleGuide = {
+  nada: string;
+  sapaan: string;
+  kataDipakai: string[];
+  kataDihindari: string[];
+  panjang: { ringkas: number; manfaat: number; kandungan: number; caraPakai: number; metaJudul: number; metaDeskripsi: number }; // karakter
+  contohProduk: string[]; // slug produk dengan deskripsi terbaik, 2 sampai 3
+};
+
+export const DEFAULT_SUGGESTIONS: SuggestionSettings = { kurangHari: 7, lebihHari: 30, flashDiskonMin: 15, flashDiskonMaks: 30 };
+export const DEFAULT_STYLE: StyleGuide = {
+  nada: "Hangat, singkat, dan jujur, seperti teman yang paham kosmetik. Kalimat pendek, tanpa istilah berlebihan.",
+  sapaan: "kamu",
+  kataDipakai: ["lembap", "ringan", "nyaman", "tahan lama", "cocok untuk", "terasa"],
+  kataDihindari: ["menyembuhkan", "mengobati", "dijamin", "100%", "ajaib", "instan", "permanen", "terbaik di dunia", "kak", "sis"],
+  panjang: { ringkas: 160, manfaat: 450, kandungan: 350, caraPakai: 300, metaJudul: 60, metaDeskripsi: 155 },
+  contohProduk: ["kirana-lab-niacinamide-10-serum", "pualam-velvet-matte-cushion-spf-50", "lumi-velvet-matte-lipstick"],
 };
 
 export const DEFAULT_RATES: CourierRates = {
@@ -39,6 +66,8 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   freeShipping: { threshold: 150_000, cap: 20_000 },
   promoBar: [],
   seedVersion: 0,
+  saran: DEFAULT_SUGGESTIONS,
+  gaya: DEFAULT_STYLE,
 };
 
 // Kunci di tabel settings. Nilai lama dari seed Fase 1 (misal toko.cutoff {kirim, ambil}) tetap terbaca.
@@ -54,6 +83,8 @@ export const SETTING_KEYS = {
   freeCap: "ongkir.gratisMaks",
   promoBar: "promo.bar",
   seedVersion: "demo.versiSeed",
+  saran: "ai.saran",
+  gaya: "ai.gaya",
 } as const;
 
 const isObj = (v: unknown): v is Record<string, unknown> => v != null && typeof v === "object" && !Array.isArray(v);
@@ -103,6 +134,39 @@ export function normalizeSettings(raw: Record<string, unknown>): StoreSettings {
     freeShipping: { threshold: int(raw[SETTING_KEYS.freeMin], d.freeShipping.threshold, 0, 100_000_000), cap: int(raw[SETTING_KEYS.freeCap], d.freeShipping.cap, 0, 10_000_000) },
     promoBar: Array.isArray(raw[SETTING_KEYS.promoBar]) ? (raw[SETTING_KEYS.promoBar] as unknown[]).filter((x): x is string => typeof x === "string" && x.trim().length > 0).map((x) => x.trim().slice(0, 80)).slice(0, 6) : d.promoBar,
     seedVersion: int(raw[SETTING_KEYS.seedVersion], 0, 0, 1_000_000),
+    saran: normalizeSuggestions(raw[SETTING_KEYS.saran]),
+    gaya: normalizeStyle(raw[SETTING_KEYS.gaya]),
+  };
+}
+
+export function normalizeSuggestions(v: unknown): SuggestionSettings {
+  const d = DEFAULT_SUGGESTIONS;
+  const o = isObj(v) ? v : {};
+  const min = int(o.flashDiskonMin, d.flashDiskonMin, 1, 90);
+  const max = int(o.flashDiskonMaks, d.flashDiskonMaks, 1, 90);
+  return { kurangHari: int(o.kurangHari, d.kurangHari, 1, 60), lebihHari: int(o.lebihHari, d.lebihHari, 2, 365), flashDiskonMin: Math.min(min, max), flashDiskonMaks: Math.max(min, max) };
+}
+
+const words = (v: unknown, d: string[]) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim().length > 0).map((x) => x.trim().slice(0, 40)).slice(0, 30) : d);
+
+export function normalizeStyle(v: unknown): StyleGuide {
+  const d = DEFAULT_STYLE;
+  const o = isObj(v) ? v : {};
+  const p = isObj(o.panjang) ? o.panjang : {};
+  return {
+    nada: str(o.nada, d.nada, 400),
+    sapaan: str(o.sapaan, d.sapaan, 20),
+    kataDipakai: words(o.kataDipakai, d.kataDipakai),
+    kataDihindari: words(o.kataDihindari, d.kataDihindari),
+    panjang: {
+      ringkas: int(p.ringkas, d.panjang.ringkas, 60, 300),
+      manfaat: int(p.manfaat, d.panjang.manfaat, 100, 2000),
+      kandungan: int(p.kandungan, d.panjang.kandungan, 100, 2000),
+      caraPakai: int(p.caraPakai, d.panjang.caraPakai, 80, 2000),
+      metaJudul: int(p.metaJudul, d.panjang.metaJudul, 30, 70),
+      metaDeskripsi: int(p.metaDeskripsi, d.panjang.metaDeskripsi, 80, 170),
+    },
+    contohProduk: Array.isArray(o.contohProduk) ? o.contohProduk.filter((x): x is string => typeof x === "string" && /^[a-z0-9-]{1,120}$/.test(x)).slice(0, 3) : d.contohProduk,
   };
 }
 
@@ -119,6 +183,8 @@ export function settingsRows(s: StoreSettings): Record<string, unknown> {
     [SETTING_KEYS.freeMin]: s.freeShipping.threshold,
     [SETTING_KEYS.freeCap]: s.freeShipping.cap,
     [SETTING_KEYS.promoBar]: s.promoBar,
+    [SETTING_KEYS.saran]: s.saran,
+    [SETTING_KEYS.gaya]: s.gaya,
   };
 }
 

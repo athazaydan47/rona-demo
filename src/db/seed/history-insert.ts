@@ -34,7 +34,7 @@ export async function insertHistory(db: AnyDb, out: HistoryOutput, inventory: { 
     400,
   );
   for (const part of chunk(out.items, 1000)) {
-    await db.insert(schema.orderItems).values(part.map((i) => ({ orderId: orderIds[i.order], variantId: i.variantId, productName: i.productName, shadeName: i.shadeName, brandName: i.brandName, unitPrice: i.unitPrice, normalPrice: i.normalPrice, quantity: i.quantity, priceSource: i.priceSource, flashSaleItemId: i.flashItem != null ? itemIds[i.flashItem] : null, weightGram: i.weightGram })));
+    await db.insert(schema.orderItems).values(part.map((i) => ({ orderId: orderIds[i.order], variantId: i.variantId, productName: i.productName, shadeName: i.shadeName, brandName: i.brandName, unitPrice: i.unitPrice, normalPrice: i.normalPrice, quantity: i.quantity, priceSource: i.priceSource, flashSaleItemId: i.flashItem != null ? itemIds[i.flashItem] : null, weightGram: i.weightGram, source: i.source ?? null })));
   }
   for (const part of chunk(out.payments, 1000)) await db.insert(schema.payments).values(part.map(({ order, ...p }) => ({ ...p, orderId: orderIds[order] })));
   for (const part of chunk(out.history, 1500)) await db.insert(schema.orderStatusHistory).values(part.map(({ order, ...h }) => ({ ...h, orderId: orderIds[order] })));
@@ -56,5 +56,6 @@ export async function insertHistory(db: AnyDb, out: HistoryOutput, inventory: { 
   for (const part of chunk(inventory, 1000)) {
     await db.insert(schema.inventory).values(part.map((i) => ({ ...i, reserved: out.reserved.get(`${i.variantId}:${i.locationId}`) ?? 0 })));
   }
+  for (const part of chunk(out.advisorEvents ?? [], 1000)) await db.insert(schema.advisorEvents).values(part.map((e) => ({ kind: e.kind, visitorHash: "seed", createdAt: e.createdAt })));
   return { customers: customerIds.length, orders: orderIds.length, items: out.items.length, movements: out.movements.length };
 }

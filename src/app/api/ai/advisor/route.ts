@@ -46,6 +46,8 @@ export async function POST(request: NextRequest) {
   const limit = await checkChatLimit(db, cfg, hash, at);
   if (!limit.ok) return NextResponse.json({ ok: false, message: limit.message, alasan: limit.reason }, { status: 429 });
   const profile = await currentSkinProfile();
+  // Corong Rona Advisor (tab Laporan): satu pesan pembeli satu catatan, tanpa isi pesan.
+  await db.insert(schema.advisorEvents).values({ kind: "percakapan", visitorHash: hash, createdAt: at }).catch(() => {});
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({

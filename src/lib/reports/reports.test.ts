@@ -37,6 +37,7 @@ const order = (over: Partial<ReportOrder>): ReportOrder => {
 };
 const item = (orderId: number, over: Partial<ReportItem>): ReportItem => ({
   orderId,
+  source: null,
   variantId: 1,
   sku: "LUMI-001-01",
   productId: 10,

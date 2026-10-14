@@ -13,7 +13,7 @@ import { addToCart } from "@/lib/cart/client-cart";
 import { formatRupiah } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useAiStatus } from "./ai-status";
-import { useFloatingPosition } from "./floating-position";
+import { useFloatingPosition, useHideOnScroll } from "./floating-position";
 
 export const ADVISOR_OPEN_EVENT = "rona:advisor-open";
 export type AdvisorOpenDetail = { productId?: number; productName?: string; prompt?: string };
@@ -118,6 +118,8 @@ export function AdvisorLauncher() {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const hidden = HIDDEN_PREFIXES.some((p) => pathname?.startsWith(p));
   const pos = useFloatingPosition(buttonRef, available && !hidden, { mobile: 16, desktop: 24 });
+  const scrolledAway = useHideOnScroll(available && !hidden && !open);
+  const away = Boolean(pos?.covered || scrolledAway);
 
   useEffect(() => {
     const onOpen = (e: Event) => {
@@ -214,16 +216,19 @@ export function AdvisorLauncher() {
           // Posisi dihitung useFloatingPosition: selalu di atas bilah bawah yang menempel, dan disembunyikan sementara
           // bila akan menutupi tombol aksi utama.
           style={{ bottom: pos ? pos.bottom : undefined }}
+          // Di HP berupa tombol bulat ikon saja (48 px) supaya tidak menutupi kartu; label teks hanya di desktop.
+          // Menyingkir saat digulir ke bawah dan muncul lagi saat digulir ke atas.
           className={cn(
-            "fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 inline-flex h-12 items-center gap-2 rounded-pill bg-kopi px-4 text-sm font-semibold text-putih shadow-lift transition-[transform,bottom,opacity] duration-200 hover:-translate-y-0.5 md:bottom-6",
-            pos?.covered && "pointer-events-none invisible opacity-0",
+            "fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 inline-flex size-12 items-center justify-center gap-2 rounded-full bg-kopi text-sm font-semibold text-putih shadow-lift transition-[transform,bottom,opacity] duration-300 hover:-translate-y-0.5 md:bottom-6 md:h-12 md:w-auto md:rounded-pill md:px-4",
+            away && "pointer-events-none translate-y-3 opacity-0",
           )}
-          aria-hidden={pos?.covered || undefined}
-          tabIndex={pos?.covered ? -1 : undefined}
+          aria-hidden={away || undefined}
+          tabIndex={away ? -1 : undefined}
           aria-label="Buka Rona Advisor"
+          title="Tanya Rona"
           data-testid="tombol-advisor"
         >
-          <Sparkles className="size-4 text-emas" aria-hidden /> Tanya Rona
+          <Sparkles className="size-5 text-emas md:size-4" aria-hidden /> <span className="hidden md:inline">Tanya Rona</span>
         </button>
       ) : null}
       <Dialog.Root open={open} onOpenChange={setOpen}>

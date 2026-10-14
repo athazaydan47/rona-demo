@@ -3,6 +3,7 @@
 // pencarian, ringkasan ulasan, penjelasan rutinitas, tafsir padanan) dijawab dengan aturan sederhana.
 import { withStream, type AiModel, type Content, type GenRequest, type GenResponse, type Part } from "./client";
 import { MEDICAL_REFERRAL } from "./guard";
+import { adminMockTurn } from "@/lib/asisten/mock";
 import type { ImageInput } from "./images";
 import visionFixtures from "../../../evals/7c/sidik.json";
 import { mockDupeFromImages, mockSkinReading } from "./mock-vision";
@@ -125,6 +126,31 @@ async function jsonTask(req: GenRequest): Promise<GenResponse> {
   const prompt = lastUserText(req.contents);
   const task = /TUGAS: (\w+)/.exec(prompt)?.[1] ?? "";
   const images = req.contents.flatMap((c) => c.parts.filter((p) => p.inlineData).map((p) => p.inlineData!)) as ImageInput[];
+  if (task === "deskripsi_produk") {
+    const name = /Nama: (.+?)\. Merek:/.exec(prompt)?.[1] ?? "Produk ini";
+    const actives = (/Bahan aktif: (.+?)\. Cocok/.exec(prompt)?.[1] ?? "").split(", ").filter((x) => x && x !== "tidak ada");
+    const skin = /Cocok untuk kulit: (.+?)\. Finish/.exec(prompt)?.[1] ?? "";
+    const points = (/Poin dari admin:\n([\s\S]+?)(\n[A-Z][a-z]+ |$)/.exec(prompt)?.[1] ?? "").split("\n").map((x) => x.replace(/^[-*\s]+/, "").trim()).filter(Boolean);
+    const short = /lebih singkat/.test(prompt);
+    const skinText = skin && skin !== "tidak disebut" ? ` untuk kulit ${skin}` : "";
+    const ringkas = `${name}${actives[0] ? ` dengan ${actives[0]}` : ""}${skinText}, ringan dan nyaman dipakai setiap hari.`;
+    const manfaat = (points.length ? points.map((p) => `${p.charAt(0).toUpperCase()}${p.slice(1).replace(/\.$/, "")}.`) : ["Terasa ringan dan nyaman dipakai harian."]).slice(0, short ? 1 : 4).join(" ");
+    return reply([{ text: JSON.stringify({ ringkas, manfaat, kandungan: actives.length ? `Bahan aktif utama: ${actives.join(", ")}.` : "Komposisi lengkap ada di kemasan.", caraPakai: "Pakai secukupnya pada wajah yang bersih, lalu ratakan perlahan. Gunakan rutin pagi atau malam.", metaJudul: `${name} | Rona Beauty`.slice(0, 60), metaDeskripsi: ringkas.slice(0, 155) }) }], req);
+  }
+  if (task === "balas_ulasan") {
+    const nama = /Nama: (.+?)\. Bintang/.exec(prompt)?.[1] ?? "kamu";
+    const situasi = /Situasi: ([^.]+)\./.exec(prompt)?.[1] ?? "";
+    const balasan =
+      situasi === "Pujian"
+        ? `Terima kasih banyak, ${nama}! Senang sekali produknya cocok untukmu. Semoga makin betah memakainya, ya.`
+        : situasi === "Salah shade"
+          ? `Terima kasih sudah berbagi, ${nama}. Maaf shadenya kurang pas di kulitmu. Coba Padanan Shade di /padanan-shade untuk menemukan shade yang lebih cocok, ya. Sesuai kebijakan, shade kurang cocok tidak termasuk retur.`
+          : situasi.startsWith("Pengiriman")
+            ? `Mohon maaf atas kondisi paketnya, ${nama}. Bila produk rusak atau segel terbuka, kamu bisa mengajukan retur maksimal 2 x 24 jam setelah paket sampai dengan video unboxing. Hubungi kami lewat WA, ya.`
+            : `Terima kasih sudah berbagi pengalamanmu, ${nama}. Maaf hasilnya belum sesuai harapan. Coba pakai lebih tipis dan beri jeda sebelum lapisan berikutnya, dan hubungi kami lewat WA bila masih ada kendala.`;
+    return reply([{ text: JSON.stringify({ balasan }) }], req);
+  }
+  if (task === "transkripsi") return reply([{ text: "Omzet minggu ini dibanding minggu lalu" }], req);
   if (task === "foto_kulit") return reply([{ text: JSON.stringify(await mockSkinReading(images[0])) }], req);
   if (task === "dupe_gambar") {
     return reply([{ text: JSON.stringify(await mockDupeFromImages(images, visionFixtures.gambar)) }], req);
@@ -181,6 +207,7 @@ export function createMockModel(): AiModel {
     name: "mock",
     async generate(req) {
       if (req.system?.startsWith("Kamu Rona Advisor")) return advisorTurn(req);
+      if (req.system?.startsWith("Kamu Asisten Admin")) return adminMockTurn(req);
       return jsonTask(req);
     },
   });

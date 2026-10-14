@@ -3,7 +3,8 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { LocationsEditor, SettingsForm } from "@/components/admin/settings-form";
 import { Denied, PageHead, Skeleton } from "@/components/admin/ui";
-import { db } from "@/db/client";
+import { asc, eq } from "drizzle-orm";
+import { db, schema } from "@/db/client";
 import { requireStaff } from "@/lib/admin/current";
 import { can } from "@/lib/admin/permissions";
 import { listLocations } from "@/lib/admin/settings";
@@ -16,10 +17,10 @@ async function Content() {
   await connection();
   const me = await requireStaff("/admin/pengaturan");
   if (!can(me, "pengaturan.kelola")) return <Denied />;
-  const [settings, locations] = await Promise.all([loadSettings(db), listLocations(db)]);
+  const [settings, locations, products] = await Promise.all([loadSettings(db), listLocations(db), db.select({ slug: schema.products.slug, name: schema.products.name }).from(schema.products).where(eq(schema.products.status, "aktif")).orderBy(asc(schema.products.name))]);
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-      <SettingsForm initial={settings} demoMode={env.demoMode} />
+      <SettingsForm initial={settings} demoMode={env.demoMode} products={products} />
       <div>
         <h2 className="mb-3 font-serif text-xl">Cabang</h2>
         <LocationsEditor key={locations.map((l) => l.updatedAt?.toISOString()).join()} locations={locations.map((l) => ({ id: l.id, slug: l.slug, name: l.name, type: l.type, address: l.address, district: l.district, city: l.city, phone: l.phone, lat: l.lat, lng: l.lng, openingHours: l.openingHours, closedDates: l.closedDates ?? [], canPickup: l.canPickup }))} />

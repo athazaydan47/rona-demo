@@ -19,6 +19,7 @@ import { captureAdmin6bFlow } from "./cuplik-admin-6b.mjs";
 import { captureAdmin6cFlow } from "./cuplik-admin-6c.mjs";
 import { captureAiBuyerFlow } from "./cuplik-ai-pembeli.mjs";
 import { captureAiPhotoFlow } from "./cuplik-ai-foto.mjs";
+import { captureAiAdminFlow } from "./cuplik-ai-admin.mjs";
 import { captureAccountFlow } from "./cuplik-akun.mjs";
 import { captureBuyFlow } from "./cuplik-alur-beli.mjs";
 
@@ -62,6 +63,9 @@ const ACTIONS = {
   // Alur AI dari foto dan link Fase 7C (server dengan AI_PROVIDER=mock): pilihan isi kuis, persetujuan foto, kuis
   // terisi dari foto, dan hasil cari dari video di 375 dan 1440 px.
   "ai-foto": { flow: true, label: "alur AI foto dan link", capture: captureAiPhotoFlow, covers: ["/kuis-kulit"] },
+  // Alur AI admin Fase 7B (server dengan AI_PROVIDER=mock): Asisten Admin, saran transfer, penulis deskripsi, draf balasan
+  // ulasan, Kabar Harian, dan tab Rona Advisor.
+  "ai-admin": { flow: true, label: "alur AI admin", capture: captureAiAdminFlow, covers: ["/admin"] },
 };
 
 function parseArgs(argv) {

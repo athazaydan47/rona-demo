@@ -153,7 +153,8 @@ export async function interpretQuery(db: AnyDb, model: AiModel, q: string, now: 
     const v = validateInterpretation(JSON.parse(res.text || "{}"), allowed);
     await logAi(db, { feature: "tafsir_cari", model: res.model, inputTokens: res.usage.input, outputTokens: res.usage.output, latencyMs: Date.now() - t0, ok: Boolean(v), visitorHash: opts.visitorHash, query: norm, at: now }).catch(() => {});
     if (!v || interpretationIsEmpty(v)) return null;
-    await cacheSet(db, key, "tafsir_cari", v, INTERPRET_CACHE_DAYS, now).catch(() => {});
+    // Evaluasi (skipCache) tidak membaca dan tidak menulis cache, supaya tidak memengaruhi pencarian sungguhan.
+    if (!opts.skipCache) await cacheSet(db, key, "tafsir_cari", v, INTERPRET_CACHE_DAYS, now).catch(() => {});
     return { interpretation: v, source: "ai", usage: res.usage };
   } catch (e) {
     await logAi(db, { feature: "tafsir_cari", model: model.name, latencyMs: Date.now() - t0, ok: false, error: e instanceof Error ? e.message : String(e), visitorHash: opts.visitorHash, query: norm, at: now }).catch(() => {});

@@ -24,7 +24,7 @@ export class DemoResetError extends Error {
 export const demoModeOn = (env: Record<string, string | undefined>) => env.DEMO_MODE === "true";
 export const dailyResetOn = (env: Record<string, string | undefined>) => demoModeOn(env) && env.DEMO_DAILY_RESET === "true";
 
-export const AI_TABLES_KEPT = ["ai_cache", "ai_logs", "review_summaries", "__drizzle_migrations"];
+export const AI_TABLES_KEPT = ["ai_cache", "ai_logs", "review_summaries", "daily_briefs", "__drizzle_migrations"];
 
 export type DemoResetResult = { durationMs: number; seedMs: number; truncateMs: number; photos: { kind: string; deleted: number }; summary: SeedSummary };
 

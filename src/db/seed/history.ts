@@ -80,7 +80,8 @@ export type GenOrder = {
   createdAt: Date;
   updatedAt: Date;
 };
-export type GenItem = { order: number; variantId: number; productName: string; shadeName: string; brandName: string; unitPrice: number; normalPrice: number; quantity: number; priceSource: "flash" | "promo" | "normal"; flashItem: number | null; weightGram: number };
+export type GenItem = { order: number; variantId: number; productName: string; shadeName: string; brandName: string; unitPrice: number; normalPrice: number; quantity: number; priceSource: "flash" | "promo" | "normal"; flashItem: number | null; weightGram: number; source?: string | null };
+export type GenAdvisorEvent = { kind: "percakapan" | "keranjang"; createdAt: Date };
 export type GenPayment = { order: number; method: PaymentMethod; vaNumber: string | null; qrPayload: string | null; amount: number; status: "menunggu" | "lunas" | "kedaluwarsa" | "batal"; idempotencyKey: string; expiresAt: Date; paidAt: Date | null; createdAt: Date };
 export type GenHistory = { order: number; fromStatus: GenOrder["status"] | null; toStatus: GenOrder["status"]; actor: string; reason: string | null; createdAt: Date };
 export type GenShipment = { order: number; courier: string; service: string; trackingNumber: string; status: string; history: ShipmentEvent[]; createdAt: Date; updatedAt: Date };
@@ -104,6 +105,7 @@ export type HistoryOutput = {
   soldByProduct: Map<number, number>;
   reserved: Map<string, number>; // "variantId:locationId" -> dipesan (pesanan menunggu pembayaran)
   counters: Map<string, number>; // periode YYMM -> urutan terakhir
+  advisorEvents: GenAdvisorEvent[];
 };
 
 const FIRST = ["Ayu", "Bunga", "Citra", "Dewi", "Eka", "Fitri", "Gita", "Hana", "Indah", "Jihan", "Kirana", "Laras", "Maya", "Nadia", "Oktavia", "Putri", "Rara", "Salsa", "Tiara", "Utami", "Vina", "Wulan", "Yuni", "Zahra", "Anisa", "Bella", "Dinda", "Farah", "Intan", "Mega", "Nabila", "Rina", "Sekar", "Tasya", "Dimas", "Raka", "Bayu", "Fajar", "Galih", "Rizky"];
@@ -556,7 +558,26 @@ export function generateHistory(input: HistoryInput, rng: Rng): HistoryOutput {
     initial.push({ variantId, locationId, type: "masuk", quantity: qty, reference: "STOK-AWAL", note: "Stok awal demo", actor: "Gudang Demo", createdAt: initialAt });
   }
 
-  return { customers, flashSales, flashItems, orders, items, payments, history, shipments, movements: [...initial, ...movements], ledger, redemptions, voucherUsed, soldByProduct, reserved, counters };
+  // Atribusi Rona Advisor (Fase 7B), tanpa angka acak supaya urutan data lain tidak berubah: sekitar 1 dari 10 pesanan
+  // kirim memuat satu item yang ditambahkan dari kartu Advisor. Corongnya: tiap pesanan Advisor didahului 6 pesan dan
+  // 2 tambah ke keranjang; ditambah pesan tanpa pembelian di sekitar 1 dari 5 pesanan kirim lainnya.
+  const advisorEvents: GenAdvisorEvent[] = [];
+  const itemsByOrder = new Map<number, GenItem[]>();
+  for (const it of items) itemsByOrder.set(it.order, [...(itemsByOrder.get(it.order) ?? []), it]);
+  orders.forEach((o, oi) => {
+    if (o.method !== "kirim") return;
+    const minutes = (m: number) => new Date(o.createdAt.getTime() - m * 60_000);
+    if ((oi * 37) % 10 === 3) {
+      const first = itemsByOrder.get(oi)?.[0];
+      if (first) first.source = "advisor";
+      for (let k = 0; k < 6; k++) advisorEvents.push({ kind: "percakapan", createdAt: minutes(30 - k * 4) });
+      advisorEvents.push({ kind: "keranjang", createdAt: minutes(8) }, { kind: "keranjang", createdAt: minutes(5) });
+    } else if ((oi * 13) % 5 === 1) {
+      advisorEvents.push({ kind: "percakapan", createdAt: minutes(90) }, { kind: "percakapan", createdAt: minutes(86) });
+    }
+  });
+
+  return { customers, flashSales, flashItems, orders, items, payments, history, shipments, movements: [...initial, ...movements], ledger, redemptions, voucherUsed, soldByProduct, reserved, counters, advisorEvents };
 }
 
 const SKIN_TYPES = ["normal", "kering", "berminyak", "kombinasi", "sensitif"] as const;

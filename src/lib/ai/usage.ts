@@ -8,13 +8,13 @@ import { wibDayStart } from "@/lib/reports";
 import type { AiConfig } from "./client";
 
 export const VISITOR_COOKIE = "rona_pengunjung";
-export const LIMITS = { chatPerDayDemo: 20, chatPerMinute: 5, photoPerDay: 5, dupePerDay: 10 } as const;
+export const LIMITS = { chatPerDayDemo: 20, chatPerMinute: 5, photoPerDay: 5, dupePerDay: 10, adminPerDay: 80, transcribePerDay: 40 } as const;
 
 export function visitorHash(visitorId: string, secret = process.env.SESSION_SECRET ?? "rona-demo") {
   return createHash("sha256").update(`${secret}:${visitorId}`).digest("hex").slice(0, 32);
 }
 
-export type AiLogInput = { feature: string; model: string; inputTokens?: number; outputTokens?: number; latencyMs: number; ok: boolean; error?: string | null; visitorHash?: string; query?: string | null; at?: Date };
+export type AiLogInput = { feature: string; model: string; inputTokens?: number; outputTokens?: number; latencyMs: number; ok: boolean; error?: string | null; visitorHash?: string; query?: string | null; at?: Date; staffId?: number | null; door?: string | null; tools?: string[]; warning?: string | null };
 
 export async function logAi(db: AnyDb, l: AiLogInput) {
   await db.insert(schema.aiLogs).values({
@@ -27,6 +27,10 @@ export async function logAi(db: AnyDb, l: AiLogInput) {
     error: l.error ? l.error.slice(0, 300) : null,
     visitorHash: l.visitorHash ?? "",
     query: l.query ? l.query.slice(0, 200) : null,
+    staffId: l.staffId ?? null,
+    door: l.door ?? null,
+    tools: (l.tools ?? []).slice(0, 20),
+    warning: l.warning ? l.warning.slice(0, 300) : null,
     ...(l.at ? { createdAt: l.at } : {}),
   });
 }

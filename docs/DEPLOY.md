@@ -315,6 +315,35 @@ Mulai 1 Jan 2027 tarif naik dua kali lipat. Link yang sama dalam 7 hari diambil 
 
 Batas per pengunjung per hari: 5 foto kuis dan 10 permintaan cari dupe, plus `AI_DAILY_CAP` untuk semua fitur. Hasil dari cache (link yang sama dalam 7 hari) tidak dihitung ke `AI_DAILY_CAP`. Tabel `ai_logs` mencatat fitur `foto_kulit` dan `dupe` tanpa isi foto atau link.
 
+## Pembaruan ke Fase 7B (asisten AI untuk owner dan staf)
+
+Migrasi baru: `drizzle/0007_ai_admin.sql`. Isinya hanya menambah: kolom `staff_id`, `door`, `tools`, dan `warning` (boleh kosong) di `ai_logs`, tabel `advisor_events` (corong Rona Advisor, ikut dikosongkan reset demo), dan tabel `daily_briefs` (Kabar Harian, tidak ikut dikosongkan reset). Aman dijalankan otomatis saat build selagi versi 7C masih tayang. Seed naik ke versi 10 (atribusi Advisor di riwayat pesanan, corong Advisor, dan Kabar Harian 14 hari bertemplat).
+
+Tidak ada env baru. Asisten Admin, Kabar Harian, penulis deskripsi, dan draf balasan ulasan memakai env AI yang sama. Header `Permissions-Policy` sekarang `microphone=(self)` supaya masukan suara Asisten Admin bisa meminta izin mikrofon (toko tidak pernah memintanya).
+
+### Urutan memperbarui produksi
+
+1. **Push** ke `main`. Log build harus menampilkan `Migrasi selesai: 0007_ai_admin`.
+2. **Reset data demo** dari Dashboard Owner (seed versi 10).
+3. **Kabar Harian**: dibuat oleh cron harian untuk hari kemarin, sebelum langkah reset. Untuk mencoba sekarang, buka Kabar Harian lalu "Buat ulang kabar kemarin", atau panggil cron sekali (`curl -s -H "Authorization: Bearer <CRON_SECRET>" https://<domain-mu>/api/cron/kedaluwarsa`, lihat bagian `kabar`).
+4. Verifikasi:
+   - Masuk sebagai Owner: tombol "Asisten Admin" di menu samping (di HP ikon di header dan tombol bulat di atas menu bawah). Tanya "Omzet minggu ini dibanding minggu lalu": angkanya sama dengan Laporan untuk periode yang sama (tautan "Lihat di Laporan").
+   - Masuk sebagai Staf Dinoyo: tanya omzet (ditolak sopan), lalu "Stok cushion shade 02 di sini" (asisten bertanya balik karena ada dua cushion).
+   - Masuk sebagai Gudang: Stok, "Saran transfer", "Buat draf transfer", periksa, simpan.
+   - Laporan: tab Rona Advisor dan Kesehatan AI (latensi median dan p95 terukur dari Vercel muncul di sini setelah dipakai).
+   - Pengaturan: bagian Saran AI dan Panduan gaya bahasa.
+   - Produk: "Bantu tulis dengan AI" di tab Deskripsi; Ulasan: "Buat draf dengan AI".
+   - Masukan suara dari HP sungguhan (izin mikrofon, rekam, teks masuk ke kotak ketik tanpa terkirim).
+
+### Biaya terukur (gemini-3.6-flash, tingkat berpikir minimal, 14 Okt 2026)
+
+| Pemakaian | Token rata-rata | Biaya per permintaan | Per 1.000 |
+|---|---|---|---|
+| Pertanyaan Asisten Admin (122 pertanyaan eval, 4 peran) | 4.986 (masuk 4.715, keluar 271) | US$0,0046 (sekitar Rp 75) | US$4,55 |
+| Kabar Harian (narasi AI) | 1.241 (masuk 963, keluar 278) | US$0,0018 (sekitar Rp 29) | sekitar Rp 900 per bulan |
+
+Tarif dan kurs ada di `src/lib/ai/pricing.ts` (kurs asumsi Rp 16.500 per US$1); mulai 1 Jan 2027 tarif naik dua kali lipat. Token masuk Asisten Admin terbesar untuk Owner karena semua 16 tool dideklarasikan; peran dengan tool lebih sedikit lebih murah. Batas: 80 pertanyaan dan 40 masukan suara per staf per hari, plus `AI_DAILY_CAP`.
+
 ## 5. Bagian build yang butuh database
 
 `npm run build` (di Vercel produksi didahului migrasi otomatis) membaca database untuk memprarender data katalog yang di-cache. Build gagal bila `DATABASE_URL` tidak bisa dihubungi. Yang dibaca saat build:

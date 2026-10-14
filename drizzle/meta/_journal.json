@@ -50,6 +50,13 @@
       "when": 1791967620648,
       "tag": "0006_ai_pembeli",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791981928652,
+      "tag": "0007_ai_admin",
+      "breakpoints": true
     }
   ]
 }

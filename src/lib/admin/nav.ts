@@ -1,7 +1,7 @@
 // Menu panel admin untuk semua modul (6A dan 6B). Menu tampil sesuai izin; pengamannya tetap can() di server.
 import type { PermissionKey, RoleSlug } from "./permissions";
 
-export type NavKey = "dashboard" | "pesanan" | "stok" | "produk" | "kategori" | "promo" | "ulasan" | "pelanggan" | "laporan" | "pengaturan" | "notifikasi" | "staf" | "log";
+export type NavKey = "dashboard" | "pesanan" | "stok" | "produk" | "kategori" | "promo" | "ulasan" | "pelanggan" | "laporan" | "kabar" | "pengaturan" | "notifikasi" | "staf" | "log";
 
 export const ADMIN_NAV: { key: NavKey; href: string; label: string; permission: PermissionKey | null; soon?: boolean }[] = [
   { key: "dashboard", href: "/admin", label: "Dashboard", permission: null },
@@ -13,6 +13,7 @@ export const ADMIN_NAV: { key: NavKey; href: string; label: string; permission: 
   { key: "ulasan", href: "/admin/ulasan", label: "Ulasan", permission: "ulasan.kelola" },
   { key: "pelanggan", href: "/admin/pelanggan", label: "Pelanggan", permission: "pelanggan.lihat" },
   { key: "laporan", href: "/admin/laporan", label: "Laporan", permission: "laporan.lihat" },
+  { key: "kabar", href: "/admin/kabar", label: "Kabar Harian", permission: "laporan.keuangan" },
   { key: "pengaturan", href: "/admin/pengaturan", label: "Pengaturan", permission: "pengaturan.kelola" },
   { key: "notifikasi", href: "/admin/notifikasi", label: "Notifikasi keluar", permission: "pengaturan.kelola" },
   { key: "staf", href: "/admin/staf", label: "Staf dan izin", permission: "staf.kelola" },

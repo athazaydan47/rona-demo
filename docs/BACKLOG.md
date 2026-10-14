@@ -50,26 +50,40 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 
 - Panel admin memakai root layout yang sama dengan toko; kerangka toko disembunyikan dengan CSS `:has([data-admin-root])`. Header toko tetap dirender (tersembunyi) dan komponen kliennya (jumlah keranjang, status akun) ikut memanggil server di halaman admin. Pisahkan ke route group dengan root layout sendiri setelah `global-not-found` Next stabil. (Fase 6A)
 - Matriks stok dan opname memuat seluruh varian lalu menyaring dan memaginasi di memori (cukup untuk 228 varian demo). Pindahkan ke SQL bila katalog ribuan varian. (Fase 6A)
-- Kanban memuat 30 kartu terbaru per kolom; Selesai dan Dibatalkan hanya 14 hari terakhir. Sisanya di tampilan tabel. (Fase 6A)
+- Kanban memuat 30 kartu terbaru per kolom aktif. Kolom Selesai, Dibatalkan, dan Diretur kini sempit dan terlipat: hanya jumlah 14 hari terakhir dan tautan ke tabel. (Fase 6A, diubah Fase 6B)
 - Seret kartu kanban memakai drag and drop HTML5 yang tidak jalan di layar sentuh; di HP kanban sengaja jadi tab status dan aksi ada di halaman detail. (Fase 6A)
-- Konfirmasi reset demo dan atur ulang kata sandi staf masih memakai `window.prompt`; ganti dengan dialog Radix di Fase 8. (Fase 6A)
 - Saat DEMO_MODE, akun staf demo dikunci lebih ketat dari prompt: selain tidak bisa dinonaktifkan atau diganti kata sandinya, peran, izin, dan lokasinya juga tidak bisa diubah (supaya Owner demo tidak terkunci). Pengunjung bebas membuat akun baru untuk mencoba. (Fase 6A)
 - Label kirim memakai font standar PDF (WinAnsi); karakter di luar Latin-1 di nama atau alamat dibuang. Sematkan font TTF bila toko sungguhan mengirim ke nama beraksara lain. (Fase 6A)
-- Reset demo memakai jalur seed yang sama (410 kueri, sebagian besar dari pesanan Pembeli Demo lewat layanan pesanan sungguhan). Durasi ke Neon belum diukur langsung; perintah `npm run demo:ukur-reset` tersedia. Bila lambat, pesanan demo bisa disisipkan massal. (Fase 6A)
-- Pencarian pelanggan di Cmd+K mengarah ke tabel pesanan bernomor WA itu karena halaman Pelanggan baru ada di 6B. (Fase 6A)
+- Reset demo memakai jalur seed yang sama. Sejak 6B ditambah riwayat 90 hari yang disisipkan massal: 445 kueri, sekitar 2 detik lokal, 22 detik dengan latensi tiruan 10 ms per arah. Sebagian besar kueri tetap dari pesanan Pembeli Demo lewat layanan pesanan sungguhan; bila reset ke Neon terasa lambat, pesanan demo itu juga bisa disisipkan massal. Durasi ke Neon belum diukur langsung (`npm run demo:ukur-reset`). (Fase 6A, diperbarui 6B)
+- Foto produk dari admin tampil sebagai gambar terakhir di galeri halaman produk; kartu produk, keranjang, dan gambar OG tetap memakai ProductArt. Foto produk yatim (diganti atau produk dihapus) belum dibersihkan dari Blob, kecuali saat reset demo. (Fase 6B)
+- Pohon kategori: seret-lepas memakai HTML5 drag and drop (tidak jalan di layar sentuh); di HP urutan diubah dengan tombol naik dan turun. Memindah sub kategori ke induk lain di HP lewat formulir Ubah (pilih induk). (Fase 6B)
+- Peringatan nama mirip memakai trigram dan Levenshtein di aplikasi terhadap seluruh nama kategori atau merek, bukan pg_trgm di database; cukup untuk puluhan nama. (Fase 6B)
+- Kalender flash sale menampilkan satu minggu; slot otomatis yang ditimpa slot admin tetap terlihat sebagai Nonaktif. Belum ada salin slot ke minggu berikutnya. (Fase 6B)
+- Ambang stok menipis di Pengaturan dipakai Dashboard dan matriks stok admin. Label "Stok terbatas" di toko masih memakai angka tetap 5. (Fase 6B)
+- Email pengirim di kotak Notifikasi pembeli masih teks tetap `halo@rona.demo`, belum membaca email di Profil toko. (Fase 6B)
+- Formulir produk dan pengaturan memuat ulang data dari server setelah simpan; perubahan yang dibuat staf lain di saat bersamaan menang terakhir (belum ada penguncian optimistis per baris). (Fase 6B)
+- Pencarian pelanggan di Cmd+K mengarah ke tabel pesanan bernomor WA itu karena halaman Pelanggan belum ada (dijadwalkan bersama Ulasan dan Laporan setelah 6B). (Fase 6A)
 
 ## Deploy
 
 - Build membaca database (slug dan detail produk, kategori, cabang, PromoBar, merek, artikel) karena data katalog di-cache dan diprarender; build gagal bila Neon tidak terjangkau. Bila ini mengganggu, pertimbangkan prarender sebagian produk saja atau fallback saat build. (Fase 4.1)
 - Header keamanan baru dasar: belum ada Content-Security-Policy lengkap (script-src, img-src) karena peta memakai ubin OSM dan gambar inline; susun CSP penuh di Fase 8. (Fase 4.1)
 - Pool koneksi aplikasi 5 per instance di Vercel; pantau batas koneksi Neon paket gratis saat demo ramai. (Fase 4.1)
+- Migrasi otomatis jalan di setiap build produksi (`src/db/build-migrate.ts`); build preview tidak memigrasi, jadi preview dengan migrasi baru bisa error sampai produksi ikut di-deploy. Pertimbangkan cabang database Neon per preview. (Fase 6B)
+- Halaman produk memakai `export const instant = false`: dengan partialPrefetching, kedaluwarsanya tag products membuat Next merender ulang shell umum `/p/[slug]` yang membaca params di luar Suspense, dan tanpa izin memblokir semua halaman produk error 500. Bila nanti ingin shell instan untuk slug baru, pindahkan pembacaan params ke dalam Suspense dan andalkan proxy untuk 404. (Fase 6B)
 
 ## Aturan cache
 
-- Pastikan semua modul admin (Fase 6) memanggil revalidateTag sesuai `src/lib/cache-tags.ts`; audit ulang setelah Fase 6 selesai. (Fase 2)
+- Pastikan semua modul admin (Fase 6) memanggil revalidateTag sesuai `src/lib/cache-tags.ts`; audit ulang setelah Fase 6 selesai. (Fase 2) Modul 6B (produk, kategori, merek, promo, banner, PromoBar, pengaturan, cabang) memakai `updateCatalogNow` di server action supaya admin langsung melihat hasilnya. (Fase 6B)
+- Pengaturan toko di-cache dengan tag settings (`getStoreSettings`) dan dipakai keranjang, halaman produk, dan checkout; tag langsung kedaluwarsa saat Pengaturan disimpan. Layanan pesanan dan keranjang di luar Next (uji, seed, cron) membaca langsung dari database (`loadSettings`). (Fase 6B)
 - `getBrands` di-cache dengan tag brands dan products karena memuat jumlah produk dan produk terlaris per merek; perubahan status produk di admin harus merevalidasi tag products. (Fase 2.1)
 
 ## Selesai
+
+- Konfirmasi reset demo, nonaktifkan staf, dan atur ulang kata sandi staf memakai dialog (`ConfirmDialog`), bukan lagi `window.prompt`. (Fase 6B)
+- Log aktivitas menyembunyikan login secara bawaan (centang "Tampilkan login"); login berulang staf yang sama dalam 10 menit digabung. (Fase 6B)
+- Opname di HP berupa kartu dengan input angka besar dan bilah simpan di bawah. (Fase 6B)
+- Bilah gratis ongkir di keranjang membaca nilai potongan dari Pengaturan (sebelumnya tertulis Rp 20.000 tetap); tautan WhatsApp di halaman pesanan membaca nomor dari Profil toko. (Fase 6B)
 
 - Jumlah produk per merek selalu 0: subquery berkorelasi di dalam sql`` merender kolom tanpa nama tabel. Diganti agregasi GROUP BY dan ditutup uji integrasi. (Fase 2.1)
 - Beranda HP terlalu panjang: Terlaris, Baru datang, jenis kulit, jurnal, etalase merek, cabang, dan ajakan jadi baris geser. (Fase 2.1)

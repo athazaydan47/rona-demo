@@ -59,3 +59,29 @@ describe("can(): pembatasan lokasi", () => {
     expect(can(dinoyo, "pesanan.batalkan", { lokasiId: DINOYO })).toBe(false);
   });
 });
+
+describe("izin halaman Fase 6B", () => {
+  const PAGES = { "/admin/produk": "produk.kelola", "/admin/kategori": "kategori.kelola", "/admin/promo": "promo.kelola", "/admin/pengaturan": "pengaturan.kelola" } as const;
+  const ALLOWED: Record<RoleSlug, string[]> = {
+    owner: Object.keys(PAGES),
+    admin_online: ["/admin/produk", "/admin/kategori", "/admin/promo"],
+    staf_cabang: [],
+    gudang: [],
+  };
+  for (const role of Object.keys(ALLOWED) as RoleSlug[]) {
+    it(`${ROLE_TEMPLATES[role].name}: ${ALLOWED[role].join(", ") || "tidak ada"}`, () => {
+      for (const [page, key] of Object.entries(PAGES)) expect(can(staff(role), key), `${role} ${page}`).toBe(ALLOWED[role].includes(page));
+    });
+  }
+  it("menu admin memakai izin yang sama dan tidak lagi bertanda segera hadir", async () => {
+    const { ADMIN_NAV } = await import("./nav");
+    for (const [page, key] of Object.entries(PAGES)) {
+      const item = ADMIN_NAV.find((n) => n.href === page)!;
+      expect(item.permission).toBe(key);
+      expect(item.soon).toBeUndefined();
+    }
+  });
+  it("izin tambahan per akun membuka halaman pengaturan untuk Admin Online", () => {
+    expect(can(staff("admin_online", { grants: ["pengaturan.kelola"] }), "pengaturan.kelola")).toBe(true);
+  });
+});

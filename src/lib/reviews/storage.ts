@@ -20,7 +20,22 @@ export function storageKind(env: Record<string, string | undefined> = process.en
   return "lokal";
 }
 
-export const isSafeKey = (key: string) => /^ulasan\/\d+\/[a-z0-9-]{8,64}\.(webp|jpg|png)$/.test(key);
+export const isSafeKey = (key: string) => /^(ulasan\/\d+|produk|banner)\/[a-z0-9-]{8,64}\.(webp|jpg|png)$/.test(key);
+
+// Foto katalog dari admin (produk, banner): URL harus berasal dari penyimpanan kita sendiri.
+export function storedMediaKey(url: string, prefix: "produk" | "banner"): string | null {
+  let key: string | null = null;
+  if (url.startsWith(LOCAL_MEDIA_PREFIX)) key = url.slice(LOCAL_MEDIA_PREFIX.length);
+  else {
+    try {
+      const u = new URL(url);
+      if (u.protocol === "https:" && u.hostname.endsWith(BLOB_HOST_SUFFIX)) key = u.pathname.slice(1);
+    } catch {
+      key = null;
+    }
+  }
+  return key && isSafeKey(key) && key.startsWith(`${prefix}/`) ? key : null;
+}
 
 const localStorage: PhotoStorage = {
   kind: "lokal",
@@ -80,26 +95,28 @@ export async function readLocalPhoto(key: string) {
   }
 }
 
-// Hapus semua foto ulasan (dipakai reset harian demo). Mengembalikan jumlah berkas yang dihapus bila diketahui.
+// Hapus semua foto unggahan pengunjung (ulasan, produk, banner) saat reset harian demo.
 export async function deleteAllReviewPhotos(env: Record<string, string | undefined> = process.env): Promise<{ kind: PhotoStorageKind; deleted: number }> {
   const kind = storageKind(env);
   if (kind === "blob") {
     const { list, del } = await import("@vercel/blob");
     const token = env.BLOB_READ_WRITE_TOKEN;
     let deleted = 0;
-    let cursor: string | undefined;
-    do {
-      const page = await list({ prefix: "ulasan/", cursor, limit: 1000, token });
-      if (page.blobs.length) {
-        await del(page.blobs.map((b) => b.url), { token });
-        deleted += page.blobs.length;
-      }
-      cursor = page.hasMore ? page.cursor : undefined;
-    } while (cursor);
+    for (const prefix of ["ulasan/", "produk/", "banner/"]) {
+      let cursor: string | undefined;
+      do {
+        const page = await list({ prefix, cursor, limit: 1000, token });
+        if (page.blobs.length) {
+          await del(page.blobs.map((b) => b.url), { token });
+          deleted += page.blobs.length;
+        }
+        cursor = page.hasMore ? page.cursor : undefined;
+      } while (cursor);
+    }
     return { kind, deleted };
   }
   if (kind === "lokal") {
-    await rm(path.join(LOCAL_UPLOAD_DIR, "ulasan"), { recursive: true, force: true });
+    for (const dir of ["ulasan", "produk", "banner"]) await rm(path.join(LOCAL_UPLOAD_DIR, dir), { recursive: true, force: true });
     return { kind, deleted: 0 };
   }
   return { kind, deleted: 0 };

@@ -91,7 +91,7 @@ export async function captureAdminFlow(browser, baseUrl, { width, deviceScaleFac
     await snap("Transfer: ringkasan sebelum simpan");
     await page.goto(`/admin/stok/opname?lokasi=${data.dinoyoId ?? ""}&merek=lumi`, { waitUntil: "load" });
     await settle();
-    const inputs = page.getByRole("textbox", { name: /Jumlah fisik/ });
+    const inputs = page.getByRole("textbox", { name: /Jumlah fisik/ }).filter({ visible: true });
     const n = Math.min(4, await inputs.count());
     for (let i = 0; i < n; i++) await inputs.nth(i).fill(String([12, 3, 7, 0][i]));
     await page.waitForTimeout(200);

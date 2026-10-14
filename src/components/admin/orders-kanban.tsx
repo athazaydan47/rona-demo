@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { statusTone } from "@/components/order/order-parts";
 import { courierName } from "@/lib/admin/couriers";
-import { planMove } from "@/lib/admin/kanban";
+import { KANBAN_FINAL, KANBAN_FINAL_DAYS, planMove } from "@/lib/admin/kanban";
 import { statusLabels, type OrderStatus } from "@/lib/orders/status";
 import { cn } from "@/lib/utils";
 import { OrderCardBody, type CardOrder } from "./order-card";
@@ -57,15 +57,53 @@ export function OrdersKanban({ columns }: { columns: KanbanColumn[] }) {
               <OrderCardBody o={o} />
             </li>
           ))}
-          {current.orders.length === 0 ? <li className="rounded-xl border border-dashed border-garis p-6 text-center text-sm text-abu-hangat">Kosong.</li> : null}
+          {KANBAN_FINAL.includes(current.status) ? (
+            <li className="rounded-xl border border-dashed border-garis bg-putih p-6 text-center text-sm text-abu-hangat">
+              {current.total} pesanan {statusLabels[current.status].toLowerCase()} dalam {KANBAN_FINAL_DAYS} hari terakhir.{" "}
+              <a href={`/admin/pesanan?tampilan=tabel&status=${current.status}`} className="font-semibold text-rona">
+                Lihat di tabel
+              </a>
+            </li>
+          ) : current.orders.length === 0 ? (
+            <li className="rounded-xl border border-dashed border-garis p-6 text-center text-sm text-abu-hangat">Kosong.</li>
+          ) : null}
         </ul>
       </div>
 
       {/* Desktop: papan kanban, kartu bisa diseret antar kolom untuk transisi yang sah. */}
       <div className="hidden overflow-x-auto pb-2 lg:block">
-        <div className="grid min-w-[1180px] grid-cols-7 gap-3">
+        <div className="grid min-w-[1160px] grid-cols-[repeat(5,minmax(200px,1fr))_repeat(3,92px)] gap-3">
           {columns.map((c) => {
             const valid = dragging ? planMove({ status: dragging.status as OrderStatus, method: dragging.method, paymentMethod: dragging.paymentMethod }, c.status).ok : false;
+            if (KANBAN_FINAL.includes(c.status)) {
+              return (
+                <section
+                  key={c.status}
+                  aria-label={statusLabels[c.status]}
+                  data-kolom={c.status}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setOver(c.status);
+                  }}
+                  onDragLeave={() => setOver((v) => (v === c.status ? null : v))}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (dragging) drop(dragging, c.status);
+                  }}
+                  className={cn("flex min-h-[60dvh] flex-col items-center gap-2 rounded-xl border bg-porselen/40 px-1.5 py-3 text-center transition-colors", dragging ? (valid ? "border-sukses/50 bg-[#EEF7F1]" : "border-garis opacity-50") : "border-garis", over === c.status && valid && "ring-2 ring-sukses/40")}
+                >
+                  <Badge variant={statusTone[c.status]} className="max-w-full truncate">
+                    {statusLabels[c.status]}
+                  </Badge>
+                  <span className="font-serif text-2xl text-kopi tabular-nums">{c.total}</span>
+                  <span className="text-[10px] leading-tight text-abu-hangat">{KANBAN_FINAL_DAYS} hari terakhir</span>
+                  <a href={`/admin/pesanan?tampilan=tabel&status=${c.status}`} className="text-[11px] font-semibold text-rona hover:underline">
+                    Lihat tabel
+                  </a>
+                  {dragging && valid ? <span className="mt-auto text-[10px] text-sukses">Lepas di sini</span> : null}
+                </section>
+              );
+            }
             return (
               <section
                 key={c.status}

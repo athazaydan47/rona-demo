@@ -11,14 +11,23 @@ function parseClock(s: string) {
 
 export type LocationFlags = { openNow: boolean; shipsToday: boolean; pickupToday: boolean };
 
-// Gudang: "Dikirim hari ini" bila sebelum 15.00 WIB, Senin sampai Sabtu. Toko: "Bisa diambil hari ini" bila sebelum 16.00 WIB dan sedang buka.
-export function locationFlags(loc: { type: "gudang" | "toko"; openingHours: OpeningHours | null }, now: Date): LocationFlags {
+export type Cutoff = { ship: string; pickup: string; sundayOff: boolean };
+export const DEFAULT_CUTOFF: Cutoff = { ship: "15.00", pickup: "16.00", sundayOff: true };
+
+// Tanggal WIB "2026-10-14" untuk dicocokkan dengan hari libur cabang.
+const wibDateKey = (p: ReturnType<typeof toWibParts>) => `${p.year}-${String(p.month).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
+
+// Gudang: "Dikirim hari ini" bila sebelum cut-off kirim (bawaan 15.00 WIB), Senin sampai Sabtu (Minggu libur bila diatur).
+// Toko: "Bisa diambil hari ini" bila sebelum cut-off ambil (bawaan 16.00 WIB) dan sedang buka. Hari libur cabang dianggap tutup.
+export function locationFlags(loc: { type: "gudang" | "toko"; openingHours: OpeningHours | null; closedDates?: string[] | null }, now: Date, cutoff: Cutoff = DEFAULT_CUTOFF): LocationFlags {
   const p = toWibParts(now);
   const minutes = p.hour * 60 + p.minute;
-  const today = loc.openingHours?.[DAY_KEYS[p.weekday]] ?? null;
+  const holiday = Boolean(loc.closedDates?.includes(wibDateKey(p)));
+  const today = holiday ? null : (loc.openingHours?.[DAY_KEYS[p.weekday]] ?? null);
   const openNow = today ? minutes >= parseClock(today.open) && minutes < parseClock(today.close) : false;
-  const shipsToday = loc.type === "gudang" && p.weekday >= 1 && p.weekday <= 6 && p.hour < 15;
-  const pickupToday = loc.type === "toko" && openNow && p.hour < 16;
+  const workday = p.weekday !== 0 || !cutoff.sundayOff;
+  const shipsToday = loc.type === "gudang" && workday && !holiday && minutes < parseClock(cutoff.ship);
+  const pickupToday = loc.type === "toko" && openNow && minutes < parseClock(cutoff.pickup);
   return { openNow, shipsToday, pickupToday };
 }
 

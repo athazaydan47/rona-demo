@@ -67,7 +67,7 @@ export function CartDrawer() {
           ) : (
             <>
               <div className="flex-1 overflow-y-auto px-5">
-                <FreeShippingBar remaining={view.pricing.freeShipping.remaining} threshold={view.pricing.freeShipping.threshold} className="mt-4" />
+                <FreeShippingBar remaining={view.pricing.freeShipping.remaining} threshold={view.pricing.freeShipping.threshold} cap={view.pricing.freeShipping.cap} className="mt-4" />
                 {view.notices.map((n) => (
                   <p key={n} className="mt-3 rounded-lg bg-[#FBEEDC] px-3 py-2 text-xs text-[#8A5512]" role="status">
                     {n}

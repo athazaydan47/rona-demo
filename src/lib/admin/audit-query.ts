@@ -1,14 +1,18 @@
 // Pembacaan log aktivitas dengan filter staf, jenis aksi, objek, dan tanggal.
-import { and, count, desc, eq, gte, ilike, lt, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, gte, ilike, lt, notInArray, type SQL } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import type { AnyDb } from "@/lib/db-types";
 
-export type AuditFilters = { staffId?: number | null; action?: string | null; objectType?: string | null; object?: string | null; from?: Date | null; to?: Date | null; page?: number };
+export const LOGIN_ACTIONS = ["staf.masuk", "staf.masuk_gagal", "staf.keluar"];
+
+export type AuditFilters = { staffId?: number | null; action?: string | null; objectType?: string | null; object?: string | null; from?: Date | null; to?: Date | null; page?: number; includeLogins?: boolean };
 
 export async function listAudit(db: AnyDb, f: AuditFilters) {
   const conds: SQL[] = [];
   if (f.staffId) conds.push(eq(schema.auditLogs.staffId, f.staffId));
   if (f.action) conds.push(eq(schema.auditLogs.action, f.action));
+  // Kejadian login disembunyikan secara bawaan supaya log tidak dibanjiri (kecuali dipilih atau sakelar dinyalakan).
+  else if (!f.includeLogins) conds.push(notInArray(schema.auditLogs.action, LOGIN_ACTIONS));
   if (f.objectType) conds.push(eq(schema.auditLogs.objectType, f.objectType));
   if (f.object) conds.push(ilike(schema.auditLogs.objectId, `%${f.object.replace(/[%_]/g, "")}%`));
   if (f.from) conds.push(gte(schema.auditLogs.createdAt, f.from));
@@ -31,4 +35,22 @@ export function auditDiff(before: unknown, after: unknown) {
   return keys
     .map((k) => ({ key: k, before: k in b ? b[k] : undefined, after: k in a ? a[k] : undefined }))
     .filter((d) => JSON.stringify(d.before) !== JSON.stringify(d.after));
+}
+
+export type GroupedAudit<T> = T & { repeat: number; firstAt: Date };
+
+// Login berulang dari staf (atau email) yang sama dalam 10 menit digabung menjadi satu baris. Baris urut terbaru dulu.
+export function groupLogins<T extends { action: string; staffId: number | null; objectId: string; createdAt: Date }>(rows: T[], windowMs = 10 * 60_000): GroupedAudit<T>[] {
+  const out: GroupedAudit<T>[] = [];
+  for (const r of rows) {
+    const last = out[out.length - 1];
+    const sameActor = last && last.action === r.action && (r.staffId != null ? last.staffId === r.staffId : last.objectId === r.objectId);
+    if (last && LOGIN_ACTIONS.includes(r.action) && sameActor && last.firstAt.getTime() - r.createdAt.getTime() <= windowMs) {
+      last.repeat += 1;
+      last.firstAt = r.createdAt;
+      continue;
+    }
+    out.push({ ...r, repeat: 1, firstAt: r.createdAt });
+  }
+  return out;
 }

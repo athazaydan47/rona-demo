@@ -7,7 +7,7 @@ import { cheapestAndFastest, quickCities, quoteShipping } from "@/lib/shipping";
 
 const KEY = "rona.kota";
 
-export function ShippingEstimate({ weightGram }: { weightGram: number }) {
+export function ShippingEstimate({ weightGram, rates, active }: { weightGram: number; rates?: Parameters<typeof quoteShipping>[0]["rates"]; active?: Parameters<typeof quoteShipping>[0]["active"] }) {
   const [city, setCity] = useState<string>("");
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -20,7 +20,7 @@ export function ShippingEstimate({ weightGram }: { weightGram: number }) {
     }, 0);
     return () => window.clearTimeout(t);
   }, []);
-  const quotes = city ? quoteShipping({ totalGram: weightGram, citySlug: city }) : [];
+  const quotes = city ? quoteShipping({ totalGram: weightGram, citySlug: city, rates, active }) : [];
   const { cheapest, fastest } = cheapestAndFastest(quotes);
   return (
     <div className="rounded-card border border-garis bg-putih p-4">

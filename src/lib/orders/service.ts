@@ -10,6 +10,8 @@ import { available, commitReserved, lockInventory, release, reserve, restock, ty
 import { priceCart, type PricedCart } from "@/lib/pricing/cart";
 import { instantAvailability, type CourierCode, type Zone } from "@/lib/shipping";
 import { earnedPoints, movePoints, pointKeys } from "@/lib/points";
+import { pricingRules, type StoreSettings } from "@/lib/settings";
+import { loadSettings } from "@/lib/settings/db";
 import { orderMessage, type OrderEvent } from "./messages";
 import { buildPricingLines, loadVoucher, type Buyer } from "./pricing-loader";
 import { formatOrderNumber, isExpired, normalizePhone, orderPeriod, paymentDeadline } from "./rules";
@@ -31,6 +33,7 @@ export type PlaceOrderInput = {
   voucherCode?: string | null;
   note?: string | null;
   pointsRequested?: number; // hanya untuk pembeli yang masuk; batas 50% dihitung ulang di server
+  settings?: StoreSettings; // pengaturan toko (bila kosong dibaca dari database)
   expectedTotal: number;
   siteUrl?: string;
   now?: Date;
@@ -60,7 +63,7 @@ const COURIER_LABEL: Record<string, string> = {
 };
 export const courierLabel = (code: string | null | undefined) => (code ? (COURIER_LABEL[code] ?? code) : "");
 
-function vaNumber(method: PaymentMethod, seq: number, phone: string) {
+export function vaNumber(method: PaymentMethod, seq: number, phone: string) {
   const prefix: Record<string, string> = { va_bca: "39358", va_bni: "8810", va_bri: "26215", va_mandiri: "89608" };
   const p = prefix[method];
   if (!p) return null;
@@ -68,7 +71,7 @@ function vaNumber(method: PaymentMethod, seq: number, phone: string) {
   return (p + tail).slice(0, 16).padEnd(16, "0");
 }
 
-function qrPayload(number: string, amount: number) {
+export function qrPayload(number: string, amount: number) {
   // Payload dummy bergaya EMV QRIS, hanya untuk demo.
   return `00020101021226570014ID.RONA.DEMO01${String(number.length).padStart(2, "0")}${number}5204597753033605${String(String(amount).length).padStart(2, "0")}${amount}5802ID5911RONA BEAUTY6006MALANG6304DEMO`;
 }
@@ -95,8 +98,12 @@ export async function placeOrder(db: AnyDb, input: PlaceOrderInput): Promise<Pla
     return { ok: false, code: "data_tidak_valid", message: "Lengkapi alamat dan pilih kurir." };
   }
   if (input.method === "ambil" && !input.pickupLocationSlug) return { ok: false, code: "data_tidak_valid", message: "Pilih cabang untuk mengambil pesanan." };
+  const settings = input.settings ?? (await loadSettings(db));
+  if (!settings.payments.includes(input.paymentMethod)) return { ok: false, code: "data_tidak_valid", message: "Metode bayar ini sedang tidak tersedia. Pilih metode lain, ya." };
+  if (input.method === "kirim" && input.courierCode && !settings.couriers.active.includes(input.courierCode)) return { ok: false, code: "data_tidak_valid", message: "Kurir ini sedang tidak tersedia. Pilih kurir lain, ya." };
+  if (input.method === "ambil" && !settings.couriers.active.includes("ambil_di_toko")) return { ok: false, code: "data_tidak_valid", message: "Ambil di Toko sedang tidak tersedia." };
   if (input.method === "kirim" && input.courierCode === "instan") {
-    const instant = instantAvailability(at);
+    const instant = instantAvailability(at, settings.instant);
     if (!instant.available) return { ok: false, code: "data_tidak_valid", message: `Kurir instan hanya beroperasi Senin sampai Sabtu pukul 08.00 sampai 17.00 WIB. ${instant.note}.` };
   }
   const buyer: Buyer = { customerId: input.buyer.customerId ?? null, phone };
@@ -138,6 +145,7 @@ export async function placeOrder(db: AnyDb, input: PlaceOrderInput): Promise<Pla
         voucherCode: input.voucherCode,
         voucher,
         points: buyer.customerId ? { requested: input.pointsRequested ?? 0, balance: pointsBalance } : null,
+        rules: pricingRules(settings),
         shipping: input.method === "ambil" ? { method: "ambil" } : { method: "kirim", courierCode: input.courierCode!, zone: input.zone! },
       });
       if (input.voucherCode && !pricing.voucher?.applied) throw fail("voucher", pricing.voucher?.message ?? "Voucher tidak bisa dipakai.", { pricing });

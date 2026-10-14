@@ -115,6 +115,15 @@ export function ProductView({ product, live, siteUrl }: Props) {
     images.push({ key: "lineup", label: "Perbandingan shade", node: <ShadeLineupArt shades={variants} selectedId={selected.id} title={`Perbandingan shade ${product.name}`} /> });
   }
 
+  if (product.imageUrl) {
+    images.push({
+      key: "foto",
+      label: "Foto produk",
+      // eslint-disable-next-line @next/next/no-img-element
+      node: <img src={product.imageUrl} alt={`Foto ${product.name}`} className="aspect-[5/6] h-full w-full object-cover" loading="lazy" />,
+    });
+  }
+
   const shareUrl = `${siteUrl}/p/${product.slug}${variants.length > 1 ? `?shade=${selected.shadeSlug}` : ""}`;
   const sensitive = product.skinTypes.includes("sensitif");
   const shadeLabel = variants.length > 1 ? selected.shadeName : "";
@@ -154,7 +163,7 @@ export function ProductView({ product, live, siteUrl }: Props) {
           <p className="mt-3 text-sm text-abu-hangat">{product.shortDescription}</p>
 
           <div className="mt-5 rounded-card border border-garis bg-putih p-4">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2" data-testid="harga-produk">
               <PriceTag price={price.price} normalPrice={price.normalPrice} size="lg" />
               {price.source === "flash" ? <Badge variant="flash">Flash Sale</Badge> : price.source === "promo" ? <Badge variant="diskon">Promo</Badge> : null}
             </div>
@@ -224,7 +233,7 @@ export function ProductView({ product, live, siteUrl }: Props) {
 
           <div className="mt-6 space-y-4">
             <StockByStore locations={live.locations} stock={live.stock[selected.id] ?? {}} shadeName={shadeLabel || undefined} />
-            <ShippingEstimate weightGram={selected.weightGram} />
+            <ShippingEstimate weightGram={selected.weightGram} rates={live.shipping?.rates} active={live.shipping?.active} />
           </div>
         </div>
       </div>

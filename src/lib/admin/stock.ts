@@ -9,13 +9,14 @@ import { toWibParts } from "@/lib/format";
 import { adjustOnHand, lockInventory, restock, StockError } from "@/lib/inventory";
 import { writeAudit } from "./audit";
 import { allLocations, can, canAccessLocation, type StaffPrincipal } from "./permissions";
+import { SETTING_KEYS } from "@/lib/settings";
 
 export const DEFAULT_LOW_STOCK = 5;
 export const MAX_LINES = 50;
 export const MAX_QTY = 10_000;
 
 export async function lowStockThreshold(db: AnyDb) {
-  const [row] = await db.select({ value: schema.settings.value }).from(schema.settings).where(eq(schema.settings.key, "stok.ambangMenipis")).limit(1);
+  const [row] = await db.select({ value: schema.settings.value }).from(schema.settings).where(eq(schema.settings.key, SETTING_KEYS.lowStock)).limit(1);
   const n = Number(row?.value);
   return Number.isInteger(n) && n >= 0 && n <= 1000 ? n : DEFAULT_LOW_STOCK;
 }

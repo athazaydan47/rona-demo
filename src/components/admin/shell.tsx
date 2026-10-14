@@ -27,7 +27,7 @@ function SideLinks({ items, pathname }: { items: ShellItem[]; pathname: string |
             <Link href={it.href} aria-current={active ? "page" : undefined} className={cn("flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors", active ? "bg-kopi text-putih" : "text-kopi/85 hover:bg-blush/50")}>
               <Icon className="size-4 shrink-0" aria-hidden />
               <span className="flex-1 truncate">{it.label}</span>
-              {it.soon ? <span className={cn("rounded-full px-1.5 text-[10px] font-semibold", active ? "bg-putih/20" : "bg-porselen text-abu-hangat")}>6B</span> : null}
+              {it.soon ? <span className={cn("rounded-full px-1.5 text-[10px] font-semibold", active ? "bg-putih/20" : "bg-porselen text-abu-hangat")}>Segera</span> : null}
             </Link>
           </li>
         );

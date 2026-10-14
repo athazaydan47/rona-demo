@@ -1,7 +1,11 @@
 // Pemetaan papan kanban ke state machine. Murni (tanpa database) supaya bisa dipakai di browser dan diuji.
 import { canTransition, statusLabels, type OrderMethod, type OrderStatus } from "@/lib/orders/status";
 
-export const KANBAN_COLUMNS: OrderStatus[] = ["menunggu_pembayaran", "dibayar", "diproses", "siap_diambil", "dikirim", "selesai", "dibatalkan"];
+export const KANBAN_ACTIVE: OrderStatus[] = ["menunggu_pembayaran", "dibayar", "diproses", "siap_diambil", "dikirim"];
+// Kolom akhir dibuat sempit dan terlipat (jumlah 14 hari terakhir dan tautan ke tabel).
+export const KANBAN_FINAL: OrderStatus[] = ["selesai", "dibatalkan", "diretur"];
+export const KANBAN_COLUMNS: OrderStatus[] = [...KANBAN_ACTIVE, ...KANBAN_FINAL];
+export const KANBAN_FINAL_DAYS = 14;
 
 export type MoveContext = { status: OrderStatus; method: OrderMethod; paymentMethod: string | null };
 export type MovePlan =

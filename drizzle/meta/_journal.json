@@ -29,6 +29,13 @@
       "when": 1791926037946,
       "tag": "0003_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791950697034,
+      "tag": "0004_katalog_promo",
+      "breakpoints": true
     }
   ]
 }

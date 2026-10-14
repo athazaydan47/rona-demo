@@ -79,3 +79,16 @@ export function formatCompactNumber(n: number) {
   if (n >= 1000) return one(n / 1000, "rb");
   return n.toString();
 }
+
+// Nilai input datetime-local dalam WIB: "2026-10-13T14:30".
+export function toWibInput(date: Date | null | undefined) {
+  if (!date) return "";
+  const p = toWibParts(date);
+  return `${p.year}-${pad2(p.month)}-${pad2(p.day)}T${pad2(p.hour)}:${pad2(p.minute)}`;
+}
+
+// Kebalikan toWibInput: string datetime-local (WIB) ke Date UTC. Kosong atau rusak menjadi null.
+export function fromWibInput(value: string) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value ?? "");
+  return m ? wibDate(Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4]), Number(m[5])) : null;
+}

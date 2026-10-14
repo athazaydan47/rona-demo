@@ -9,6 +9,8 @@ import { dashboardData } from "@/lib/admin/dashboard";
 import { allLocations, can } from "@/lib/admin/permissions";
 import { now } from "@/lib/clock";
 import { demoModeOn } from "@/lib/demo/reset";
+import { SEED_VERSION } from "@/db/seed/version";
+import { loadSettings } from "@/lib/settings/db";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -19,7 +21,7 @@ async function Content() {
   return (
     <>
       <PageHead title={`Halo, ${me.name.split(" ")[0]}`} description={allLocations(me) ? "Ringkasan semua lokasi." : "Ringkasan lokasi yang kamu ampu."} />
-      <DashboardLive initial={data} canReset={demoModeOn(process.env) && can(me, "demo.reset")} />
+      <DashboardLive initial={data} canReset={demoModeOn(process.env) && can(me, "demo.reset")} seedVersion={SEED_VERSION} installedVersion={(await loadSettings(db)).seedVersion} />
     </>
   );
 }

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, BellRing, Clock, Loader2, PackageOpen, RefreshCw, RotateCcw, Store } from "lucide-react";
+import { AlertTriangle, BellRing, Clock, PackageOpen, RefreshCw, RotateCcw, Store } from "lucide-react";
 import { ProductArt } from "@/components/product-art";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { statusTone } from "@/components/order/order-parts";
 import { dashboardAction, resetDemoNowAction } from "@/lib/admin/actions";
 import type { DashboardData } from "@/lib/admin/dashboard";
@@ -63,40 +64,41 @@ function RevenueChart({ series }: { series: { day: string; revenue: number; orde
   );
 }
 
-function DemoReset() {
-  const [pending, start] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+function DemoReset({ seedVersion, installedVersion }: { seedVersion: number; installedVersion: number }) {
+  const [open, setOpen] = useState(false);
+  const newer = seedVersion > installedVersion;
   return (
-    <div className="rounded-xl border border-dashed border-emas/70 bg-[#FBF4E6] p-4">
+    <div className="rounded-xl border border-dashed border-emas/70 bg-[#FBF4E6] p-4" data-testid="kartu-reset-demo">
       <p className="text-sm font-semibold text-[#7A5A1E]">Mode demo</p>
-      <p className="mt-1 text-xs text-[#7A5A1E]">Kembalikan semua data (pesanan, stok, akun, ulasan) ke keadaan awal. Semua sesi ikut keluar. Paling sering sekali per 5 menit.</p>
-      <Button
-        className="mt-3"
-        size="sm"
-        variant="dark"
-        disabled={pending}
-        onClick={() => {
-          const text = window.prompt("Ketik RESET untuk mengembalikan data demo ke awal.");
-          if (!text) return;
-          start(async () => {
-            setError(null);
-            const r = await resetDemoNowAction(text);
-            if (r && !r.ok) setError(r.message);
-          });
-        }}
-      >
-        {pending ? <Loader2 className="animate-spin" /> : <RotateCcw />} Reset data demo sekarang
-      </Button>
-      {error ? (
-        <p className="mt-2 text-xs text-bahaya" role="alert">
-          {error}
+      {newer ? (
+        <p className="mt-1 rounded-lg bg-putih/80 px-2 py-1.5 text-xs font-semibold text-rona" role="status" data-testid="versi-seed-baru">
+          Data demo versi baru tersedia, reset sekarang? (terpasang versi {installedVersion}, kode versi {seedVersion})
         </p>
-      ) : null}
+      ) : (
+        <p className="mt-1 text-xs text-[#7A5A1E]">Data demo versi {installedVersion}, sudah terbaru.</p>
+      )}
+      <p className="mt-1 text-xs text-[#7A5A1E]">Kembalikan semua data (pesanan, stok, akun, ulasan, pengaturan) ke keadaan awal. Semua sesi ikut keluar. Paling sering sekali per 5 menit.</p>
+      <Button className="mt-3" size="sm" variant="dark" onClick={() => setOpen(true)}>
+        <RotateCcw /> Reset data demo sekarang
+      </Button>
+      <ConfirmDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Reset data demo?"
+        description="Semua perubahan pengunjung hilang dan data kembali ke keadaan awal. Ketik RESET untuk melanjutkan."
+        confirmLabel="Reset sekarang"
+        danger
+        input={{ label: "Ketik RESET", placeholder: "RESET", mustEqual: "RESET" }}
+        onConfirm={async (v) => {
+          const r = await resetDemoNowAction(v);
+          return r && !r.ok ? r.message : null;
+        }}
+      />
     </div>
   );
 }
 
-export function DashboardLive({ initial, canReset }: { initial: DashboardData; canReset: boolean }) {
+export function DashboardLive({ initial, canReset, seedVersion = 0, installedVersion = 0 }: { initial: DashboardData; canReset: boolean; seedVersion?: number; installedVersion?: number }) {
   const [data, setData] = useState(initial);
   const [fresh, setFresh] = useState<Set<number>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
@@ -282,7 +284,7 @@ export function DashboardLive({ initial, canReset }: { initial: DashboardData; c
             </ul>
           </section>
 
-          {canReset ? <DemoReset /> : null}
+          {canReset ? <DemoReset seedVersion={seedVersion} installedVersion={installedVersion} /> : null}
         </div>
       </div>
     </div>

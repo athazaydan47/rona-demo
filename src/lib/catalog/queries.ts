@@ -203,3 +203,29 @@ export async function getArticle(slug: string): Promise<(ArticleSummary & { body
     .limit(1);
   return row ?? null;
 }
+
+export type BannerRow = {
+  id: number;
+  title: string;
+  subtitle: string;
+  ctaLabel: string;
+  href: string;
+  imageUrl: string | null;
+  art: schema.BannerArt | null;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  sortOrder: number;
+  isActive: boolean;
+};
+
+// Semua banner hero yang aktif. Jadwal tayang disaring saat request (lihat liveBanners) supaya tidak basi.
+export async function getHeroBanners(): Promise<BannerRow[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(cacheTags.banners());
+  return db
+    .select({ id: schema.banners.id, title: schema.banners.title, subtitle: schema.banners.subtitle, ctaLabel: schema.banners.ctaLabel, href: schema.banners.href, imageUrl: schema.banners.imageUrl, art: schema.banners.art, startsAt: schema.banners.startsAt, endsAt: schema.banners.endsAt, sortOrder: schema.banners.sortOrder, isActive: schema.banners.isActive })
+    .from(schema.banners)
+    .where(eq(schema.banners.isActive, true))
+    .orderBy(asc(schema.banners.sortOrder), asc(schema.banners.id));
+}

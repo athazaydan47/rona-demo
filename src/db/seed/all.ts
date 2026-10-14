@@ -15,6 +15,10 @@ import { toWibParts, wibDate } from "../../lib/format";
 import type { AnyDb } from "../../lib/db-types";
 import { hashPassword } from "../../lib/admin/password";
 import { seedDemoBuyer } from "./demo-buyer";
+import { SEED_VERSION } from "./version";
+import { generateHistory, HISTORY_DAYS, type HistoryVariant } from "./history";
+import { insertHistory } from "./history-insert";
+import { SETTING_KEYS } from "../../lib/settings";
 
 const SEED = 20261013;
 const DEMO_STAFF_PASSWORD = process.env.DEMO_STAFF_PASSWORD ?? "demo1234";
@@ -33,7 +37,9 @@ function brandCode(slug: string) {
     .slice(0, 4);
 }
 
-export type SeedSummary = { brands: number; categories: number; locations: number; products: number; variants: number; inventory: number; reviews: number; demoOrders: number };
+export type SeedSummary = { brands: number; categories: number; locations: number; products: number; variants: number; inventory: number; reviews: number; demoOrders: number; historyOrders: number; historyCustomers: number };
+
+export { SEED_VERSION };
 
 // Isi seluruh data demo ke database yang sudah dimigrasi dan kosong. Dipakai db:reset, db:seed, dan reset harian demo.
 // Deterministik: semua nilai acak berasal dari RNG bersemai tetap; tanggal relatif terhadap `now`.
@@ -99,7 +105,9 @@ export async function seedAll(db: AnyDb, now: Date): Promise<SeedSummary> {
 
       const text = kindText[p.kind];
       const searchText = [p.name, brand.name, child.name, parent.name, ...p.variants.map((v) => v.name), ...(p.active ?? [])].join(" ");
-      const soldCount = p.popularity * rng.int(15, 40);
+      // Jumlah terjual dihitung dari riwayat penjualan; panggilan RNG dipertahankan supaya urutan acak tetap.
+      rng.int(15, 40);
+      const soldCount = 0;
       const publishedAt = daysAgo(p.isNew ? rng.int(3, 20) : rng.int(30, 240));
 
       productValues.push({
@@ -175,9 +183,8 @@ export async function seedAll(db: AnyDb, now: Date): Promise<SeedSummary> {
       .returning({ id: schema.variants.id, productId: schema.variants.productId, salePrice: schema.variants.salePrice, shadeName: schema.variants.shadeName })).sort((a, b) => a.id - b.id);
     variantRows.push(...insertedVariants);
 
-    // 5. Stok per varian per lokasi + buku stok awal
-    const inventoryValues: (typeof schema.inventory.$inferInsert)[] = [];
-    const movementValues: (typeof schema.stockMovements.$inferInsert)[] = [];
+    // 5. Stok akhir per varian per lokasi (disisipkan setelah riwayat penjualan, yang menulis stok awal di hari pertama).
+    const inventoryValues: { variantId: number; locationId: number; onHand: number }[] = [];
     // Satu shade cushion Pualam Velvet Matte sengaja habis di semua lokasi untuk memamerkan "Kabari aku".
     const cushionId = productIdBySlugEarly.get("pualam-velvet-matte-cushion-spf-50");
     const soldOutVariant = variantRows.find((v) => v.productId === cushionId && v.shadeName === "10N Kayu Manis");
@@ -186,29 +193,11 @@ export async function seedAll(db: AnyDb, now: Date): Promise<SeedSummary> {
         let onHand: number;
         const roll = rng.next();
         if (soldOutVariant && v.id === soldOutVariant.id) onHand = 0;
-        else
-        if (loc.type === "gudang") {
-          onHand = roll < 0.06 ? 0 : roll < 0.14 ? rng.int(1, 4) : rng.int(8, 60);
-        } else {
-          onHand = roll < 0.18 ? 0 : roll < 0.32 ? rng.int(1, 4) : rng.int(5, 18);
-        }
-        inventoryValues.push({ variantId: v.id, locationId: loc.id, onHand, reserved: 0 });
-        if (onHand > 0) {
-          movementValues.push({
-            variantId: v.id,
-            locationId: loc.id,
-            type: "masuk",
-            quantity: onHand,
-            reference: "SEED-AWAL",
-            note: "Stok awal demo",
-            actor: "sistem",
-            createdAt: daysAgo(rng.int(5, 40)),
-          });
-        }
+        else if (loc.type === "gudang") onHand = roll < 0.06 ? 0 : roll < 0.14 ? rng.int(1, 4) : rng.int(8, 60);
+        else onHand = roll < 0.18 ? 0 : roll < 0.32 ? rng.int(1, 4) : rng.int(5, 18);
+        inventoryValues.push({ variantId: v.id, locationId: loc.id, onHand });
       }
     }
-    for (const part of chunk(inventoryValues, 500)) await db.insert(schema.inventory).values(part);
-    for (const part of chunk(movementValues, 500)) await db.insert(schema.stockMovements).values(part);
 
     // 6. Ulasan demo
     const variantsByProduct = new Map<number, typeof variantRows>();
@@ -254,8 +243,8 @@ export async function seedAll(db: AnyDb, now: Date): Promise<SeedSummary> {
       await db.execute(sql`update products set rating_avg = v.avg, review_count = v.cnt from (values ${sql.join(ratingRows, sql`, `)}) as v(id, avg, cnt) where products.id = v.id`);
     }
 
-    // 7. Flash sale: slot 12.00 sampai 14.00 dan 20.00 sampai 22.00 WIB, hari ini sampai 3 hari ke depan,
-    // supaya selalu ada slot yang berjalan atau segera mulai kapan pun demo dibuka.
+    // 7. Flash sale: slot 12.00 sampai 14.00 dan 20.00 sampai 22.00 WIB. Slot 90 hari terakhir sampai hari ini dibuat
+    // bersama riwayat penjualan (kuota terjual sesuai pesanan); di sini slot 1 sampai 3 hari ke depan.
     const slots = [
       { name: "Flash Sale Siang", start: [12, 0], end: [14, 0] },
       { name: "Flash Sale Malam", start: [20, 0], end: [22, 0] },
@@ -263,7 +252,7 @@ export async function seedAll(db: AnyDb, now: Date): Promise<SeedSummary> {
     const bestsellerVariants = variantRows.filter((v) => productMeta.get(v.productId)!.popularity >= 8);
     const flashPool = rng.shuffle(bestsellerVariants);
     const saleSpecs: { dayOffset: number; si: number; value: typeof schema.flashSales.$inferInsert }[] = [];
-    for (let dayOffset = 0; dayOffset <= 3; dayOffset++) {
+    for (let dayOffset = 1; dayOffset <= 3; dayOffset++) {
       const dayParts = toWibParts(new Date(now.getTime() + dayOffset * 86400000));
       for (const [si, slot] of slots.entries()) {
         saleSpecs.push({
@@ -274,6 +263,7 @@ export async function seedAll(db: AnyDb, now: Date): Promise<SeedSummary> {
             startsAt: wibDate(dayParts.year, dayParts.month, dayParts.day, slot.start[0], slot.start[1]),
             endsAt: wibDate(dayParts.year, dayParts.month, dayParts.day, slot.end[0], slot.end[1]),
             isActive: true,
+            source: "otomatis",
           },
         });
       }
@@ -281,22 +271,17 @@ export async function seedAll(db: AnyDb, now: Date): Promise<SeedSummary> {
     const saleRows = (await db.insert(schema.flashSales).values(saleSpecs.map((x) => x.value)).returning({ id: schema.flashSales.id })).sort((a, b) => a.id - b.id);
     const flashItems: (typeof schema.flashSaleItems.$inferInsert)[] = [];
     for (const [i, spec] of saleSpecs.entries()) {
-      const slot = slots[spec.si];
-      const offset = ((spec.dayOffset * 2 + spec.si) * 6) % Math.max(1, flashPool.length - 6);
+      const offset = (((HISTORY_DAYS + spec.dayOffset) * 2 + spec.si) * 6) % Math.max(1, flashPool.length - 6);
       const picks = flashPool.slice(offset, offset + 6);
-      for (const v of picks) {
-        const quota = rng.int(20, 40);
-        // Slot yang sudah lewat atau sedang berjalan punya penjualan, slot mendatang masih 0.
-        const started = spec.dayOffset === 0 && slot.start[0] <= today.hour;
-        flashItems.push({ flashSaleId: saleRows[i].id, variantId: v.id, flashPrice: roundToPromo(v.salePrice * 0.78), quota, sold: started ? rng.int(2, Math.floor(quota * 0.6)) : 0, maxPerCustomer: 2 });
-      }
+      for (const v of picks) flashItems.push({ flashSaleId: saleRows[i].id, variantId: v.id, flashPrice: roundToPromo(v.salePrice * 0.78), quota: rng.int(20, 40), sold: 0, maxPerCustomer: 2 });
     }
     await db.insert(schema.flashSaleItems).values(flashItems);
 
     // 8. Voucher
-    const monthStart = wibDate(today.year, today.month, 1);
-    const voucherEnd = new Date(monthStart.getTime() + 183 * 86400000);
-    await db.insert(schema.vouchers).values(
+    // Berlaku sejak sebelum awal riwayat penjualan sampai 90 hari ke depan (relatif terhadap waktu reset).
+    const monthStart = wibDate(today.year, today.month, today.day - 100);
+    const voucherEnd = wibDate(today.year, today.month, today.day + 90);
+    const voucherRows = await db.insert(schema.vouchers).values(
       voucherSeed.map((v) => {
         const scope: schema.VoucherScope = {};
         if ("brandSlugs" in v.scope && Array.isArray(v.scope.brandSlugs)) {
@@ -320,7 +305,7 @@ export async function seedAll(db: AnyDb, now: Date): Promise<SeedSummary> {
           isActive: true,
         };
       }),
-    );
+    ).returning();
 
     // 9. Artikel
     const productIdBySlug = new Map([...productMeta.entries()].map(([id, m]) => [m.slug, id]));
@@ -369,11 +354,52 @@ export async function seedAll(db: AnyDb, now: Date): Promise<SeedSummary> {
     const staffLocationValues = staffSeed.flatMap((s) => s.locations.map((slug) => ({ staffId: staffRows.find((r) => r.email === s.email)!.id, locationId: locationBySlug.get(slug)!.id })));
     if (staffLocationValues.length) await db.insert(schema.staffLocations).values(staffLocationValues);
     await db.insert(schema.settings).values(
-      Object.entries(settingsSeed).map(([key, value]) => ({ key, value: value as object })),
+      Object.entries({ ...settingsSeed, [SETTING_KEYS.seedVersion]: SEED_VERSION }).map(([key, value]) => ({ key, value: value as unknown as object })),
     );
     await db.insert(schema.banners).values(
       bannerSeed.map((b) => ({ ...b, position: "hero", isActive: true })),
     );
+
+    // 10b. Riwayat penjualan 90 hari: pelanggan, pesanan, pembayaran, buku stok, poin, kuota flash, voucher.
+    // Stok awal ditulis sebagai gerakan masuk di hari pertama supaya buku stok sama dengan stok fisik.
+    const brandNameById = new Map(brandRows.map((b) => [b.id, b.name]));
+    const historyVariants: HistoryVariant[] = insertedVariants.map((v, i) => {
+      const spec = variantInsert[i];
+      const pIdx = insertedProducts.findIndex((p) => p.id === v.productId);
+      const pv = productValues[pIdx];
+      const child = childRows.find((c) => c.id === pv.categoryId)!;
+      return {
+        id: v.id,
+        productId: v.productId,
+        brandId: pv.brandId,
+        categoryId: pv.categoryId,
+        parentCategoryId: child.parentId ?? null,
+        productName: pv.name,
+        shadeName: spec.shadeName,
+        brandName: brandNameById.get(pv.brandId) ?? "",
+        weightGram: spec.weightGram ?? 100,
+        normalPrice: spec.normalPrice,
+        salePrice: spec.salePrice,
+        promoPrice: spec.promoPrice ?? null,
+        promoStartsAt: spec.promoStartsAt ?? null,
+        promoEndsAt: spec.promoEndsAt ?? null,
+        popularity: productSeed[pIdx].popularity,
+      };
+    });
+    const fullLocations = await db.select({ id: schema.locations.id, slug: schema.locations.slug, type: schema.locations.type, name: schema.locations.name, openingHours: schema.locations.openingHours }).from(schema.locations);
+    const history = generateHistory(
+      {
+        now,
+        variants: historyVariants,
+        locations: fullLocations,
+        vouchers: voucherRows.map((v) => ({ id: v.id, code: v.code, type: v.type, value: v.value, maxDiscount: v.maxDiscount, minSpend: v.minSpend, startsAt: v.startsAt, endsAt: v.endsAt, quota: v.quota, quotaPerCustomer: v.quotaPerCustomer, scope: v.scope ?? {}, stackWithFlash: v.stackWithFlash, isActive: v.isActive })),
+        flashPool: flashPool.map((v) => v.id),
+        finalStock: new Map(inventoryValues.map((i) => [`${i.variantId}:${i.locationId}`, i.onHand])),
+        flashSlotsToday: 0,
+      },
+      createRng(SEED + 90),
+    );
+    const historySummary = await insertHistory(db, history, inventoryValues);
 
     // 11. Pembeli demo: alamat, pesanan di berbagai status, poin, wishlist, profil kulit, dan notifikasi.
     const demo = await seedDemoBuyer(db, now);
@@ -387,6 +413,8 @@ export async function seedAll(db: AnyDb, now: Date): Promise<SeedSummary> {
       inventory: inventoryValues.length,
       reviews: reviewValues.length,
       demoOrders: demo.orders.length + 1,
+      historyOrders: historySummary.orders,
+      historyCustomers: historySummary.customers,
     };
   }
 }

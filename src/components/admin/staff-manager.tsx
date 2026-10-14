@@ -6,6 +6,7 @@ import { Dialog } from "radix-ui";
 import { KeyRound, Loader2, Lock, Pencil, Plus, Power, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { HelpText } from "@/components/ui/input";
 import { resetStaffPasswordAction, saveStaffAction, setStaffActiveAction } from "@/lib/admin/actions";
 import { PERMISSIONS, ROLE_SLUGS, ROLE_TEMPLATES, type RoleSlug } from "@/lib/admin/permissions";
@@ -105,6 +106,7 @@ export function StaffManager({ staff, locations, meId, demoMode }: { staff: Staf
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [dialog, setDialog] = useState<{ kind: "aktif" | "sandi"; staff: StaffRow } | null>(null);
   const locName = (id: number) => locations.find((l) => l.id === id)?.name ?? "";
 
   const save = () =>
@@ -119,12 +121,6 @@ export function StaffManager({ staff, locations, meId, demoMode }: { staff: Staf
       router.refresh();
     });
 
-  const act = (fn: () => Promise<{ ok: boolean; message?: string }>, ok: string) =>
-    start(async () => {
-      const r = await fn();
-      setNotice(r.ok ? ok : (r.message ?? "Gagal."));
-      router.refresh();
-    });
 
   return (
     <div>
@@ -183,7 +179,7 @@ export function StaffManager({ staff, locations, meId, demoMode }: { staff: Staf
                       <Pencil /> Ubah
                     </Button>
                     {s.id !== meId ? (
-                      <Button size="sm" variant="ghost" disabled={pending} onClick={() => window.confirm(s.isActive ? `Nonaktifkan ${s.name}? Semua sesinya ikut keluar.` : `Aktifkan lagi ${s.name}?`) && act(() => setStaffActiveAction(s.id, !s.isActive), s.isActive ? "Akun dinonaktifkan, sesinya dicabut." : "Akun diaktifkan.")}>
+                      <Button size="sm" variant="ghost" disabled={pending} onClick={() => setDialog({ kind: "aktif", staff: s })}>
                         <Power /> {s.isActive ? "Nonaktifkan" : "Aktifkan"}
                       </Button>
                     ) : null}
@@ -191,10 +187,7 @@ export function StaffManager({ staff, locations, meId, demoMode }: { staff: Staf
                       size="sm"
                       variant="ghost"
                       disabled={pending}
-                      onClick={() => {
-                        const pw = window.prompt(`Kata sandi baru untuk ${s.name} (minimal 10 karakter):`);
-                        if (pw) act(() => resetStaffPasswordAction(s.id, pw), "Kata sandi diganti, semua sesinya dicabut.");
-                      }}
+                      onClick={() => setDialog({ kind: "sandi", staff: s })}
                     >
                       <KeyRound /> Atur ulang sandi
                     </Button>
@@ -205,6 +198,39 @@ export function StaffManager({ staff, locations, meId, demoMode }: { staff: Staf
           );
         })}
       </ul>
+
+      <ConfirmDialog
+        open={dialog?.kind === "aktif"}
+        onOpenChange={(o) => !o && setDialog(null)}
+        title={dialog?.staff.isActive ? `Nonaktifkan ${dialog.staff.name}?` : `Aktifkan lagi ${dialog?.staff.name ?? ""}?`}
+        description={dialog?.staff.isActive ? "Akun tidak bisa masuk lagi dan semua sesinya yang sedang aktif langsung dicabut." : "Akun bisa masuk lagi dengan kata sandinya."}
+        confirmLabel={dialog?.staff.isActive ? "Nonaktifkan" : "Aktifkan"}
+        danger={dialog?.staff.isActive}
+        onConfirm={async () => {
+          if (!dialog) return null;
+          const r = await setStaffActiveAction(dialog.staff.id, !dialog.staff.isActive);
+          if (!r.ok) return r.message;
+          setNotice(dialog.staff.isActive ? "Akun dinonaktifkan, sesinya dicabut." : "Akun diaktifkan.");
+          router.refresh();
+          return null;
+        }}
+      />
+      <ConfirmDialog
+        open={dialog?.kind === "sandi"}
+        onOpenChange={(o) => !o && setDialog(null)}
+        title={`Atur ulang kata sandi ${dialog?.staff.name ?? ""}`}
+        description="Semua sesi akun ini ikut dicabut. Sampaikan kata sandi baru lewat jalur yang aman."
+        confirmLabel="Simpan kata sandi"
+        input={{ label: "Kata sandi baru", type: "password", hint: "Minimal 10 karakter.", minLength: 10 }}
+        onConfirm={async (pw) => {
+          if (!dialog) return null;
+          const r = await resetStaffPasswordAction(dialog.staff.id, pw);
+          if (!r.ok) return r.message;
+          setNotice("Kata sandi diganti, semua sesinya dicabut.");
+          router.refresh();
+          return null;
+        }}
+      />
 
       <Dialog.Root open={editing != null} onOpenChange={(o) => !o && setEditing(null)}>
         <Dialog.Portal>

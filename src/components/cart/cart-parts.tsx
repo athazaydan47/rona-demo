@@ -11,10 +11,12 @@ import type { CartLine, CartView, SavedLine } from "@/lib/cart/service";
 import { formatRupiah } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-export function FreeShippingBar({ remaining, threshold, className }: { remaining: number; threshold: number; className?: string }) {
+export function FreeShippingBar({ remaining, threshold, cap, className }: { remaining: number; threshold: number; cap: number; className?: string }) {
+  // Batas 0 berarti gratis ongkir otomatis dimatikan di Pengaturan.
+  if (threshold <= 0 || cap <= 0) return null;
   const pct = Math.min(100, Math.round(((threshold - remaining) / threshold) * 100));
   return (
-    <div className={cn("rounded-card bg-blush/50 p-3", className)}>
+    <div className={cn("rounded-card bg-blush/50 p-3", className)} data-testid="bilah-gratis-ongkir">
       <p className="flex items-center gap-2 text-sm text-kopi">
         <Truck className="size-4 shrink-0 text-rona" aria-hidden />
         {remaining > 0 ? (
@@ -22,7 +24,7 @@ export function FreeShippingBar({ remaining, threshold, className }: { remaining
             Tambah <strong className="whitespace-nowrap tabular-nums">{formatRupiah(remaining)}</strong> lagi untuk gratis ongkir
           </span>
         ) : (
-          <span className="font-semibold">Kamu dapat gratis ongkir sampai {formatRupiah(20_000)}</span>
+          <span className="font-semibold">Kamu dapat gratis ongkir sampai {formatRupiah(cap)}</span>
         )}
       </p>
       <div className="mt-2 h-2 overflow-hidden rounded-pill bg-putih" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="Progres gratis ongkir">

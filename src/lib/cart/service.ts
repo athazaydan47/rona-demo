@@ -9,6 +9,8 @@ import { availabilityByVariant } from "@/lib/inventory";
 import { buildPricingLines, loadVoucher, type Buyer } from "@/lib/orders/pricing-loader";
 import { MAX_QTY_PER_ITEM, mergeCartItems } from "@/lib/orders/rules";
 import { priceCart, type PricedCart, type PriceSegment } from "@/lib/pricing/cart";
+import { pricingRules, type StoreSettings } from "@/lib/settings";
+import { loadSettings } from "@/lib/settings/db";
 
 export type CartLine = {
   itemId: number;
@@ -140,7 +142,8 @@ function describe(m: { productName: string; shadeName: string; variantCount: num
 
 // Tampilan keranjang dengan validasi ulang: varian nonaktif dihapus, stok habis dipindah ke Simpan untuk nanti,
 // jumlah disesuaikan stok, dan perubahan harga (misal flash sale berakhir) diberitahukan sekali.
-export async function viewCart(db: AnyDb, cartId: number, opts: { now: Date; buyer?: Buyer; voucherOverride?: string | null }): Promise<CartView> {
+export async function viewCart(db: AnyDb, cartId: number, opts: { now: Date; buyer?: Buyer; voucherOverride?: string | null; settings?: StoreSettings }): Promise<CartView> {
+  const settings = opts.settings ?? (await loadSettings(db));
   const buyer = opts.buyer ?? { customerId: null, phone: null };
   const [cart] = await db.select({ id: schema.carts.id, voucherCode: schema.carts.voucherCode }).from(schema.carts).where(eq(schema.carts.id, cartId));
   const rows = await db.select().from(schema.cartItems).where(eq(schema.cartItems.cartId, cartId)).orderBy(asc(schema.cartItems.createdAt), asc(schema.cartItems.id));
@@ -182,7 +185,7 @@ export async function viewCart(db: AnyDb, cartId: number, opts: { now: Date; buy
   const voucherCode = opts.voucherOverride !== undefined ? opts.voucherOverride : (cart?.voucherCode ?? null);
   const { lines } = await buildPricingLines(db, active.map((r) => ({ variantId: r.variantId, quantity: r.quantity })), buyer, opts.now);
   const voucher = voucherCode ? await loadVoucher(db, voucherCode, buyer) : null;
-  const pricing = priceCart({ lines, now: opts.now, voucherCode, voucher });
+  const pricing = priceCart({ lines, now: opts.now, voucherCode, voucher, rules: pricingRules(settings) });
 
   const cartLines: CartLine[] = [];
   for (let i = 0; i < active.length; i++) {

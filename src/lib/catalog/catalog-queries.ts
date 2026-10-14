@@ -95,7 +95,9 @@ export const fetchCatalogItems = cache(async function fetchCatalogItems(scope: C
       .from(schema.flashSaleItems)
       .innerJoin(schema.flashSales, eq(schema.flashSaleItems.flashSaleId, schema.flashSales.id))
       .innerJoin(schema.variants, eq(schema.flashSaleItems.variantId, schema.variants.id))
-      .where(and(inArray(schema.variants.productId, ids), eq(schema.flashSales.isActive, true), lte(schema.flashSales.startsAt, now), gt(schema.flashSales.endsAt, now))),
+      .where(and(inArray(schema.variants.productId, ids), eq(schema.flashSales.isActive, true), lte(schema.flashSales.startsAt, now), gt(schema.flashSales.endsAt, now)))
+      // Slot admin diproses terakhir supaya menimpa slot otomatis.
+      .orderBy(sql`case when ${schema.flashSales.source} = 'admin' then 1 else 0 end`, schema.flashSaleItems.id),
     db.select({ id: schema.locations.id, slug: schema.locations.slug }).from(schema.locations),
   ]);
   const locSlug = new Map(locations.map((l) => [l.id, l.slug]));

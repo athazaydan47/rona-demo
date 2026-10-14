@@ -118,14 +118,15 @@ export function findCity(slug: string | null | undefined) {
 }
 
 // Semua opsi kurir yang melayani kota tujuan, diurutkan dari termurah. Ambil di toko tidak ikut.
-export function quoteShipping(input: { totalGram: number; citySlug: string; includePickup?: boolean }): ShippingQuote[] {
+export function quoteShipping(input: { totalGram: number; citySlug: string; includePickup?: boolean; rates?: Partial<Record<CourierCode, Record<Zone, number | null>>> | null; active?: CourierCode[] | null }): ShippingQuote[] {
   const city = findCity(input.citySlug);
   if (!city) return [];
   const kg = billableKg(input.totalGram);
   const quotes: ShippingQuote[] = [];
   for (const c of couriers) {
     if (c.code === "ambil_di_toko" && !input.includePickup) continue;
-    const rate = c.ratePerKg[city.zone];
+    if (input.active && !input.active.includes(c.code)) continue;
+    const rate = c.code === "ambil_di_toko" ? 0 : input.rates?.[c.code] ? input.rates[c.code]![city.zone] : c.ratePerKg[city.zone];
     const eta = c.eta[city.zone];
     if (rate == null || eta == null) continue;
     quotes.push({ code: c.code, name: c.name, service: c.service, cost: rate * kg, etaMin: eta[0], etaMax: eta[1], etaLabel: etaLabel(eta[0], eta[1]) });
@@ -157,16 +158,16 @@ export const INSTANT_CLOSE_HOUR = 17;
 
 export type InstantAvailability = { available: boolean; note: string | null };
 
-export function instantAvailability(now: Date): InstantAvailability {
+export function instantAvailability(now: Date, hours: { open: number; close: number } = { open: INSTANT_OPEN_HOUR, close: INSTANT_CLOSE_HOUR }): InstantAvailability {
   // Waktu WIB tanpa bergantung zona waktu mesin (UTC+7, tanpa DST).
   const w = new Date(now.getTime() + 7 * 60 * 60 * 1000);
   const day = w.getUTCDay(); // 0 Minggu sampai 6 Sabtu
   const minutes = w.getUTCHours() * 60 + w.getUTCMinutes();
-  const open = INSTANT_OPEN_HOUR * 60;
-  const close = INSTANT_CLOSE_HOUR * 60;
+  const open = hours.open * 60;
+  const close = hours.close * 60;
   const workday = day >= 1 && day <= 6;
   if (workday && minutes >= open && minutes < close) return { available: true, note: null };
-  const at = `pukul ${String(INSTANT_OPEN_HOUR).padStart(2, "0")}.00`;
+  const at = `pukul ${String(hours.open).padStart(2, "0")}.00`;
   if (workday && minutes < open) return { available: false, note: `Tersedia lagi hari ini ${at}` };
   // Setelah tutup: hari kerja berikutnya. Sabtu malam dan Minggu lompat ke Senin.
   if (day === 6) return { available: false, note: `Tersedia lagi Senin ${at}` };

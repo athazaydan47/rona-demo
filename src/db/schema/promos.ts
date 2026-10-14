@@ -21,6 +21,8 @@ export const flashSales = pgTable(
     startsAt: timestamp({ withTimezone: true }).notNull(),
     endsAt: timestamp({ withTimezone: true }).notNull(),
     isActive: boolean().notNull().default(true),
+    // "admin" (dibuat staf) atau "otomatis" (ensureFlashSaleSlots). Slot admin selalu menang.
+    source: text().notNull().default("otomatis"),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("flash_sales_window_idx").on(t.startsAt, t.endsAt)],

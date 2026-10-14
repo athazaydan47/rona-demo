@@ -16,6 +16,8 @@ import { buildPricingLines, loadVoucher } from "@/lib/orders/pricing-loader";
 import { normalizePhone } from "@/lib/orders/rules";
 import { placeOrder, WAREHOUSE_SLUG, type PaymentMethod } from "@/lib/orders/service";
 import { priceCart, type PricedCart } from "@/lib/pricing/cart";
+import { pricingRules, type PaymentMethodKey } from "@/lib/settings";
+import { getStoreSettings } from "@/lib/settings/load";
 import { locationFlags } from "@/lib/product/availability";
 import { regionName, zoneForRegency } from "@/lib/regions";
 import { couriers, etaLabel, instantAvailability, type CourierCode, type Zone } from "@/lib/shipping";
@@ -31,6 +33,8 @@ export type CheckoutQuote = {
   pickup: PickupOption[];
   warehouseShort: string[]; // produk yang stok gudangnya kurang untuk pengiriman
   zone: Zone | null;
+  payments: PaymentMethodKey[]; // metode bayar aktif dari pengaturan toko
+  pickupEnabled: boolean;
   points: { balance: number; usable: number } | null; // hanya untuk pembeli yang masuk
 };
 
@@ -51,13 +55,14 @@ async function cartFromCookie() {
 export async function quoteCheckoutAction(raw: z.input<typeof quoteSchema>): Promise<CheckoutQuote> {
   const input = quoteSchema.parse(raw);
   const [cart, me] = await Promise.all([cartFromCookie(), currentCustomer()]);
-  const empty: CheckoutQuote = { cart: null, pricing: null, couriers: [], pickup: [], warehouseShort: [], zone: null, points: null };
+  const settings = await getStoreSettings();
+  const empty: CheckoutQuote = { cart: null, pricing: null, couriers: [], pickup: [], warehouseShort: [], zone: null, points: null, payments: settings.payments, pickupEnabled: settings.couriers.active.includes("ambil_di_toko") };
   if (!cart) return empty;
   await ensureFlashSaleSlots(db);
   const at = now();
   // Pembeli yang masuk dikenali dari sesi (batas flash sale dan voucher per pembeli), bukan dari isian.
   const buyer = me ? { customerId: me.customerId, phone: me.phone } : { customerId: null, phone: input.phone ? normalizePhone(input.phone) : null };
-  const view = await viewCart(db, cart.id, { now: at, voucherOverride: input.voucherCode ?? null, buyer });
+  const view = await viewCart(db, cart.id, { now: at, voucherOverride: input.voucherCode ?? null, buyer, settings });
   if (view.lines.length === 0) return { ...empty, cart: view };
   const items = view.lines.map((l) => ({ variantId: l.variantId, quantity: l.quantity }));
   const [{ lines }, voucher, stock, locations] = await Promise.all([
@@ -68,19 +73,20 @@ export async function quoteCheckoutAction(raw: z.input<typeof quoteSchema>): Pro
   ]);
   const zone = input.method === "kirim" && input.regencyCode ? zoneForRegency(input.regencyCode) : null;
   const points = me ? { requested: input.usePoints ? me.points : 0, balance: me.points } : null;
-  const priceFor = (shipping: Parameters<typeof priceCart>[0]["shipping"]) => priceCart({ lines, now: at, voucherCode: input.voucherCode, voucher, shipping, points });
+  const rules = pricingRules(settings);
+  const priceFor = (shipping: Parameters<typeof priceCart>[0]["shipping"]) => priceCart({ lines, now: at, voucherCode: input.voucherCode, voucher, shipping, points, rules });
 
   const warehouse = locations.find((l) => l.slug === WAREHOUSE_SLUG);
-  const warehouseFlags = warehouse ? locationFlags(warehouse, at) : null;
+  const warehouseFlags = warehouse ? locationFlags(warehouse, at, settings.cutoff) : null;
   const warehouseShort = warehouse ? view.lines.filter((l) => (stock.get(l.variantId)?.get(warehouse.id) ?? 0) < l.quantity).map((l) => (l.showShade ? `${l.productName} (${l.shadeName})` : l.productName)) : [];
 
   const courierOptions: CourierOption[] = [];
   if (zone) {
     for (const c of couriers) {
-      if (c.code === "ambil_di_toko" || c.ratePerKg[zone] == null || !c.eta[zone]) continue;
+      if (c.code === "ambil_di_toko" || !settings.couriers.active.includes(c.code) || settings.couriers.rates[c.code]?.[zone] == null || !c.eta[zone]) continue;
       const p = priceFor({ method: "kirim", courierCode: c.code, zone });
       const [a, b] = c.eta[zone]!;
-      const instant = c.code === "instan" ? instantAvailability(at) : null;
+      const instant = c.code === "instan" ? instantAvailability(at, settings.instant) : null;
       courierOptions.push({
         code: c.code,
         name: c.name,
@@ -96,10 +102,10 @@ export async function quoteCheckoutAction(raw: z.input<typeof quoteSchema>): Pro
   }
 
   const pickup: PickupOption[] = locations
-    .filter((l) => l.canPickup)
+    .filter((l) => l.canPickup && settings.couriers.active.includes("ambil_di_toko"))
     .map((l) => {
       const enough = view.lines.every((line) => (stock.get(line.variantId)?.get(l.id) ?? 0) >= line.quantity);
-      const f = locationFlags(l, at);
+      const f = locationFlags(l, at, settings.cutoff);
       return {
         slug: l.slug,
         name: l.name,
@@ -117,7 +123,7 @@ export async function quoteCheckoutAction(raw: z.input<typeof quoteSchema>): Pro
   else pricing = priceFor(null);
 
   const pointsInfo = me ? { balance: me.points, usable: Math.min(me.points, pricing.points.cap) } : null;
-  return { cart: view, pricing, couriers: courierOptions, pickup, warehouseShort, zone, points: pointsInfo };
+  return { cart: view, pricing, couriers: courierOptions, pickup, warehouseShort, zone, points: pointsInfo, payments: settings.payments, pickupEnabled: settings.couriers.active.includes("ambil_di_toko") };
 }
 
 const placeSchema = z.object({
@@ -212,6 +218,7 @@ export async function placeOrderAction(raw: z.input<typeof placeSchema>): Promis
     note: d.note,
     expectedTotal: d.expectedTotal,
     siteUrl: siteUrl(),
+    settings: await getStoreSettings(),
   });
   if (!result.ok) return { ok: false, message: result.message, code: result.code, pricing: result.pricing, field: result.code === "voucher" ? "voucherCode" : undefined };
 

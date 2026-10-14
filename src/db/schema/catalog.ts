@@ -80,6 +80,8 @@ export const locations = pgTable("locations", {
   openingHours: jsonb().$type<OpeningHours>(),
   hoursLabel: text().notNull().default(""),
   canPickup: boolean().notNull().default(false),
+  // Hari libur cabang (tanggal WIB "2026-12-25"); di hari itu cabang dianggap tutup.
+  closedDates: text().array().notNull().default(sql`'{}'::text[]`),
   isActive: boolean().notNull().default(true),
   sortOrder: integer().notNull().default(0),
   ...timestamps,
@@ -118,6 +120,8 @@ export const products = pgTable(
     searchText: text().notNull().default(""),
     seoTitle: text(),
     seoDescription: text(),
+    // Foto produk opsional (Vercel Blob atau disk lokal); tanpa foto, toko memakai ProductArt.
+    imageUrl: text(),
     publishedAt: timestamp({ withTimezone: true }),
     ...timestamps,
   },

@@ -5,7 +5,7 @@ import { asc } from "drizzle-orm";
 import { Denied, fieldClass, PageHead, Pager, Skeleton } from "@/components/admin/ui";
 import { db, schema } from "@/db/client";
 import { AUDIT_ACTIONS } from "@/lib/admin/audit";
-import { auditDiff, listAudit } from "@/lib/admin/audit-query";
+import { auditDiff, groupLogins, listAudit } from "@/lib/admin/audit-query";
 import { requireStaff } from "@/lib/admin/current";
 import { can } from "@/lib/admin/permissions";
 import { formatDateTimeWib, wibDate } from "@/lib/format";
@@ -13,10 +13,10 @@ import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Log aktivitas" };
 
-type SP = { staf?: string; aksi?: string; objek?: string; cari?: string; dari?: string; sampai?: string; hal?: string };
+type SP = { staf?: string; aksi?: string; objek?: string; cari?: string; dari?: string; sampai?: string; hal?: string; login?: string };
 type Props = { searchParams: Promise<SP> };
 
-const OBJECTS: Record<string, string> = { pesanan: "Pesanan", stok: "Stok", staf: "Staf", demo: "Demo" };
+const OBJECTS: Record<string, string> = { pesanan: "Pesanan", stok: "Stok", staf: "Staf", produk: "Produk", kategori: "Kategori", merek: "Merek", promo: "Promo", pengaturan: "Pengaturan", demo: "Demo" };
 const parseDay = (v?: string) => {
   const m = v?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return m ? wibDate(Number(m[1]), Number(m[2]), Number(m[3])) : null;
@@ -30,7 +30,7 @@ async function Content({ searchParams }: Props) {
   if (!can(me, "log.lihat")) return <Denied />;
   const to = parseDay(sp.sampai);
   const [r, staff] = await Promise.all([
-    listAudit(db, { staffId: Number(sp.staf) || null, action: sp.aksi && AUDIT_ACTIONS[sp.aksi] ? sp.aksi : null, objectType: sp.objek && OBJECTS[sp.objek] ? sp.objek : null, object: sp.cari ?? null, from: parseDay(sp.dari), to: to ? new Date(to.getTime() + 86_400_000) : null, page: Number.parseInt(sp.hal ?? "1", 10) || 1 }),
+    listAudit(db, { staffId: Number(sp.staf) || null, action: sp.aksi && AUDIT_ACTIONS[sp.aksi] ? sp.aksi : null, objectType: sp.objek && OBJECTS[sp.objek] ? sp.objek : null, object: sp.cari ?? null, from: parseDay(sp.dari), to: to ? new Date(to.getTime() + 86_400_000) : null, page: Number.parseInt(sp.hal ?? "1", 10) || 1, includeLogins: sp.login === "1" }),
     db.select({ id: schema.staff.id, name: schema.staff.name }).from(schema.staff).orderBy(asc(schema.staff.name)),
   ]);
   const href = (p: number) => `/admin/log?${new URLSearchParams(Object.entries({ ...sp, hal: String(p) }).filter(([, v]) => v) as [string, string][])}`;
@@ -67,9 +67,12 @@ async function Content({ searchParams }: Props) {
         <button type="submit" className="h-10 rounded-lg bg-kopi px-4 text-sm font-semibold text-putih">
           Saring
         </button>
+        <label className="col-span-2 inline-flex items-center gap-2 text-sm md:col-span-3 xl:col-span-7">
+          <input type="checkbox" name="login" value="1" defaultChecked={sp.login === "1"} className="size-4 accent-[var(--color-kopi)]" /> Tampilkan login (login berulang dalam 10 menit digabung)
+        </label>
       </form>
       <ul className="space-y-2" data-testid="log-aktivitas">
-        {r.rows.map((row) => {
+        {groupLogins(r.rows).map((row) => {
           const diff = auditDiff(row.before, row.after);
           return (
             <li key={row.id} className="rounded-xl border border-garis bg-putih p-3">
@@ -79,6 +82,7 @@ async function Content({ searchParams }: Props) {
                 <span className="text-abu-hangat">
                   {OBJECTS[row.objectType] ?? row.objectType} {row.objectId}
                 </span>
+                {row.repeat > 1 ? <span className="rounded-full bg-porselen px-2 text-[11px] text-abu-hangat">{row.repeat} kali, sejak {formatDateTimeWib(row.firstAt)}</span> : null}
                 <span className="ml-auto text-xs text-abu-hangat">{formatDateTimeWib(row.createdAt)}</span>
               </div>
               {row.summary ? <p className="mt-1 text-sm text-kopi/90">{row.summary}</p> : null}

@@ -356,7 +356,9 @@ export function CheckoutFlow({ initial, initialVoucher, account }: { initial: Ch
                 {([
                   ["kirim", "Dikirim", "Ke alamatmu", Truck],
                   ["ambil", "Ambil di Toko", "Gratis, di cabang Malang", Store],
-                ] as const).map(([value, label, hint, Icon]) => (
+                ] as const)
+                  .filter(([value]) => value === "kirim" || quote.pickupEnabled !== false)
+                  .map(([value, label, hint, Icon]) => (
                   <button
                     key={value}
                     type="button"
@@ -642,7 +644,9 @@ export function CheckoutFlow({ initial, initialVoucher, account }: { initial: Ch
             <div className="rounded-card border border-garis bg-putih p-5">
               <h3 className="font-serif text-xl text-kopi">Metode pembayaran</h3>
               <div className="mt-4 space-y-2" role="radiogroup" aria-label="Metode pembayaran">
-                {[...PAYMENTS, ...(form.method === "ambil" ? [{ value: "bayar_di_toko" as Pay, label: "Bayar di Toko", hint: "Bayar di kasir saat mengambil, paling lambat jam tutup hari kerja berikutnya." }] : [])].map((p) => (
+                {[...PAYMENTS, ...(form.method === "ambil" ? [{ value: "bayar_di_toko" as Pay, label: "Bayar di Toko", hint: "Bayar di kasir saat mengambil, paling lambat jam tutup hari kerja berikutnya." }] : [])]
+                  .filter((p) => !quote.payments || quote.payments.includes(p.value))
+                  .map((p) => (
                   <button
                     key={p.value}
                     type="button"

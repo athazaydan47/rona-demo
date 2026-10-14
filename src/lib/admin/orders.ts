@@ -9,7 +9,7 @@ import { writeAudit } from "./audit";
 import { allLocations, can, type StaffPrincipal } from "./permissions";
 
 export { KANBAN_COLUMNS, planMove, availableActions, type MoveContext, type MovePlan } from "./kanban";
-import { KANBAN_COLUMNS, planMove } from "./kanban";
+import { KANBAN_COLUMNS, KANBAN_FINAL, KANBAN_FINAL_DAYS, planMove } from "./kanban";
 
 export type ChangeStatusInput = { number: string; from: OrderStatus; to: OrderStatus; reason?: string | null; trackingNumber?: string | null; courierName?: string | null; now?: Date; siteUrl?: string };
 export type ChangeStatusResult = { ok: true; number: string; status: OrderStatus; productIds: number[] } | { ok: false; code: "tidak_ditemukan" | "izin" | "tabrakan" | "tidak_sah" | "isian"; message: string };
@@ -185,10 +185,16 @@ async function enrichOrders<T extends { id: number; name: string | null; phone: 
 
 // Papan kanban: pesanan terbaru per kolom (aktif semua; Selesai dan Dibatalkan 14 hari terakhir).
 export async function kanbanBoard(db: AnyDb, staff: StaffPrincipal, now: Date, perColumn = 30) {
-  const recent = new Date(now.getTime() - 14 * 24 * 60 * 60_000);
+  const recent = new Date(now.getTime() - KANBAN_FINAL_DAYS * 24 * 60 * 60_000);
   const columns = await Promise.all(
     KANBAN_COLUMNS.map(async (status) => {
-      const where = and(orderScope(staff), eq(schema.orders.status, status), status === "selesai" || status === "dibatalkan" ? gte(schema.orders.updatedAt, recent) : undefined);
+      const final = KANBAN_FINAL.includes(status);
+      const where = and(orderScope(staff), eq(schema.orders.status, status), final ? gte(schema.orders.updatedAt, recent) : undefined);
+      // Kolom akhir terlipat: cukup jumlahnya, kartu dilihat di tampilan tabel.
+      if (final) {
+        const [{ n }] = await db.select({ n: count() }).from(schema.orders).where(where);
+        return { status, total: Number(n), orders: [] as AdminOrderRow[] };
+      }
       const [[{ n }], rows] = await Promise.all([
         db.select({ n: count() }).from(schema.orders).where(where),
         db

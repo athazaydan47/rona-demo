@@ -1,4 +1,5 @@
 import { ROLE_SLUGS, ROLE_TEMPLATES, type RoleSlug } from "../../lib/admin/permissions";
+import { DEFAULT_SETTINGS, settingsRows } from "../../lib/settings";
 export const articleSeed = [
   {
     slug: "cara-memilih-shade-cushion-untuk-kulit-sawo-matang",
@@ -152,46 +153,43 @@ export const staffSeed: { name: string; email: string; role: RoleSlug; locations
   { name: "Gudang Demo", email: "gudang@rona.demo", role: "gudang", locations: [] },
 ];
 
+// Pengaturan awal: sama dengan nilai bawaan di src/lib/settings (aturan BRIEF), ditambah pesan PromoBar.
 export const settingsSeed: Record<string, unknown> = {
-  "toko.profil": {
-    nama: "Rona Beauty",
-    tagline: "Temukan rona terbaikmu.",
-    kota: "Malang",
-    whatsapp: "6281200000000",
-    email: "halo@rona.demo",
-  },
-  "toko.cutoff": { kirim: "15.00", ambil: "16.00", liburMinggu: true },
-  "stok.ambangMenipis": 5,
-  "ongkir.gratisMinimal": 150000,
-  "kurir.aktif": ["jne_reg", "jne_yes", "jnt_ez", "sicepat_reg", "instan", "ambil_di_toko"],
-  "bayar.metode": ["qris", "va_bca", "va_bni", "va_bri", "va_mandiri", "bayar_di_toko"],
-  "poin.aturan": { perRupiah: 1000, nilaiPoin: 1, maksPersenSubtotal: 50, bonusUlasanPertama: 50 },
+  ...settingsRows(DEFAULT_SETTINGS),
   "promo.bar": [
     "Gratis ongkir min. Rp 150.000",
     "Pesan sebelum 15.00, dikirim hari ini",
     "Ambil di toko: siap dalam 2 jam",
   ],
+  "poin.aturan": { perRupiah: 1000, nilaiPoin: 1, maksPersenSubtotal: 50, bonusUlasanPertama: 50 },
 };
 
+// Banner beranda berupa komposisi ProductArt (tanpa foto). Urutan menentukan yang tampil lebih dulu di hero.
 export const bannerSeed = [
   {
-    title: "Temukan rona terbaikmu",
-    subtitle: "Shade yang pas, stok yang jelas, dan rekomendasi dari katalog sendiri.",
-    imageUrl: "/images/lifestyle/hero-1.jpg",
+    title: "Temukan rona terbaikmu.",
+    subtitle: "Satu produk, banyak shade. Stok terlihat per cabang. Rekomendasi yang hanya datang dari katalog kami sendiri.",
+    imageUrl: null,
+    art: { items: [{ packaging: "serum_dropper", shade: "#D9EBE7", brandColor: "#2F5D62", brandName: "Kirana Lab" }, { packaging: "cushion", shade: "#DAB085", brandColor: "#B98A6A", brandName: "Pualam" }, { packaging: "lipstick", shade: "#B8475D", brandColor: "#C2416B", brandName: "Lumi" }], background: "#F4DCDF" },
+    ctaLabel: "Cari shade-mu",
     href: "/c/makeup-wajah",
     sortOrder: 0,
   },
   {
     title: "Kulit tenang, hari lebih ringan",
-    subtitle: "Rutinitas sederhana untuk kulit sensitif dan berminyak.",
-    imageUrl: "/images/lifestyle/hero-2.jpg",
+    subtitle: "Rutinitas sederhana untuk kulit sensitif dan berminyak, dari pembersih sampai tabir surya.",
+    imageUrl: null,
+    art: { items: [{ packaging: "toner_bottle", shade: "#E8F0DE", brandColor: "#4F6A4E", brandName: "Teduh" }, { packaging: "serum_dropper", shade: "#F3E1C7", brandColor: "#2F5D62", brandName: "Kirana Lab" }, { packaging: "sunscreen_tube", shade: "#FBE7B8", brandColor: "#E0A227", brandName: "Surya Shield" }], background: "#E8EFE7" },
+    ctaLabel: "Lihat skincare",
     href: "/c/skincare",
     sortOrder: 1,
   },
   {
     title: "Ambil hari ini di toko terdekat",
     subtitle: "Tiga cabang di Malang, stok terlihat sebelum kamu datang.",
-    imageUrl: "/images/lifestyle/hero-3.jpg",
+    imageUrl: null,
+    art: { items: [{ packaging: "lip_tint", shade: "#D9506A", brandColor: "#C2416B", brandName: "Lumi" }, { packaging: "eyeshadow_palette", shade: "#C5714F", brandColor: "#3B3A4A", brandName: "Dayu Cosmetics" }, { packaging: "perfume_bottle", shade: "#E8F0DE", brandColor: "#7A4E8C", brandName: "Arunika" }], background: "#FBF4E6" },
+    ctaLabel: "Lihat cabang",
     href: "/toko",
     sortOrder: 2,
   },

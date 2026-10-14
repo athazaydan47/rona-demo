@@ -18,7 +18,7 @@ export async function runSeed(url = directUrl()) {
   try {
     const r = await seedAll(db as unknown as AnyDb, new Date());
     console.log(
-      `Seed selesai: ${r.brands} merek, ${r.categories} kategori, ${r.locations} lokasi, ${r.products} produk, ${r.variants} varian, ${r.inventory} baris stok, ${r.reviews} ulasan, 8 slot flash sale, ${voucherSeed.length} voucher, ${articleSeed.length} artikel, ${staffSeed.length} akun staf, pembeli demo dengan ${r.demoOrders} pesanan.`,
+      `Seed selesai: ${r.brands} merek, ${r.categories} kategori, ${r.locations} lokasi, ${r.products} produk, ${r.variants} varian, ${r.inventory} baris stok, ${r.reviews} ulasan, 8 slot flash sale, ${voucherSeed.length} voucher, ${articleSeed.length} artikel, ${staffSeed.length} akun staf, riwayat ${r.historyOrders} pesanan dari ${r.historyCustomers} pelanggan, pembeli demo dengan ${r.demoOrders} pesanan.`,
     );
   } finally {
     await client.end();

@@ -113,7 +113,8 @@ export async function loadLiveFlash(db: AnyDb, variantIds: number[], buyer: Buye
     .from(schema.flashSaleItems)
     .innerJoin(schema.flashSales, eq(schema.flashSaleItems.flashSaleId, schema.flashSales.id))
     .where(and(inArray(schema.flashSaleItems.variantId, variantIds), eq(schema.flashSales.isActive, true), lte(schema.flashSales.startsAt, now), gt(schema.flashSales.endsAt, now)))
-    .orderBy(schema.flashSaleItems.id);
+    // Slot buatan admin selalu menang atas slot otomatis bila keduanya berjalan bersamaan.
+    .orderBy(sql`case when ${schema.flashSales.source} = 'admin' then 0 else 1 end`, schema.flashSaleItems.id);
   const rows = opts.lock ? await base.for("update", { of: schema.flashSaleItems }) : await base;
   const bought = new Map<number, number>();
   if (buyer.phone && rows.length) {

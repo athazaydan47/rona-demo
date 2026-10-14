@@ -9,6 +9,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import postgres from "postgres";
 
 const TTL_MS = 60_000;
+// Hasil "tidak ada" hanya diingat sebentar supaya produk yang baru diaktifkan admin segera bisa dibuka.
+const MISS_TTL_MS = 5_000;
 const cache = new Map<string, { exists: boolean; at: number }>();
 let sql: ReturnType<typeof postgres> | null = null;
 
@@ -24,7 +26,7 @@ function client() {
 
 async function productExists(slug: string) {
   const hit = cache.get(slug);
-  if (hit && Date.now() - hit.at < TTL_MS) return hit.exists;
+  if (hit && Date.now() - hit.at < (hit.exists ? TTL_MS : MISS_TTL_MS)) return hit.exists;
   const db = client();
   if (!db) return true; // tanpa koneksi, biarkan halaman yang memutuskan
   try {

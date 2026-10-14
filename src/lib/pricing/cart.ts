@@ -1,9 +1,11 @@
 // Mesin harga keranjang: fungsi murni. Server memanggilnya di keranjang, checkout, dan saat membuat pesanan.
 // Semua angka bilangan bulat rupiah; persen dibulatkan ke bawah.
 import { formatDateWib, formatRupiah } from "@/lib/format";
+import type { PricingRules } from "@/lib/settings";
 import { billableKg, couriers, type CourierCode, type Zone } from "@/lib/shipping";
 import { effectivePrice, type PriceSource } from "./index";
 
+// Nilai bawaan; nilai sebenarnya dibaca dari pengaturan toko (rules) bila diberikan.
 export const FREE_SHIPPING_THRESHOLD = 150_000;
 export const FREE_SHIPPING_CAP = 20_000;
 export const POINTS_MAX_RATIO = 0.5;
@@ -63,6 +65,7 @@ export type PriceCartInput = {
   voucher?: VoucherInput | null; // data voucher dari database bila kodenya ditemukan
   points?: { requested: number; balance: number } | null;
   shipping?: ShippingInput | null;
+  rules?: Partial<PricingRules> | null; // dari pengaturan toko; kosong = aturan bawaan
 };
 
 export type PriceSegment = { quantity: number; unitPrice: number; source: PriceSource; flashSaleItemId: number | null };
@@ -230,15 +233,18 @@ export function evaluateVoucher(input: { code: string; voucher: VoucherInput | n
   return { code, applied: true, reason: null, message, type: v.type, discount: Math.max(0, discount), shippingDiscount: 0, eligibleSubtotal };
 }
 
-export function shippingCost(input: { courierCode: CourierCode; zone: Zone; weightGram: number }) {
+export function shippingCost(input: { courierCode: CourierCode; zone: Zone; weightGram: number }, rates?: PricingRules["rates"] | null) {
+  if (input.courierCode === "ambil_di_toko") return 0;
   const c = couriers.find((x) => x.code === input.courierCode);
-  const rate = c?.ratePerKg[input.zone];
+  const rate = rates ? rates[input.courierCode]?.[input.zone] : c?.ratePerKg[input.zone];
   if (rate == null) return null;
   return rate * billableKg(input.weightGram);
 }
 
 export function priceCart(input: PriceCartInput): PricedCart {
   const { now } = input;
+  const threshold = input.rules?.freeShippingThreshold ?? FREE_SHIPPING_THRESHOLD;
+  const cap = input.rules?.freeShippingCap ?? FREE_SHIPPING_CAP;
   const priced = input.lines.map((l) => priceLine(l, now));
   const subtotal = priced.reduce((n, l) => n + l.lineTotal, 0);
   const normalSubtotal = priced.reduce((n, l) => n + l.lineNormalTotal, 0);
@@ -255,8 +261,8 @@ export function priceCart(input: PriceCartInput): PricedCart {
   if (s?.method === "ambil") {
     shipping = { method: "ambil", courierCode: "ambil_di_toko", zone: null, billableKg: 0, cost: 0, autoFreeDiscount: 0, voucherDiscount: 0, discount: 0, payable: 0 };
   } else if (s?.method === "kirim") {
-    const cost = shippingCost({ courierCode: s.courierCode, zone: s.zone, weightGram }) ?? 0;
-    const autoFreeDiscount = s.courierCode !== "instan" && afterVoucher >= FREE_SHIPPING_THRESHOLD ? Math.min(cost, FREE_SHIPPING_CAP) : 0;
+    const cost = shippingCost({ courierCode: s.courierCode, zone: s.zone, weightGram }, input.rules?.rates) ?? 0;
+    const autoFreeDiscount = s.courierCode !== "instan" && threshold > 0 && afterVoucher >= threshold ? Math.min(cost, cap) : 0;
     let voucherShip = 0;
     if (voucher?.applied && voucher.type === "ongkir" && input.voucher) {
       const cap = input.voucher.maxDiscount ?? input.voucher.value;
@@ -282,7 +288,7 @@ export function priceCart(input: PriceCartInput): PricedCart {
     voucher,
     voucherDiscount,
     afterVoucher,
-    freeShipping: { threshold: FREE_SHIPPING_THRESHOLD, cap: FREE_SHIPPING_CAP, qualifies: afterVoucher >= FREE_SHIPPING_THRESHOLD, remaining: Math.max(0, FREE_SHIPPING_THRESHOLD - afterVoucher) },
+    freeShipping: { threshold, cap, qualifies: threshold > 0 && afterVoucher >= threshold, remaining: Math.max(0, threshold - afterVoucher) },
     shipping,
     points: { requested, used: pointsUsed, cap: pointsCap },
     total,

@@ -16,6 +16,9 @@ export const settings = pgTable("settings", {
   updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 
+// Komposisi ProductArt untuk banner tanpa foto: sampai 3 kemasan dengan warna isi dan warna merek.
+export type BannerArt = { items: { packaging: string; shade: string; brandColor: string; brandName: string }[]; background?: string };
+
 export const banners = pgTable(
   "banners",
   {
@@ -23,6 +26,8 @@ export const banners = pgTable(
     title: text().notNull(),
     subtitle: text().notNull().default(""),
     imageUrl: text(),
+    art: jsonb().$type<BannerArt>(),
+    ctaLabel: text().notNull().default(""),
     href: text().notNull().default("/"),
     position: text().notNull().default("hero"),
     startsAt: timestamp({ withTimezone: true }),

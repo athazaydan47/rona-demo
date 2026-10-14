@@ -7,6 +7,7 @@ import { db } from "@/db/client";
 import { currentCustomer } from "@/lib/auth/current";
 import { resolveCart } from "@/lib/cart/current";
 import { viewCart } from "@/lib/cart/service";
+import { getStoreSettings } from "@/lib/settings/load";
 import { now } from "@/lib/clock";
 import { ensureFlashSaleSlots } from "@/lib/flash/ensure";
 
@@ -14,9 +15,9 @@ export const metadata: Metadata = { title: "Keranjang" };
 
 async function CartContent() {
   await connection();
-  const [cart, customer] = await Promise.all([resolveCart(false), currentCustomer()]);
+  const [cart, customer, settings] = await Promise.all([resolveCart(false), currentCustomer(), getStoreSettings()]);
   await ensureFlashSaleSlots(db);
-  const view = cart ? await viewCart(db, cart.id, { now: now(), buyer: customer ? { customerId: customer.customerId, phone: customer.phone } : undefined }) : null;
+  const view = cart ? await viewCart(db, cart.id, { now: now(), buyer: customer ? { customerId: customer.customerId, phone: customer.phone } : undefined, settings }) : null;
   return <CartPage initial={view} />;
 }
 

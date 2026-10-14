@@ -2,6 +2,23 @@
 
 Panduan untuk menaruh demo ini online: aplikasi di Vercel (region Singapura, `sin1`) dan database PostgreSQL di Neon (region Singapura). Semua data toko fiktif, dan situs sudah diatur noindex.
 
+## Alur normal: cukup push (sejak Fase 6B)
+
+1. Bila fase baru menambah env, isi dulu di Vercel (lihat tabel di bagian 1 dan bagian Pembaruan per fase).
+2. `git push` ke `main`. Build produksi Vercel menjalankan migrasi database sendiri sebelum `next build`.
+3. Bila seed berubah, Dashboard Owner menampilkan "Data demo versi baru tersedia, reset sekarang?". Tekan "Reset data demo sekarang", atau tunggu reset harian 03.00 WIB.
+
+Detail migrasi otomatis:
+
+- Hanya berjalan bila `VERCEL_ENV=production`. Build preview dan build lokal melewatinya (preview memakai database yang sama dengan produksi).
+- Memakai `DATABASE_URL_UNPOOLED` bila ada, selain itu `DATABASE_URL`.
+- Dijalankan dengan advisory lock Postgres, jadi dua build bersamaan tidak memigrasi berbarengan.
+- Log build mencatat migrasi yang akan dan sudah dijalankan, misal `Migrasi selesai: 0004_katalog_promo`.
+- Bila migrasi gagal, build gagal dan versi lama tetap tayang.
+- Darurat, misal Neon sedang bermasalah dan kamu hanya mengubah teks: isi `SKIP_BUILD_MIGRATION=true` di Vercel, lalu hapus lagi setelahnya.
+
+Cara manual dari laptop (bagian 3) tetap ada sebagai cadangan darurat.
+
 ## 1. Environment variable
 
 Isi di Vercel (Settings, Environment Variables) untuk Production dan Preview. Untuk lokal, salin `.env.example` ke `.env.local`.
@@ -21,6 +38,7 @@ Isi di Vercel (Settings, Environment Variables) untuk Production dan Preview. Un
 | `DEMO_STAFF_PASSWORD` | Disarankan | kata sandi demo pilihanmu, minimal 10 karakter | Kata sandi empat akun staf demo (`owner@`, `admin@`, `dinoyo@`, `gudang@rona.demo`) saat seed dan reset harian. Bawaan `demo1234`. Di mode demo pengunjung masuk lewat tombol masuk cepat, jadi kata sandi ini hanya untuk masuk manual. |
 | `DEMO_DAILY_RESET` | Opsional | `true` | Reset data demo tiap malam pukul 03.00 WIB lewat cron harian. Hanya berjalan bila `DEMO_MODE=true` juga. Kosongkan untuk mematikan. |
 | `ALLOW_CLOCK_OVERRIDE` | Jangan diisi di produksi | kosong | Hanya uji Playwright lokal: membuka `/api/demo/jam` untuk memajukan jam server. |
+| `SKIP_BUILD_MIGRATION` | Jangan diisi, kecuali darurat | kosong | Isi `true` untuk melewati migrasi otomatis di build produksi (Fase 6B). |
 | `CONFIRM_RESET` | Hanya saat reset | `rona-demo` | Konfirmasi wajib untuk `db:reset` atau `db:seed` ke host selain localhost. Jangan disimpan di Vercel. |
 
 Fase 7 akan menambah `AI_GATEWAY_URL`, `GEMINI_API_KEY`, dan `AI_MODEL`.
@@ -38,7 +56,9 @@ Cara mendapatkan `BLOB_READ_WRITE_TOKEN`: di dashboard Vercel buka **Storage, Cr
 
 Ekstensi `pg_trgm` (untuk pencarian tahan salah ketik) dibuat otomatis oleh migrasi.
 
-## 3. Migrasi dan seed ke database produksi
+## 3. Migrasi dan seed ke database produksi (manual, cadangan darurat)
+
+Sejak Fase 6B migrasi berjalan otomatis saat build produksi. Langkah di bagian ini hanya untuk database Neon yang masih kosong, atau bila build otomatis tidak bisa dipakai.
 
 Jalankan dari laptop, di folder proyek. Isi **kedua** variabel di baris perintah; nilai di terminal mengalahkan `.env.local`, jadi database lokal tidak tersentuh.
 
@@ -60,7 +80,7 @@ DATABASE_URL="<pooled>" DATABASE_URL_UNPOOLED="<direct>" npm run db:deploy
 
 `db:deploy` hanya menjalankan migrasi, tidak menyentuh data. Untuk mengulang data demo dari nol (misal sebelum presentasi), jalankan lagi perintah `db:reset` di atas.
 
-Jalankan migrasi **sebelum** deploy aplikasi yang membutuhkannya, karena build membaca database (lihat bagian 5).
+Bila migrasi dijalankan manual, lakukan **sebelum** deploy aplikasi yang membutuhkannya, karena build membaca database (lihat bagian 5).
 
 ## 4. Deploy ke Vercel
 
@@ -138,9 +158,28 @@ DATABASE_URL="<pooled>" DEMO_MODE=true CONFIRM_RESET=rona-demo npm run demo:ukur
 
 Hasil di laptop: sekitar 0,8 detik ke Postgres lokal dan sekitar 3 detik dengan latensi tiruan 1 ms per arah (410 kueri). Dari Vercel `sin1` ke Neon Singapura latensinya sejenis, jadi masih jauh di bawah batas 60 detik.
 
+Sejak Fase 6B reset juga mengisi riwayat penjualan 90 hari (sekitar 1.300 pesanan dari 150 pelanggan) dengan sisipan massal: 445 kueri, sekitar 2 detik lokal, 4,4 detik dengan latensi tiruan 1 ms per arah, 22 detik dengan 10 ms per arah.
+
+## Pembaruan ke Fase 6B (katalog, promo, pengaturan, data riwayat)
+
+Migrasi baru: `drizzle/0004_katalog_promo.sql`. Isinya hanya menambah kolom: `locations.closed_dates` (bawaan daftar kosong), `products.image_url` (boleh kosong), `flash_sales.source` (bawaan `otomatis`), `banners.art` (boleh kosong), dan `banners.cta_label` (bawaan teks kosong). Tidak ada kolom yang dihapus atau diubah. Versi Fase 6A yang masih tayang tidak membaca kolom baru, dan baris yang ia tulis mendapat nilai bawaan, jadi aman.
+
+Ini fase pertama dengan migrasi otomatis, tapi skrip migrasinya ikut di deploy ini. Urutan persis:
+
+1. **Env di Vercel**: tidak ada env wajib baru. Jangan isi `SKIP_BUILD_MIGRATION`. Pastikan `DATABASE_URL_UNPOOLED` ada di environment Production (disarankan untuk migrasi).
+2. **Push** ke `main`. Di log build Vercel harus muncul `Migrasi produksi memakai DATABASE_URL_UNPOOLED.` lalu `Migrasi selesai: 0004_katalog_promo`. Bila migrasi gagal, build gagal dan versi 6A tetap tayang.
+3. **Reset data demo** supaya riwayat 90 hari, banner ProductArt, dan pengaturan baru terisi: buka `/admin`, masuk sebagai Owner, tekan "Reset data demo sekarang" (Dashboard juga menampilkan pemberitahuan versi seed baru). Atau tunggu reset harian.
+4. Verifikasi:
+   - Dashboard Owner berisi grafik dan angka dari riwayat, pemberitahuan versi seed hilang setelah reset.
+   - `/admin/produk`, `/admin/kategori`, `/admin/promo`, dan `/admin/pengaturan` terbuka untuk Owner.
+   - Beranda menampilkan karusel banner di bawah hero.
+   - Simpan satu produk di admin, lalu buka halaman produknya dan satu halaman produk lain: keduanya harus tetap tampil.
+
+Bila build otomatis tidak bisa dipakai, jalankan cara manual di bagian 3 (`db:deploy` lalu push).
+
 ## 5. Bagian build yang butuh database
 
-`npm run build` membaca database untuk memprarender data katalog yang di-cache. Build gagal bila `DATABASE_URL` tidak bisa dihubungi. Yang dibaca saat build:
+`npm run build` (di Vercel produksi didahului migrasi otomatis) membaca database untuk memprarender data katalog yang di-cache. Build gagal bila `DATABASE_URL` tidak bisa dihubungi. Yang dibaca saat build:
 
 - `generateStaticParams` halaman produk: daftar slug produk aktif, lalu detail produk dan varian untuk tiap slug.
 - Layout utama di semua halaman: pohon kategori (MegaMenu, footer), daftar cabang, dan pesan PromoBar dari tabel settings.
@@ -177,7 +216,8 @@ Stok, harga efektif, flash sale, keranjang, dan pesanan tidak dibaca saat build;
 ## Bila ada masalah
 
 - **Build gagal dengan `ENOTFOUND` atau timeout database**: `DATABASE_URL` di Vercel salah atau database Neon sedang tidur lama; buka console Neon untuk membangunkan, lalu redeploy.
-- **Error relasi atau kolom tidak ada**: migrasi belum dijalankan ke Neon. Jalankan `db:deploy` lalu redeploy.
+- **Error relasi atau kolom tidak ada**: migrasi belum dijalankan ke Neon. Cek log build produksi (bagian migrasi); bila dilewati, pastikan `SKIP_BUILD_MIGRATION` kosong lalu redeploy, atau jalankan `db:deploy` manual.
+- **Build gagal dengan `MIGRASI GAGAL`**: versi lama tetap tayang. Baca pesan di log build, perbaiki migrasinya, lalu push lagi. Build lain yang berjalan bersamaan menunggu kunci advisory, tidak ikut memigrasi.
 - **Tombol simulasi tidak muncul**: `DEMO_MODE` belum `true` di Vercel.
 - **Halaman masuk menampilkan "Masuk belum tersedia"**: `SESSION_SECRET` belum diisi (atau kurang dari 16 karakter) atau `DEMO_MODE` bukan `true`. Adapter WhatsApp sungguhan belum ada, jadi di luar mode demo masuk memang dinonaktifkan.
 - **"Akun demo belum disiapkan"**: Neon hanya dimigrasi tanpa seed. Jalankan `db:reset` seperti di bagian Pembaruan ke Fase 5 atau 6A.

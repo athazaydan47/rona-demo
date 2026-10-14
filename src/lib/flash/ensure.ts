@@ -32,10 +32,16 @@ export function planFlashSlots(now: Date, daysAhead = DAYS_AHEAD): PlannedSlot[]
   return out;
 }
 
-// Slot yang belum ada, dibandingkan lewat waktu mulai dan nama.
-export function missingFlashSlots(planned: PlannedSlot[], existing: { name: string; startsAt: Date }[]): PlannedSlot[] {
+export type ExistingSlot = { name: string; startsAt: Date; endsAt?: Date; source?: string; isActive?: boolean };
+
+const overlaps = (a: { startsAt: Date; endsAt: Date }, b: { startsAt: Date; endsAt: Date }) => a.startsAt.getTime() < b.endsAt.getTime() && b.startsAt.getTime() < a.endsAt.getTime();
+
+// Slot otomatis yang belum ada (dibandingkan lewat waktu mulai dan nama). Slot admin selalu menang: slot otomatis
+// tidak dibuat bila jendelanya bertabrakan dengan slot buatan admin yang aktif.
+export function missingFlashSlots(planned: PlannedSlot[], existing: ExistingSlot[]): PlannedSlot[] {
   const keys = new Set(existing.map((e) => `${e.name}|${e.startsAt.getTime()}`));
-  return planned.filter((p) => !keys.has(`${p.name}|${p.startsAt.getTime()}`));
+  const admin = existing.filter((e): e is ExistingSlot & { endsAt: Date } => e.source === "admin" && e.isActive !== false && e.endsAt != null);
+  return planned.filter((p) => !keys.has(`${p.name}|${p.startsAt.getTime()}`) && !admin.some((a) => overlaps(p, a)));
 }
 
 export type EnsureResult = { created: number; skipped: boolean };
@@ -60,16 +66,16 @@ export async function ensureFlashSaleSlots(db: AnyDb, opts: { now?: Date; demoMo
     const planned = planFlashSlots(now);
     const horizonStart = planned[0].startsAt;
     const existing = await tx
-      .select({ id: schema.flashSales.id, name: schema.flashSales.name, startsAt: schema.flashSales.startsAt })
+      .select({ id: schema.flashSales.id, name: schema.flashSales.name, startsAt: schema.flashSales.startsAt, endsAt: schema.flashSales.endsAt, source: schema.flashSales.source, isActive: schema.flashSales.isActive })
       .from(schema.flashSales)
-      .where(gte(schema.flashSales.startsAt, horizonStart));
+      .where(gte(schema.flashSales.endsAt, horizonStart));
     const missing = missingFlashSlots(planned, existing);
     if (missing.length === 0) return 0;
 
     for (const slot of missing) {
       const [sale] = await tx
         .insert(schema.flashSales)
-        .values({ name: slot.name, startsAt: slot.startsAt, endsAt: slot.endsAt, isActive: true })
+        .values({ name: slot.name, startsAt: slot.startsAt, endsAt: slot.endsAt, isActive: true, source: "otomatis" })
         .returning({ id: schema.flashSales.id });
       const items = await patternItems(tx, slot.name);
       if (items.length) await tx.insert(schema.flashSaleItems).values(items.map((it) => ({ ...it, flashSaleId: sale.id, sold: 0 })));
@@ -88,7 +94,7 @@ async function patternItems(tx: AnyDb, slotName: string): Promise<ItemPattern[]>
   const candidates = await tx
     .select({ id: schema.flashSales.id })
     .from(schema.flashSales)
-    .where(eq(schema.flashSales.name, slotName))
+    .where(and(eq(schema.flashSales.name, slotName), eq(schema.flashSales.source, "otomatis")))
     .orderBy(desc(schema.flashSales.startsAt))
     .limit(10);
   for (const c of candidates) {

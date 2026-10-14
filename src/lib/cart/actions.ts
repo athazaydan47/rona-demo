@@ -2,6 +2,7 @@
 
 import { db } from "@/db/client";
 import { currentCustomer } from "@/lib/auth/current";
+import { getStoreSettings } from "@/lib/settings/load";
 import { now } from "@/lib/clock";
 import { ensureFlashSaleSlots } from "@/lib/flash/ensure";
 import { resolveCart as currentCart } from "./current";
@@ -10,7 +11,7 @@ import { addItems, cartCount, importItems, removeItem, setCartVoucher, setItemQu
 async function freshView(cartId: number): Promise<CartView> {
   await ensureFlashSaleSlots(db);
   const customer = await currentCustomer();
-  return viewCart(db, cartId, { now: now(), buyer: customer ? { customerId: customer.customerId, phone: customer.phone } : undefined });
+  return viewCart(db, cartId, { now: now(), buyer: customer ? { customerId: customer.customerId, phone: customer.phone } : undefined, settings: await getStoreSettings() });
 }
 
 export type AddToCartResponse = { ok: boolean; count: number; message?: string };

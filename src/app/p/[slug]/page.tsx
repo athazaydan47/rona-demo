@@ -18,6 +18,11 @@ import { siteUrl } from "@/lib/site";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ shade?: string }> };
 
+// params dibaca di luar Suspense (lihat di bawah). Dengan partialPrefetching, Next.js juga merender ulang shell umum
+// /p/[slug] setiap kali tag "products" kedaluwarsa (misal admin menyimpan produk); tanpa izin memblokir, render itu
+// gagal dan semua halaman produk ikut error. Slug yang tidak ada sudah dijawab 404 oleh proxy.
+export const instant = false;
+
 // Semua slug aktif diprarender. Dengan ini, params boleh dibaca di luar Suspense dan produk yang tidak ada
 // memanggil notFound() sebelum shell terkirim, sehingga statusnya 404 sungguhan.
 export async function generateStaticParams() {

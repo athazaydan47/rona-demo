@@ -15,6 +15,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { capturePage, formatBytes, labelWib, launchBrowser, screenshotHtmlToJpeg, stampWib } from "./screenshot.mjs";
 import { captureAdminFlow } from "./cuplik-admin.mjs";
+import { captureAdmin6bFlow } from "./cuplik-admin-6b.mjs";
 import { captureAccountFlow } from "./cuplik-akun.mjs";
 import { captureBuyFlow } from "./cuplik-alur-beli.mjs";
 
@@ -49,6 +50,8 @@ const ACTIONS = {
   akun: { flow: true, label: "alur akun", capture: captureAccountFlow, covers: ["/akun"] },
   // Alur admin: masuk staf, dashboard, pesanan, label, stok, transfer, opname, staf, log, dashboard Staf Dinoyo di HP.
   admin: { flow: true, label: "alur admin", capture: captureAdminFlow, covers: ["/admin"] },
+  // Alur admin Fase 6B: produk, kategori, promo, banner, pengaturan, kanban baru, opname di HP.
+  "admin-6b": { flow: true, label: "alur admin 6B", capture: captureAdmin6bFlow, covers: ["/admin"] },
 };
 
 function parseArgs(argv) {

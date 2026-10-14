@@ -21,13 +21,13 @@ import { env } from "@/lib/env";
 import { formatDateTimeWib } from "@/lib/format";
 import { canAccessOrder, getOrderDetail } from "@/lib/orders/queries";
 import { completeIfDue, expireIfDue } from "@/lib/orders/service";
+import { getStoreSettings } from "@/lib/settings/load";
 import { siteUrl } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Detail pesanan", robots: { index: false } };
 
 type Props = { params: Promise<{ nomor: string }>; searchParams: Promise<{ t?: string }> };
 
-const STORE_WA = "6281200000000";
 
 async function OrderContent({ params, searchParams }: Props) {
   await connection();
@@ -55,7 +55,9 @@ async function OrderContent({ params, searchParams }: Props) {
   const isOwner = me != null && order.customerId === me.customerId;
   const reviewables = isOwner && order.status === "selesai" ? await reviewableItems(db, me.customerId, order.number) : [];
   const pointsEarned = earnedPoints({ subtotal: order.pricing.subtotal, voucherDiscount: order.pricing.voucherDiscount, pointsUsed: order.pricing.pointsUsed });
-  const waText = encodeURIComponent(`Halo Rona Beauty, saya mau tanya pesanan ${order.number}.`);
+  const store = await getStoreSettings();
+  const storeWa = store.profile.whatsapp;
+  const waText = encodeURIComponent(`Halo ${store.profile.name}, saya mau tanya pesanan ${order.number}.`);
   return (
     <>
       <Breadcrumb items={isOwner ? [{ label: "Akun", href: "/akun" }, { label: "Pesanan", href: "/akun/pesanan" }, { label: order.number }] : [{ label: "Lacak pesanan", href: "/lacak" }, { label: order.number }]} className="mb-3" />
@@ -196,7 +198,7 @@ async function OrderContent({ params, searchParams }: Props) {
             <OrderCosts order={order} />
           </div>
           <Button asChild variant="outline" className="w-full">
-            <a href={`https://wa.me/${STORE_WA}?text=${waText}`} target="_blank" rel="noreferrer">
+            <a href={`https://wa.me/${storeWa}?text=${waText}`} target="_blank" rel="noreferrer">
               <MessageCircle /> Hubungi toko via WhatsApp
             </a>
           </Button>

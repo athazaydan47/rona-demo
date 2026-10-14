@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as schema from "@/db/schema";
 import type { AnyDb } from "@/lib/db-types";
 import { dbUrl } from "@/test/integration";
+import { checkDataConsistency } from "./consistency";
 import { DemoResetError, resetDemoData } from "./reset";
 
 const ON = { DEMO_MODE: "true" };
@@ -74,6 +75,25 @@ describe.skipIf(!dbUrl)("reset data demo (integrasi, database rona_demo_uji)", (
     expect(a.lokasi_staf).toBe(1);
     const [log] = (await db.execute(sql`select action, object_id from audit_logs where action = 'demo.reset' order by id desc limit 1`)) as unknown as { action: string; object_id: string }[];
     expect(log).toEqual({ action: "demo.reset", object_id: "uji" });
+  }, 120_000);
+
+  it("riwayat 90 hari konsisten setelah reset: buku stok, dipesan, poin, terjual, kuota flash, dan voucher", async () => {
+    const r = await resetDemoData(db, { env: ON, source: "uji", deletePhotos: noPhotos });
+    expect(r.summary.historyOrders).toBeGreaterThan(90 * 8 * 0.9);
+    expect(r.summary.historyCustomers).toBe(150);
+    expect(await checkDataConsistency(db)).toEqual({ ok: true, issues: [] });
+    const [mix] = (await db.execute(sql`
+      select count(*) filter (where status = 'selesai')::int as selesai, count(*) filter (where status = 'dibatalkan')::int as batal,
+             count(*) filter (where status = 'diretur')::int as retur, count(*) filter (where status in ('dibayar', 'diproses', 'dikirim', 'siap_diambil', 'menunggu_pembayaran'))::int as aktif,
+             count(distinct location_id) filter (where method = 'ambil')::int as cabang_ambil,
+             (select count(distinct method)::int from payments) as metode
+      from orders`)) as unknown as Record<string, number>[];
+    expect(mix.selesai).toBeGreaterThan(mix.batal + mix.retur + mix.aktif);
+    expect(mix.batal).toBeGreaterThan(0);
+    expect(mix.retur).toBeGreaterThan(0);
+    expect(mix.aktif).toBeGreaterThan(0);
+    expect(mix.cabang_ambil).toBe(3);
+    expect(mix.metode).toBe(6);
   }, 120_000);
 
   it("dua reset bersamaan: satu jalan, yang lain ditolak (bukan data dobel)", async () => {

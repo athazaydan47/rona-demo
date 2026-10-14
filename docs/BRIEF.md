@@ -275,6 +275,19 @@ Aturan emas: **semua angka uang dan stok dihitung ulang di server**, tidak perna
 - Izin staf berbasis kunci (misal `pesanan.ubah_status`, `stok.transfer`). Empat peran bawaan adalah templat izin; Owner bisa menambah atau mencabut izin per akun. Daftar lokasi yang diampu kosong berarti semua lokasi; Staf Cabang wajib minimal satu lokasi dan hanya melihat data lokasinya.
 - Reset harian demo (03.00 WIB, bersama cron kedaluwarsa dan Selesai otomatis) hanya berjalan bila DEMO_MODE=true dan DEMO_DAILY_RESET=true. Semua tabel data dikosongkan lalu diisi ulang dengan seed deterministik yang sama, dan foto ulasan pengunjung ikut dihapus.
 
+### Tambahan aturan (Fase 6B)
+
+- Produk: SKU unik di seluruh katalog, harga jual tidak boleh di atas harga normal, produk hanya ditaruh di sub kategori. Varian baru mendapat baris stok 0 di semua lokasi lewat modul inventory. Produk yang pernah dipesan tidak bisa dihapus, hanya diarsipkan; varian yang pernah dipesan dinonaktifkan, bukan dihapus. Produk draf dan arsip menjawab 404 di toko. Duplikat produk dibuat sebagai draf dengan akhiran `-salinan` pada slug dan `-C1` pada SKU.
+- Kategori maksimal 2 tingkat dan 8 sub kategori per induk. Kategori yang punya sub kategori atau produk tidak bisa dihapus; produknya dipindah dulu. Nama baru yang mirip nama lama (kemiripan trigram minimal 0,4 atau beda paling banyak 2 huruf) diperingatkan, admin bisa memilih "Tetap simpan".
+- Flash sale: slot buatan admin selalu menang. Slot otomatis yang bertabrakan dinonaktifkan dan tidak dibuat ulang; dua slot admin aktif tidak boleh bertabrakan. Satu slot maksimal 12 jam. Harga flash harus di bawah harga efektif saat slot dimulai, kuota tidak boleh di bawah jumlah terjual, maksimal per pembeli 1 sampai 10, dan kuota di atas stok Gudang Online hanya diperingatkan. Mengubah slot yang sedang berjalan butuh konfirmasi dan dicatat di log.
+- Harga promo per varian berlaku dalam periode, dibulatkan ke Rp 500, dan harus di bawah harga jual. Urutan harga tetap: flash, promo, jual.
+- Voucher: kode 4 sampai 20 huruf besar atau angka. Kode yang sudah pernah dipakai tidak bisa diganti dan kuota tidak boleh di bawah pemakaian. Voucher persen maksimal 90% dan wajib punya batas potongan. Menonaktifkan voucher tidak menghapus riwayat pemakaian.
+- Banner beranda: gambar unggahan atau komposisi ProductArt (maksimal 3 produk), tautan harus halaman di toko ini, tayang bila aktif dan dalam jadwal, berurutan sesuai urutan admin. PromoBar maksimal 6 pesan, 80 karakter per pesan.
+- Pengaturan toko (kunci di tabel settings) dibaca logika: cut-off kirim dan ambil, libur Minggu gudang, jam kurir instan, kurir aktif dan tarif per kg per zona, metode bayar aktif, ambang stok menipis, batas dan nilai gratis ongkir. Nilai bawaannya sama dengan aturan di atas. Hari libur cabang dihitung tutup untuk stok cabang dan Ambil di Toko.
+- Data riwayat demo: 90 hari terakhir dihitung mundur dari waktu reset, 8 sampai 25 pesanan per hari (lebih ramai akhir pekan dan tanggal 25 sampai 5, puncak di jam slot flash, sepi dini hari), dari 150 pelanggan fiktif bernomor 0800 dan tamu. Harga dihitung dengan rumus yang sama dengan checkout, buku stok sama dengan stok fisik, saldo poin sama dengan buku poin, dan jumlah terjual sama dengan unit dari pesanan yang pernah dibayar (`npm run cek:data`).
+- Versi seed (`demo.versiSeed`) disimpan saat reset. Bila versi di kode lebih baru, Dashboard Owner menawarkan reset.
+- Migrasi database berjalan otomatis hanya di build produksi Vercel, dengan advisory lock; bila gagal, build gagal dan versi lama tetap tayang.
+
 ### Profil kulit (bentuk data, Fase 5)
 
 Disimpan di `customers.skin_profile` (JSON). Formulir di /akun/profil-kulit mengisi sebagian; kuis kulit Fase 7 boleh mengisi semuanya. Semua kolom opsional:

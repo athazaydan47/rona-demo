@@ -43,7 +43,46 @@ export function OpnameSheet({ locationId, locationName, rows }: { locationId: nu
 
   return (
     <div className="space-y-4">
-      <div className="overflow-x-auto rounded-xl border border-garis bg-putih">
+      {/* HP: daftar kartu dengan kolom fisik besar, dikerjakan sambil berdiri di depan rak. */}
+      <ul className="space-y-2 pb-28 md:hidden" data-testid="kartu-opname">
+        {rows.map((r) => {
+          const p = byId.get(r.variantId);
+          return (
+            <li key={r.variantId} className={cn("rounded-xl border bg-putih p-3", p?.belowReserved ? "border-bahaya bg-[#FDF2F1]" : "border-garis")}>
+              <div className="flex items-start gap-3">
+                <span className="mt-1 size-5 shrink-0 rounded-full border border-garis" style={{ background: r.hex }} aria-hidden />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm leading-snug font-medium">{r.productName}</p>
+                  <p className="text-xs text-abu-hangat">
+                    {r.shadeName} · <span className="font-mono">{r.sku}</span>
+                  </p>
+                  <p className="mt-1 text-xs text-abu-hangat tabular-nums">
+                    Sistem <span className="font-semibold text-kopi">{r.onHand}</span>
+                    {r.reserved ? ` · dipesan ${r.reserved}` : ""}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-2 flex items-center gap-3">
+                <label className="flex-1">
+                  <span className="sr-only">Jumlah fisik {r.productName} {r.shadeName}</span>
+                  <input
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={counts[r.variantId] ?? ""}
+                    onChange={(e) => setCounts((c) => ({ ...c, [r.variantId]: e.target.value.replace(/\D/g, "").slice(0, 5) }))}
+                    placeholder="Jumlah fisik"
+                    className="h-14 w-full rounded-xl border-2 border-garis px-4 text-center text-2xl font-semibold tabular-nums outline-none focus-visible:border-rona"
+                  />
+                </label>
+                <span className={cn("w-16 text-right text-lg font-semibold tabular-nums", p && p.diff > 0 && "text-sukses", p && p.diff < 0 && "text-bahaya", !p && "text-abu-hangat")}>{p ? `${p.diff > 0 ? "+" : ""}${p.diff}` : "-"}</span>
+              </div>
+              {p?.belowReserved ? <p className="mt-1 text-xs font-semibold text-bahaya">Lebih kecil dari {r.reserved} yang sedang dipesan pembeli.</p> : null}
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-xl border border-garis bg-putih md:block">
         <table className="w-full text-sm" data-testid="lembar-opname">
           <thead className="border-b border-garis bg-porselen/70">
             <tr>
@@ -117,6 +156,21 @@ export function OpnameSheet({ locationId, locationName, rows }: { locationId: nu
         <span className="mb-1 block font-medium">Catatan opname</span>
         <input value={note} onChange={(e) => setNote(e.target.value.slice(0, 200))} placeholder="Misal: opname bulanan rak depan" className="h-10 w-full rounded-lg border border-garis bg-putih px-3" />
       </label>
+      {/* HP: bilah bawah menempel dengan jumlah terisi, total selisih, dan tombol simpan. */}
+      {!confirming ? (
+        <div className="fixed inset-x-0 bottom-16 z-30 flex items-center gap-3 border-t border-garis bg-putih/97 px-4 py-3 backdrop-blur md:hidden" data-testid="bilah-opname">
+          <div className="min-w-0 flex-1 text-sm">
+            <p className="font-semibold tabular-nums">{preview.rows.length} terisi</p>
+            <p className={cn("text-xs tabular-nums", preview.totalDiff < 0 ? "text-bahaya" : preview.totalDiff > 0 ? "text-sukses" : "text-abu-hangat")}>
+              Selisih {preview.totalDiff > 0 ? "+" : ""}
+              {preview.totalDiff}
+            </p>
+          </div>
+          <Button disabled={!preview.rows.length || preview.violations > 0} onClick={() => setConfirming(true)}>
+            Simpan opname
+          </Button>
+        </div>
+      ) : null}
       {confirming ? (
         <div className="rounded-xl border-2 border-kopi bg-putih p-4">
           <p className="font-semibold">Simpan opname di {locationName}?</p>
@@ -146,7 +200,7 @@ export function OpnameSheet({ locationId, locationName, rows }: { locationId: nu
           </div>
         </div>
       ) : (
-        <Button size="lg" disabled={!preview.rows.length || preview.violations > 0} onClick={() => setConfirming(true)}>
+        <Button size="lg" className="hidden md:inline-flex" disabled={!preview.rows.length || preview.violations > 0} onClick={() => setConfirming(true)}>
           Lanjut ke konfirmasi
         </Button>
       )}

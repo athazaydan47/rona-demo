@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "tsx src/db/build-migrate.ts && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -18,7 +18,8 @@
     "cek:404": "node scripts/cek-404.mjs",
     "test:e2e": "playwright test",
     "db:deploy": "tsx src/db/migrate.ts",
-    "demo:ukur-reset": "tsx src/db/ukur-reset-demo.ts"
+    "demo:ukur-reset": "tsx src/db/ukur-reset-demo.ts",
+    "cek:data": "tsx src/db/cek-data.ts"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",

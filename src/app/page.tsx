@@ -1,11 +1,23 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import Link from "next/link";
 import { ArrowRight, Sparkles, Store, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductArt } from "@/components/product-art";
 import { HeroComposition } from "@/components/hero-composition";
 import { AdvisorCta, BrandShowcase, CategoryCircles, FlashSaleSection, JournalSection, ProductRow, ProductRowSkeleton, SkinTypeSection, StoresSection } from "@/components/home/sections";
-import { getArticles, getBrands, getCategoryTree, getLocations } from "@/lib/catalog/queries";
+import { BannerCarousel } from "@/components/home/banner-carousel";
+import { liveBanners } from "@/lib/catalog/banners";
+import { getArticles, getBrands, getCategoryTree, getHeroBanners, getLocations } from "@/lib/catalog/queries";
+import { now } from "@/lib/clock";
+
+// Banner promo dari admin. Jadwal tayang disaring per request, daftar banner sendiri di-cache dengan tag banners.
+async function HomeBanners() {
+  await connection();
+  const live = liveBanners(await getHeroBanners(), now());
+  if (!live.length) return null;
+  return <BannerCarousel banners={live.map((b) => ({ id: b.id, title: b.title, subtitle: b.subtitle, ctaLabel: b.ctaLabel, href: b.href, imageUrl: b.imageUrl, art: b.art }))} />;
+}
 
 export default async function HomePage() {
   const [categories, brands, articles, locations] = await Promise.all([getCategoryTree(), getBrands(), getArticles(3), getLocations()]);
@@ -56,6 +68,10 @@ export default async function HomePage() {
           <HeroComposition className="hidden w-full md:block" />
         </div>
       </section>
+
+      <Suspense fallback={<div className="container-rona pt-5 md:pt-8" aria-hidden><div className="aspect-[16/10] rounded-card bg-porselen sm:aspect-[21/8] md:aspect-[1200/360]" /></div>}>
+        <HomeBanners />
+      </Suspense>
 
       <CategoryCircles categories={categories} />
 

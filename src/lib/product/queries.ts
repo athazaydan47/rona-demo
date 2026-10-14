@@ -1,7 +1,10 @@
 // Data halaman produk. Deskriptif di-cache per produk; stok, harga efektif, flash sale dibaca segar.
 import { cacheLife, cacheTag } from "next/cache";
 import { connection } from "next/server";
-import { and, asc, desc, eq, gt, inArray, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, lte, sql } from "drizzle-orm";
+import type { CourierRates } from "@/lib/settings";
+import { getStoreSettings } from "@/lib/settings/load";
+import type { CourierCode } from "@/lib/shipping";
 import { alias } from "drizzle-orm/pg-core";
 import { db, schema } from "@/db/client";
 import type { Packaging } from "@/db/schema/enums";
@@ -35,6 +38,7 @@ export type ProductVariantDetail = {
 
 export type ProductDetail = {
   id: number;
+  imageUrl: string | null; // foto opsional dari admin; ProductArt tetap gambar utama
   name: string;
   slug: string;
   shortDescription: string;
@@ -86,6 +90,7 @@ export async function getProductDetail(slug: string): Promise<ProductDetail | nu
       bpom: schema.products.bpom,
       netto: schema.products.netto,
       packaging: schema.products.packaging,
+      imageUrl: schema.products.imageUrl,
       status: schema.products.status,
       ratingAvg: schema.products.ratingAvg,
       reviewCount: schema.products.reviewCount,
@@ -147,6 +152,7 @@ export async function getProductDetail(slug: string): Promise<ProductDetail | nu
     bpom: row.bpom,
     netto: row.netto,
     packaging: row.packaging,
+    imageUrl: row.imageUrl,
     status: row.status,
     ratingAvg: row.ratingAvg,
     reviewCount: row.reviewCount,
@@ -195,12 +201,14 @@ export type ProductLive = {
   locations: LiveLocation[];
   flash: Record<number, VariantFlash>;
   prices: Record<number, EffectivePrice>;
+  shipping: { rates: CourierRates; active: CourierCode[] };
 };
 
 export async function getProductLive(product: Pick<ProductDetail, "id" | "variants">): Promise<ProductLive> {
   await connection();
   await ensureFlashSaleSlots(db);
   const now = clockNow();
+  const settings = await getStoreSettings();
   const variantIds = product.variants.map((v) => v.id);
   const [locations, stock, flashRows] = await Promise.all([
     db
@@ -213,6 +221,7 @@ export async function getProductLive(product: Pick<ProductDetail, "id" | "varian
         hoursLabel: schema.locations.hoursLabel,
         district: schema.locations.district,
         openingHours: schema.locations.openingHours,
+        closedDates: schema.locations.closedDates,
       })
       .from(schema.locations)
       .where(eq(schema.locations.isActive, true))
@@ -232,7 +241,9 @@ export async function getProductLive(product: Pick<ProductDetail, "id" | "varian
       })
       .from(schema.flashSaleItems)
       .innerJoin(schema.flashSales, eq(schema.flashSaleItems.flashSaleId, schema.flashSales.id))
-      .where(and(inArray(schema.flashSaleItems.variantId, variantIds), eq(schema.flashSales.isActive, true), lte(schema.flashSales.startsAt, now), gt(schema.flashSales.endsAt, now))),
+      .where(and(inArray(schema.flashSaleItems.variantId, variantIds), eq(schema.flashSales.isActive, true), lte(schema.flashSales.startsAt, now), gt(schema.flashSales.endsAt, now)))
+      // Slot admin diproses terakhir supaya menimpa slot otomatis (slot admin selalu menang).
+      .orderBy(sql`case when ${schema.flashSales.source} = 'admin' then 1 else 0 end`, schema.flashSaleItems.id),
   ]);
   const locById = new Map(locations.map((l) => [l.id, l.slug]));
   const stockMap: ProductLive["stock"] = {};
@@ -270,10 +281,11 @@ export async function getProductLive(product: Pick<ProductDetail, "id" | "varian
       canPickup: l.canPickup,
       hoursLabel: l.hoursLabel,
       district: l.district,
-      ...locationFlags(l, now),
+      ...locationFlags(l, now, settings.cutoff),
     })),
     flash,
     prices,
+    shipping: { rates: settings.couriers.rates, active: settings.couriers.active },
   };
 }
 

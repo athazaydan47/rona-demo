@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition, cloneElement, isValidElement, type ReactElement } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -66,16 +66,19 @@ const PAYMENTS: { value: Pay; label: string; hint: string }[] = [
 ];
 
 function Field({ label, htmlFor, error, hint, children }: { label: string; htmlFor: string; error?: string; hint?: string; children: React.ReactNode }) {
+  // Pesan galat dan petunjuk ditautkan ke input lewat aria-describedby supaya dibacakan pembaca layar.
+  const describedBy = error ? `${htmlFor}-error` : hint ? `${htmlFor}-hint` : undefined;
+  const child = isValidElement(children) ? cloneElement(children as ReactElement<{ "aria-describedby"?: string }>, { "aria-describedby": describedBy }) : children;
   return (
     <div>
       <Label htmlFor={htmlFor}>{label}</Label>
-      {children}
+      {child}
       {error ? (
         <HelpText tone="error" id={`${htmlFor}-error`} role="alert">
           {error}
         </HelpText>
       ) : hint ? (
-        <HelpText>{hint}</HelpText>
+        <HelpText id={`${htmlFor}-hint`}>{hint}</HelpText>
       ) : null}
     </div>
   );
@@ -613,7 +616,7 @@ export function CheckoutFlow({ initial, initialVoucher, account }: { initial: Ch
                 </>
               ) : (
                 <>
-                  <h3 className="font-serif text-xl text-kopi">Ambil di toko</h3>
+                  <h3 className="font-serif text-xl text-kopi">Ambil di Toko</h3>
                   {pickupChosen ? (
                     <div className="mt-3 rounded-card bg-porselen p-4 text-sm">
                       <p className="font-semibold text-kopi">{pickupChosen.name}</p>

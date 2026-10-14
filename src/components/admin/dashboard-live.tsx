@@ -7,6 +7,7 @@ import { ProductArt } from "@/components/product-art";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { CountUp } from "@/components/ui/count-up";
 import { statusTone } from "@/components/order/order-parts";
 import { dashboardAction, resetDemoNowAction } from "@/lib/admin/actions";
 import type { DashboardData } from "@/lib/admin/dashboard";
@@ -19,12 +20,12 @@ const REFRESH_MS = 30_000;
 const STATUS_ORDER: OrderStatus[] = ["menunggu_pembayaran", "dibayar", "diproses", "siap_diambil", "dikirim", "selesai", "dibatalkan", "diretur"];
 const ACTION_ICON = { belum_diproses: Clock, bayar_di_toko: Store, siap_lama: PackageOpen, kabari_aku: BellRing, ulasan_rendah: MessageSquareWarning };
 
-function Stat({ label, value, hint, testId }: { label: string; value: string; hint?: string; testId?: string }) {
+function Stat({ label, value, format, hint, testId }: { label: string; value: number; format: (n: number) => string; hint?: string; testId?: string }) {
   return (
     <div className="rounded-xl border border-garis bg-putih p-4">
       <p className="text-xs font-medium text-abu-hangat">{label}</p>
-      <p className="mt-1 font-serif text-2xl text-kopi tabular-nums" data-testid={testId}>
-        {value}
+      <p className="mt-1 font-serif text-2xl text-kopi tabular-nums">
+        <CountUp value={value} format={format} testId={testId} />
       </p>
       {hint ? <p className="text-xs text-abu-hangat">{hint}</p> : null}
     </div>
@@ -154,14 +155,14 @@ export function DashboardLive({ initial, canReset, seedVersion = 0, installedVer
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {r ? (
           <>
-            <Stat label="Omzet hari ini" value={formatRupiah(r.today)} hint={`${r.todayOrders} pesanan dibayar`} testId="omzet-hari-ini" />
-            <Stat label="Omzet 30 hari" value={formatRupiah(r.total)} hint={`${r.paidOrders} pesanan dibayar`} />
-            <Stat label="Rata-rata nilai pesanan" value={formatRupiah(r.averageOrder)} hint="30 hari terakhir" />
+            <Stat label="Omzet hari ini" value={r.today} format={formatRupiah} hint={`${r.todayOrders} pesanan dibayar`} testId="omzet-hari-ini" />
+            <Stat label="Omzet 30 hari" value={r.total} format={formatRupiah} hint={`${r.paidOrders} pesanan dibayar`} />
+            <Stat label="Rata-rata nilai pesanan" value={r.averageOrder} format={formatRupiah} hint="30 hari terakhir" />
           </>
         ) : (
-          <Stat label="Pesanan dibayar 30 hari" value={formatNumber(data.paidOrders30)} hint="Angka keuangan butuh izin laporan keuangan" />
+          <Stat label="Pesanan dibayar 30 hari" value={data.paidOrders30} format={formatNumber} hint="Angka keuangan butuh izin laporan keuangan" />
         )}
-        <Stat label="Perlu diproses" value={formatNumber(active)} hint="Dibayar, diproses, siap diambil" testId="perlu-diproses" />
+        <Stat label="Perlu diproses" value={active} format={formatNumber} hint="Dibayar, diproses, siap diambil" testId="perlu-diproses" />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -193,7 +194,7 @@ export function DashboardLive({ initial, canReset, seedVersion = 0, installedVer
             <h2 className="border-b border-garis px-4 py-2.5 text-sm font-semibold text-kopi">Pesanan terbaru</h2>
             <ul className="divide-y divide-garis" data-testid="pesanan-terbaru">
               {data.recent.map((o) => (
-                <li key={o.id} className={cn("transition-colors duration-1000", fresh.has(o.id) && "bg-blush")}>
+                <li key={o.id} className={cn("rounded-lg", fresh.has(o.id) && "animate-cahaya")} data-baru={fresh.has(o.id) ? "1" : undefined}>
                   <Link href={`/admin/pesanan/${o.number}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm hover:bg-porselen">
                     <span className="font-semibold tabular-nums">{o.number}</span>
                     {fresh.has(o.id) ? <span className="rounded-full bg-rona px-2 text-[10px] font-bold text-putih">Baru</span> : null}
@@ -254,34 +255,42 @@ export function DashboardLive({ initial, canReset, seedVersion = 0, installedVer
             </ul>
           </section>
 
-          <section className="rounded-xl border border-garis bg-putih">
-            <h2 className="border-b border-garis px-4 py-2.5 text-sm font-semibold text-kopi">Stok menipis per lokasi (maks {data.threshold})</h2>
-            <ul className="divide-y divide-garis">
-              {data.lowStock.map((l) => (
-                <li key={l.location.id} className="px-4 py-2.5">
-                  <div className="flex items-center justify-between gap-2 text-sm">
-                    <Link href={`/admin/stok?status=menipis`} className="font-medium text-kopi hover:underline">
-                      {l.location.name}
+          <section className="rounded-xl border border-garis bg-putih" data-testid="stok-kritis">
+            <h2 className="flex items-center justify-between gap-2 border-b border-garis px-4 py-2.5 text-sm font-semibold text-kopi">
+              <span>Stok kritis</span>
+              <span className="text-xs font-normal tabular-nums">
+                <span className="text-bahaya">{data.lowTotals.out} habis</span> · <span className="text-peringatan-teks">{data.lowTotals.low} menipis</span>
+              </span>
+            </h2>
+            {data.critical.length ? (
+              <ol className="divide-y divide-garis">
+                {data.critical.map((it) => (
+                  <li key={`${it.variantId}-${it.locationName}`}>
+                    <Link href={`/admin/stok/${it.variantId}`} className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-porselen">
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-kopi">
+                          {it.productName} <span className="text-abu-hangat">({it.shadeName})</span>
+                        </span>
+                        <span className="block text-xs text-abu-hangat">{it.locationName}</span>
+                      </span>
+                      <span className={cn("shrink-0 text-xs font-semibold tabular-nums", it.available === 0 ? "text-bahaya" : "text-peringatan-teks")}>{it.available === 0 ? "Habis" : `Sisa ${it.available}`}</span>
                     </Link>
-                    <span className="text-xs tabular-nums">
-                      <span className="text-peringatan">{l.low} menipis</span> · <span className="text-bahaya">{l.out} habis</span>
-                    </span>
-                  </div>
-                  {l.items.length ? (
-                    <ul className="mt-1 space-y-0.5">
-                      {l.items.map((it) => (
-                        <li key={it.variantId} className="flex justify-between gap-2 text-xs text-abu-hangat">
-                          <Link href={`/admin/stok/${it.variantId}`} className="truncate hover:text-kopi">
-                            {it.productName} ({it.shadeName})
-                          </Link>
-                          <span className="shrink-0 tabular-nums">{it.available}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </li>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="px-4 py-5 text-center text-sm text-abu-hangat">Semua stok di atas ambang {data.threshold}. Aman.</p>
+            )}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-garis px-4 py-2 text-[11px] text-abu-hangat">
+              {data.lowStock.map((l) => (
+                <span key={l.location.id} className="tabular-nums">
+                  {l.location.name.replace("Rona ", "")}: {l.out} habis, {l.low} menipis
+                </span>
               ))}
-            </ul>
+              <Link href="/admin/stok?status=menipis" className="ml-auto font-semibold text-rona hover:underline">
+                Lihat semua
+              </Link>
+            </div>
           </section>
 
           {canReset ? <DemoReset seedVersion={seedVersion} installedVersion={installedVersion} /> : null}

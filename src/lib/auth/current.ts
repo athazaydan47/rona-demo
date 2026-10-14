@@ -4,6 +4,7 @@ import { cache } from "react";
 import { db } from "@/db/client";
 import { now } from "@/lib/clock";
 import { readSession, SESSION_COOKIE, SESSION_FRESH_COOKIE, SESSION_TTL_MS, type SessionCustomer } from "./session";
+import { cookieSecure } from "@/lib/cookie-secure";
 
 export const currentCustomer = cache(async (): Promise<SessionCustomer | null> => {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
@@ -14,7 +15,7 @@ export const currentCustomer = cache(async (): Promise<SessionCustomer | null> =
 export const sessionCookieOptions = () => ({
   httpOnly: true,
   sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
+  secure: cookieSecure(),
   path: "/",
   maxAge: Math.floor(SESSION_TTL_MS / 1000),
 });

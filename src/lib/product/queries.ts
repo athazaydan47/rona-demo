@@ -197,7 +197,7 @@ export type VariantFlash = { flashPrice: number; quota: number; sold: number; ma
 
 export type ProductLive = {
   now: string;
-  stock: Record<number, Record<string, number>>; // variantId -> slug lokasi -> tersedia
+  stock: Record<number, Record<string, number>>; // variantId -> slug lokasi -> tersedia; lokasi tanpa kunci = tidak dijual di sana
   locations: LiveLocation[];
   flash: Record<number, VariantFlash>;
   prices: Record<number, EffectivePrice>;
@@ -246,8 +246,9 @@ export async function getProductLive(product: Pick<ProductDetail, "id" | "varian
       .orderBy(sql`case when ${schema.flashSales.source} = 'admin' then 1 else 0 end`, schema.flashSaleItems.id),
   ]);
   const locById = new Map(locations.map((l) => [l.id, l.slug]));
+  // Hanya lokasi yang menyediakan varian itu yang punya kunci; cabang tanpa kunci berarti "tidak dijual di cabang ini".
   const stockMap: ProductLive["stock"] = {};
-  for (const v of product.variants) stockMap[v.id] = Object.fromEntries(locations.map((l) => [l.slug, 0]));
+  for (const v of product.variants) stockMap[v.id] = {};
   for (const s of stock) {
     const slug = locById.get(s.locationId);
     if (slug && stockMap[s.variantId]) stockMap[s.variantId][slug] = Math.max(0, s.onHand - s.reserved);

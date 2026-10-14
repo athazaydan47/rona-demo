@@ -32,7 +32,7 @@ export type ModerationRow = {
 
 function Stars({ n }: { n: number }) {
   return (
-    <span className="inline-flex" aria-label={`${n} dari 5 bintang`}>
+    <span className="inline-flex" role="img" aria-label={`${n} dari 5 bintang`}>
       {[1, 2, 3, 4, 5].map((i) => (
         <Star key={i} className={cn("size-3.5", i <= n ? "fill-emas text-emas" : "text-garis")} aria-hidden />
       ))}

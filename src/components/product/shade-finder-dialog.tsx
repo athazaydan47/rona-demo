@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { depthLabels, suggestShades, undertoneGuide, type SkinProfile, type Undertone } from "@/lib/shade";
 import type { ProductVariantDetail } from "@/lib/product/queries";
 import { cn } from "@/lib/utils";
+import { tandaiLangkah } from "@/lib/demo/panduan";
 
 type Props = {
   variants: ProductVariantDetail[];
@@ -33,7 +34,10 @@ export function ShadeFinderDialog({ variants, profile, onSave, onPick }: Props) 
       open={open}
       onOpenChange={(v) => {
         setOpen(v);
-        if (v) setStep(profile ? 3 : 1);
+        if (v) {
+          setStep(profile ? 3 : 1);
+          tandaiLangkah("shade");
+        }
       }}
     >
       <Dialog.Trigger asChild>

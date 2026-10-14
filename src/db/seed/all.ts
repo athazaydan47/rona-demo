@@ -1,5 +1,6 @@
 // Seed data demo deterministik, tanpa efek samping saat diimpor (dipakai CLI dan reset harian demo di runtime).
 import { fillBriefHistory } from "@/lib/kabar";
+import { reviewerDisplayName } from "@/lib/reviews/display-name";
 import { sql } from "drizzle-orm";
 import * as schema from "../schema";
 import { brandSeed } from "./brands";
@@ -192,14 +193,23 @@ export async function seedAll(db: AnyDb, now: Date): Promise<SeedSummary> {
     // Serum retinal selalu punya stok online supaya peringatan bentrok bahan (retinoid dan AHA atau BHA) di rutinitas
     // bisa dipamerkan saat demo. Diterapkan setelah undian supaya urutan angka acak lainnya tidak berubah.
     const retinalId = productIdBySlugEarly.get("kirana-lab-retinal-night-serum");
+    // Sunscreen gel Surya Shield (jawaban pertama Advisor di skenario demo) juga selalu bisa dikirim (Fase 8A).
+    const sunscreenId = productIdBySlugEarly.get("surya-shield-gel-sunscreen-spf-50-pa");
+    // Gudang Online menyediakan semua varian. Cabang hanya menyediakan sekitar 70 persen varian; varian yang tidak
+    // disediakan cabang TIDAK punya baris inventory ("tidak dijual di cabang ini", tampil "-", bukan "habis").
+    // Dari varian yang dijual: habis sekitar 4 persen (gudang) dan 6 persen (cabang), menipis (1 sampai ambang 5)
+    // sekitar 8 dan 12 persen, sisanya cukup.
     for (const v of variantRows) {
       for (const loc of locationRows) {
         let onHand: number;
         const roll = rng.next();
+        const carried = loc.type === "gudang" || roll < 0.7 || (soldOutVariant && v.id === soldOutVariant.id);
+        const r2 = rng.next();
+        if (!carried) continue;
         if (soldOutVariant && v.id === soldOutVariant.id) onHand = 0;
-        else if (loc.type === "gudang") onHand = roll < 0.06 ? 0 : roll < 0.14 ? rng.int(1, 4) : rng.int(8, 60);
-        else onHand = roll < 0.18 ? 0 : roll < 0.32 ? rng.int(1, 4) : rng.int(5, 18);
-        if (v.productId === retinalId && loc.type === "gudang") onHand = Math.max(onHand, 24);
+        else if (loc.type === "gudang") onHand = r2 < 0.04 ? 0 : r2 < 0.12 ? rng.int(1, 5) : rng.int(8, 60);
+        else onHand = r2 < 0.06 ? 0 : r2 < 0.18 ? rng.int(1, 5) : rng.int(6, 18);
+        if ((v.productId === retinalId || v.productId === sunscreenId) && loc.type === "gudang") onHand = Math.max(onHand, 24);
         inventoryValues.push({ variantId: v.id, locationId: loc.id, onHand });
       }
     }
@@ -226,7 +236,7 @@ export async function seedAll(db: AnyDb, now: Date): Promise<SeedSummary> {
         reviewValues.push({
           productId,
           variantId: variant.id,
-          authorName: rng.pick(reviewerNames),
+          authorName: reviewerDisplayName(rng.pick(reviewerNames)),
           rating: t.rating,
           body,
           skinType: skin,

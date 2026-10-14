@@ -35,7 +35,7 @@ test("tamu membeli dengan kirim; Admin Online melihatnya di dashboard, memproses
   expect(log.length).toBe(2);
 
   await page.goto(`/pesanan/${number}`);
-  await expect(page.getByText("JNE9900112233")).toBeVisible();
+  await expect(page.getByText("JNE9900112233").filter({ visible: true }).first()).toBeVisible();
   await admin.context().close();
 });
 
@@ -89,6 +89,7 @@ test("Gudang mentransfer stok dari Gudang Online ke Rona Sawojajar: matriks beru
 
   expect(await stock("gudang-online")).toBe(g0 - 2);
   expect(await stock("sawojajar")).toBe(s0 + 2);
+  await page.waitForLoadState("load"); // WebKit: navigasi setelah Simpan masih berjalan
   await page.goto(`/admin/stok?q=${encodeURIComponent(v.sku)}`);
   await expect(page.locator(`tr[data-varian="${v.sku}"] td[data-lokasi="sawojajar"]`)).toHaveAttribute("data-tersedia", String(s0 + 2));
   await page.goto(`/admin/stok/${pick.variantId}?jenis=transfer`);

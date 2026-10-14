@@ -7,10 +7,12 @@ import { Dialog } from "radix-ui";
 import { Clapperboard, Loader2, SendHorizontal, Sparkles, X } from "lucide-react";
 import { ProductArt } from "@/components/product-art";
 import { Button } from "@/components/ui/button";
+import { Bubble, TypingDots } from "@/components/ui/chat-parts";
 import { PriceTag } from "@/components/ui/price-tag";
 import type { Packaging } from "@/db/schema/enums";
 import { addToCart } from "@/lib/cart/client-cart";
 import { formatRupiah } from "@/lib/format";
+import { tandaiLangkah } from "@/lib/demo/panduan";
 import { cn } from "@/lib/utils";
 import { useAiStatus } from "./ai-status";
 import { useFloatingPosition, useHideOnScroll } from "./floating-position";
@@ -144,6 +146,7 @@ export function AdvisorLauncher() {
     if (!q || busy) return;
     const history: Message[] = [...messages, { role: "user", text: q }];
     const pending: Message = { role: "assistant", text: "", status: "Membaca pertanyaanmu" };
+    tandaiLangkah("advisor");
     setMessages([...history, pending]);
     setInput("");
     setBusy(true);
@@ -276,16 +279,14 @@ export function AdvisorLauncher() {
               ) : null}
               {messages.map((m, i) =>
                 m.role === "user" ? (
-                  <p key={i} className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-kopi px-3.5 py-2 text-sm text-putih">
-                    {m.text}
-                  </p>
+                  <Bubble key={i} side="kanan" className="max-w-[85%]">
+                    <p className="rounded-2xl rounded-br-md bg-kopi px-3.5 py-2 text-sm text-putih">{m.text}</p>
+                  </Bubble>
                 ) : (
-                  <div key={i} className="max-w-[95%] space-y-2" data-testid="jawaban-advisor">
+                  <Bubble key={i} className="max-w-[95%] space-y-2" testId="jawaban-advisor">
                     {m.intro ? <p className="px-1 text-xs text-abu-hangat italic">{m.intro}</p> : null}
                     {m.status && !m.text ? (
-                      <p className="inline-flex items-center gap-2 rounded-2xl bg-putih px-3.5 py-2 text-sm text-abu-hangat">
-                        <Loader2 className="size-3.5 animate-spin" aria-hidden /> {m.status}...
-                      </p>
+                      <TypingDots status={m.status} />
                     ) : (
                       <p className={cn("rounded-2xl rounded-bl-md bg-putih px-3.5 py-2 text-sm whitespace-pre-line text-kopi", m.error && "text-bahaya")}>{m.text}</p>
                     )}
@@ -301,7 +302,7 @@ export function AdvisorLauncher() {
                         Total {m.products.length} produk: <span className="font-semibold text-kopi tabular-nums">{formatRupiah(m.total)}</span>
                       </p>
                     ) : null}
-                  </div>
+                  </Bubble>
                 ),
               )}
             </div>

@@ -4,6 +4,7 @@
 import { withStream, type AiModel, type Content, type GenRequest, type GenResponse, type Part } from "./client";
 import { MEDICAL_REFERRAL } from "./guard";
 import { adminMockTurn } from "@/lib/asisten/mock";
+import { greetingName } from "@/lib/reviews/display-name";
 import type { ImageInput } from "./images";
 import visionFixtures from "../../../evals/7c/sidik.json";
 import { mockDupeFromImages, mockSkinReading } from "./mock-vision";
@@ -138,7 +139,7 @@ async function jsonTask(req: GenRequest): Promise<GenResponse> {
     return reply([{ text: JSON.stringify({ ringkas, manfaat, kandungan: actives.length ? `Bahan aktif utama: ${actives.join(", ")}.` : "Komposisi lengkap ada di kemasan.", caraPakai: "Pakai secukupnya pada wajah yang bersih, lalu ratakan perlahan. Gunakan rutin pagi atau malam.", metaJudul: `${name} | Rona Beauty`.slice(0, 60), metaDeskripsi: ringkas.slice(0, 155) }) }], req);
   }
   if (task === "balas_ulasan") {
-    const nama = /Nama: (.+?)\. Bintang/.exec(prompt)?.[1] ?? "kamu";
+    const nama = greetingName(/Nama tampilan: (.+?)\. Bintang/.exec(prompt)?.[1] ?? "");
     const situasi = /Situasi: ([^.]+)\./.exec(prompt)?.[1] ?? "";
     const balasan =
       situasi === "Pujian"

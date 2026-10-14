@@ -11,7 +11,7 @@ export const buttonVariants = cva(
         secondary: "bg-blush text-rona-gelap hover:bg-[#EFCDD2]",
         outline: "border border-garis bg-putih text-kopi hover:border-kopi/30 hover:bg-porselen",
         ghost: "text-kopi hover:bg-blush/60",
-        link: "text-rona underline-offset-4 hover:underline px-0 h-auto",
+        link: "text-rona-gelap underline-offset-4 hover:underline px-0 h-auto",
         dark: "bg-kopi text-putih hover:bg-kopi/90",
       },
       size: {

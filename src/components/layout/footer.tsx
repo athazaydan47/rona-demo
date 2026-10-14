@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Clock, MapPin } from "lucide-react";
 import type { CategoryNode, StoreLocation } from "@/lib/catalog/queries";
+import { HELP_LINKS as helpLinks, POLICY_LINKS as policyLinks } from "@/lib/content/bantuan";
 
 type FooterProps = {
   categories: CategoryNode[];
@@ -8,22 +9,6 @@ type FooterProps = {
   studio: { name: string; url: string };
   demoMode: boolean;
 };
-
-const helpLinks = [
-  { href: "/cara-belanja", label: "Cara belanja" },
-  { href: "/cek-ongkir", label: "Cek ongkir" },
-  { href: "/lacak", label: "Lacak pesanan" },
-  { href: "/faq", label: "Pertanyaan umum" },
-  { href: "/toko", label: "Toko kami" },
-  { href: "/hubungi", label: "Hubungi kami" },
-];
-
-const policyLinks = [
-  { href: "/kebijakan/retur", label: "Kebijakan retur" },
-  { href: "/kebijakan/privasi", label: "Kebijakan privasi" },
-  { href: "/kebijakan/syarat", label: "Syarat dan ketentuan" },
-  { href: "/kebijakan/pengiriman", label: "Pengiriman" },
-];
 
 const paymentMethods = ["QRIS", "BCA", "BNI", "BRI", "Mandiri", "Bayar di Toko"];
 
@@ -128,7 +113,7 @@ export function Footer({ categories, locations, studio, demoMode }: FooterProps)
               Tentang demo
             </Link>
             {" · "}
-            <Link href="/kebijakan-privasi" className="font-semibold text-rona-gelap hover:underline">
+            <Link href="/kebijakan/privasi" className="font-semibold text-rona-gelap hover:underline">
               Kebijakan privasi
             </Link>
             {demoMode ? null : " "}

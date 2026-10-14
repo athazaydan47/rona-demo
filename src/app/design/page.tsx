@@ -70,7 +70,7 @@ export default function DesignPage() {
           kosong.
         </p>
         <nav className="mt-5 flex flex-wrap gap-2" aria-label="Bagian">
-          {["warna", "huruf", "bentuk", "tombol", "input", "chip", "badge", "kartu", "harga", "rating", "productart", "swatch"].map((s) => (
+          {["warna", "huruf", "bentuk", "gerak", "tombol", "input", "chip", "badge", "kartu", "harga", "rating", "productart", "swatch"].map((s) => (
             <Chip key={s} asChild>
               <a href={`#${s}`}>{s === "productart" ? "ProductArt" : s === "swatch" ? "ShadeSwatchArt" : s[0].toUpperCase() + s.slice(1)}</a>
             </Chip>
@@ -140,6 +140,51 @@ export default function DesignPage() {
             <span className="size-12 rounded-[8px] bg-blush" title="radius 8px" />
           </div>
         </div>
+      </Section>
+
+      <Section id="gerak" title="Gerak" intro="Token di src/lib/motion.ts dan globals.css. Semua gerak menghormati pengaturan kurangi gerakan: transform tidak dianimasikan, yang tersisa hanya opacity singkat.">
+        <div className="grid gap-4 sm:grid-cols-3">
+          {[
+            { nama: "cepat", nilai: "150 ms", pakai: "Umpan balik sentuhan: hover, tekan, badge, chip." },
+            { nama: "sedang", nilai: "250 ms", pakai: "Pergantian isi: crossfade shade, kartu masuk, gelembung obrolan, angka hitung mundur." },
+            { nama: "lambat", nilai: "400 ms", pakai: "Elemen besar: laci keranjang, sheet, angka naik bertahap, isian kuota." },
+          ].map((d) => (
+            <div key={d.nama} className="rounded-card border border-garis bg-putih p-5">
+              <p className="font-mono text-xs text-abu-hangat">--durasi-{d.nama}</p>
+              <p className="mt-1 font-serif text-2xl text-kopi">{d.nilai}</p>
+              <p className="mt-1 text-sm text-abu-hangat">{d.pakai}</p>
+            </div>
+          ))}
+          <div className="rounded-card border border-garis bg-putih p-5">
+            <p className="font-mono text-xs text-abu-hangat">--ease-soft / EASE_LEMBUT</p>
+            <p className="mt-1 font-serif text-xl text-kopi">cubic-bezier(0.22, 1, 0.36, 1)</p>
+            <p className="mt-1 text-sm text-abu-hangat">Mulai cepat, berhenti lembut. Bawaan untuk hampir semua transisi.</p>
+          </div>
+          <div className="rounded-card border border-garis bg-putih p-5">
+            <p className="font-mono text-xs text-abu-hangat">PEGAS.tenang</p>
+            <p className="mt-1 font-serif text-xl text-kopi">stiffness 260, damping 30</p>
+            <p className="mt-1 text-sm text-abu-hangat">Pegas tanpa pantulan untuk laci dan elemen besar.</p>
+          </div>
+          <div className="rounded-card border border-garis bg-putih p-5">
+            <p className="font-mono text-xs text-abu-hangat">PEGAS.kenyal / --ease-pegas</p>
+            <p className="mt-1 font-serif text-xl text-kopi">stiffness 420, damping 22</p>
+            <p className="mt-1 text-sm text-abu-hangat">Pantulan kecil: badge keranjang berdenyut, kartu kanban kembali ke tempatnya, sheet dilepas setelah diusap.</p>
+          </div>
+        </div>
+        <ul className="mt-5 grid gap-2 text-sm text-kopi sm:grid-cols-2">
+          {[
+            "Produk terbang ke ikon keranjang (Web Animations API), lalu badge berdenyut.",
+            "Laci keranjang dan sheet HP meluncur dengan ease-soft; sheet bisa ditutup dengan usapan ke bawah.",
+            "Gambar utama produk crossfade saat shade berganti tanpa mengubah tata letak.",
+            "Kartu katalog masuk bertahap (maksimal 8 langkah, 40 ms per langkah) saat filter berganti atau halaman berikutnya dimuat.",
+            "Angka hitung mundur berganti dengan flip halus; bilah kuota mengisi dengan transisi lebar.",
+            "Admin: kartu kanban terangkat saat diseret dan bergoyang kembali bila kolom tidak sah; angka dashboard naik bertahap; pesanan baru disorot.",
+          ].map((t) => (
+            <li key={t} className="flex gap-2">
+              <span className="mt-2 size-1.5 shrink-0 rounded-full bg-rona" aria-hidden /> {t}
+            </li>
+          ))}
+        </ul>
       </Section>
 
       <Section id="tombol" title="Tombol">

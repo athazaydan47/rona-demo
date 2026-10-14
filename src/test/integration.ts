@@ -19,7 +19,8 @@ export function integration() {
   const orders: string[] = [];
   const carts: number[] = [];
   const phones: string[] = [];
-  const restore: { variantId: number; locationId: number; onHand: number; reserved: number }[] = [];
+  // created: baris inventory yang dibuat uji karena lokasi itu tidak menjual variannya (dihapus lagi saat selesai).
+  const restore: { variantId: number; locationId: number; onHand: number; reserved: number; created?: boolean }[] = [];
 
   // Nomor uji 0899 + 8 digit acak, tidak bentrok dengan seed (0800 dan 0812).
   const phone = () => {
@@ -53,7 +54,14 @@ export function integration() {
 
   async function setStock(variantId: number, locationId: number, onHand: number) {
     const [cur] = await db.select().from(schema.inventory).where(and(eq(schema.inventory.variantId, variantId), eq(schema.inventory.locationId, locationId)));
-    if (!restore.some((r) => r.variantId === variantId && r.locationId === locationId)) restore.push({ variantId, locationId, onHand: cur.onHand, reserved: cur.reserved });
+    const tracked = restore.some((r) => r.variantId === variantId && r.locationId === locationId);
+    if (!cur) {
+      // Sejak Fase 8A cabang tidak menjual semua varian: buat barisnya supaya uji tetap deterministik.
+      await db.insert(schema.inventory).values({ variantId, locationId, onHand, reserved: 0 });
+      if (!tracked) restore.push({ variantId, locationId, onHand: 0, reserved: 0, created: true });
+      return;
+    }
+    if (!tracked) restore.push({ variantId, locationId, onHand: cur.onHand, reserved: cur.reserved });
     await db.update(schema.inventory).set({ onHand, reserved: 0 }).where(eq(schema.inventory.id, cur.id));
   }
 
@@ -124,7 +132,11 @@ export function integration() {
       await db.delete(schema.notifications).where(and(inArray(schema.notifications.recipient, phones)));
       await db.delete(schema.restockRequests).where(inArray(schema.restockRequests.contact, phones));
     }
-    for (const r of restore) await db.update(schema.inventory).set({ onHand: r.onHand, reserved: r.reserved }).where(and(eq(schema.inventory.variantId, r.variantId), eq(schema.inventory.locationId, r.locationId)));
+    for (const r of restore) {
+      const where = and(eq(schema.inventory.variantId, r.variantId), eq(schema.inventory.locationId, r.locationId));
+      if (r.created) await db.delete(schema.inventory).where(where);
+      else await db.update(schema.inventory).set({ onHand: r.onHand, reserved: r.reserved }).where(where);
+    }
     if (carts.length) await db.delete(schema.carts).where(inArray(schema.carts.id, carts));
     await client.end();
   }

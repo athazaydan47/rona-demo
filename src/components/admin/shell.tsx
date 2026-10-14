@@ -71,7 +71,7 @@ export function AdminShell({ items, mobilePrimary, staff, demoMode, assistantRol
       <aside className="hidden border-r border-garis bg-putih lg:flex lg:flex-col" aria-label="Menu admin">
         <div className="sticky top-0 flex h-dvh flex-col">
           <div className="px-5 pt-5 pb-4">
-            <Link href="/admin" className="flex items-baseline gap-2">
+            <Link href="/admin" className="flex min-h-11 items-baseline gap-2">
               <span className="font-serif text-2xl text-kopi">Rona</span>
               <span className="text-[10px] font-bold tracking-[0.24em] text-rona uppercase">Admin</span>
             </Link>
@@ -110,7 +110,7 @@ export function AdminShell({ items, mobilePrimary, staff, demoMode, assistantRol
 
       <div className="min-w-0">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-garis bg-putih/95 px-4 backdrop-blur lg:hidden">
-          <Link href="/admin" className="flex items-baseline gap-1.5">
+          <Link href="/admin" className="flex min-h-11 items-baseline gap-1.5">
             <span className="font-serif text-xl text-kopi">Rona</span>
             <span className="text-[9px] font-bold tracking-[0.22em] text-rona uppercase">Admin</span>
           </Link>
@@ -121,7 +121,8 @@ export function AdminShell({ items, mobilePrimary, staff, demoMode, assistantRol
             <Search className="size-5" />
           </button>
         </header>
-        <main className="px-4 pt-4 pb-24 lg:px-8 lg:pt-6 lg:pb-10">{children}</main>
+        {/* Bukan <main>: panel admin sudah berada di dalam main root layout toko (hindari landmark ganda). */}
+        <div className="px-4 pt-4 pb-24 lg:px-8 lg:pt-6 lg:pb-10" data-isi-admin>{children}</div>
       </div>
 
       {assistantRole ? <AdminAssistant role={assistantRole} /> : null}

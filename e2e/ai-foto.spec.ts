@@ -18,7 +18,7 @@ test("kuis: Bantu isi dari foto, jawaban terisi bertanda, konfirmasi tiap langka
   const consent = quiz.getByTestId("persetujuan-foto");
   await expect(consent).toContainText("Foto tidak disimpan dan langsung dibuang setelah diproses.");
   await expect(consent).toContainText("Ini bukan pemeriksaan medis.");
-  await expect(consent.getByRole("link", { name: /kebijakan privasi/ })).toHaveAttribute("href", "/kebijakan-privasi#foto");
+  await expect(consent.getByRole("link", { name: /kebijakan privasi/ })).toHaveAttribute("href", "/kebijakan/privasi#foto");
   const next = consent.getByRole("button", { name: "Lanjut pilih foto" });
   await expect(next).toBeDisabled();
   await consent.getByTestId("setuju-foto").check();
@@ -131,7 +131,7 @@ test("tanpa env AI: pilihan foto, halaman cari dari video, dan ikon video tidak 
   await page.waitForTimeout(600);
   await expect(page.getByTestId("ikon-cari-video")).toHaveCount(0);
   await page.goto(`${NO_AI}/cari-dari-video`);
-  await expect(page.getByText("Halaman ini belum ada")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Halaman ini belum ada" })).toBeVisible();
   await expect(page.getByTestId("input-link")).toHaveCount(0);
   for (const api of ["/api/ai/foto-kulit", "/api/ai/dupe"]) {
     const r = await page.request.post(`${NO_AI}${api}`, { headers: { origin: NO_AI }, data: { link: "https://www.tiktok.com/@a/video/1" } });

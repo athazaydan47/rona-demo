@@ -1,4 +1,4 @@
-import { defineConfig } from "@playwright/test";
+import { defineConfig, devices } from "@playwright/test";
 
 // Uji alur pembelian terhadap build produksi lokal (jalankan npm run build lebih dulu).
 // Satu worker karena uji kedaluwarsa memajukan jam server untuk seluruh proses.
@@ -15,11 +15,15 @@ export default defineConfig({
   reporter: [["list"]],
   use: {
     baseURL: `http://localhost:${PORT}`,
-    channel: "chrome",
     headless: true,
     viewport: { width: 1280, height: 900 },
     trace: "retain-on-failure",
   },
+  // Chrome untuk semua uji; WebKit (mesin Safari) untuk alur beli dan alur admin utama (Fase 8A).
+  projects: [
+    { name: "chrome", use: { channel: "chrome" } },
+    { name: "webkit", use: { ...devices["Desktop Safari"], viewport: { width: 1280, height: 900 } }, testMatch: /\/(alur-beli|admin)\.spec\.ts$/ },
+  ],
   // Server utama memakai AI mock (deterministik). Server kedua tanpa env AI untuk menguji toko tetap jalan tanpa AI.
   webServer: [
     {

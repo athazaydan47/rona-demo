@@ -28,6 +28,8 @@ export type BriefData = {
   rata7Hari: { omzetRp: number; pesanan: number; perubahanOmzetPersen: number | null };
   terlaris: { produk: string; unit: number }[];
   stokMenipis: { lokasi: string; habis: number; menipis: number }[];
+  stokKritis: { produk: string; lokasi: string; tersedia: number }[]; // 5 teratas paling kritis
+  stokKritisTotal: number;
   pesananBermasalah: { kedaluwarsa: number; dibatalkan: number; menungguLama: number };
   ulasanBurukBelumDibalas: number;
   saranTransfer: { produk: string; dari: string; ke: string; jumlah: number }[];
@@ -50,11 +52,15 @@ export async function buildBriefData(db: AnyDb, dayStart: Date, now: Date): Prom
 
   const threshold = await lowStockThreshold(db);
   const locs = await db.select({ id: schema.locations.id, name: schema.locations.name }).from(schema.locations).where(eq(schema.locations.isActive, true)).orderBy(schema.locations.sortOrder);
+  // Hanya varian yang dijual di lokasi itu yang punya baris inventory (tidak dijual bukan habis).
   const low = await db
-    .select({ locationId: schema.inventory.locationId, available: sql<number>`(${schema.inventory.onHand} - ${schema.inventory.reserved})::int` })
+    .select({ locationId: schema.inventory.locationId, available: sql<number>`(${schema.inventory.onHand} - ${schema.inventory.reserved})::int`, productName: schema.products.name, shadeName: schema.variants.shadeName })
     .from(schema.inventory)
     .innerJoin(schema.variants, eq(schema.inventory.variantId, schema.variants.id))
-    .where(and(inArray(schema.inventory.locationId, locs.map((l) => l.id)), lte(sql`${schema.inventory.onHand} - ${schema.inventory.reserved}`, threshold), eq(schema.variants.isActive, true)));
+    .innerJoin(schema.products, eq(schema.variants.productId, schema.products.id))
+    .where(and(inArray(schema.inventory.locationId, locs.map((l) => l.id)), lte(sql`${schema.inventory.onHand} - ${schema.inventory.reserved}`, threshold), eq(schema.variants.isActive, true), eq(schema.products.status, "aktif")));
+  const locName = new Map(locs.map((l) => [l.id, l.name]));
+  const kritis = [...low].sort((a, b) => a.available - b.available || a.productName.localeCompare(b.productName, "id")).slice(0, 5).map((r) => ({ produk: `${r.productName} ${r.shadeName}`, lokasi: locName.get(r.locationId) ?? "", tersedia: Math.max(0, r.available) }));
 
   const cancelled = await db
     .select({ paymentStatus: schema.payments.status })
@@ -78,6 +84,8 @@ export async function buildBriefData(db: AnyDb, dayStart: Date, now: Date): Prom
     rata7Hari: { omzetRp: avgRev, pesanan: avgOrders, perubahanOmzetPersen: percentChange(s.revenue, avgRev) },
     terlaris: topProducts(data, "quantity").slice(0, 3).map((r) => ({ produk: r.label, unit: r.quantity })),
     stokMenipis: locs.map((l) => ({ lokasi: l.name, habis: low.filter((x) => x.locationId === l.id && x.available <= 0).length, menipis: low.filter((x) => x.locationId === l.id && x.available > 0).length })),
+    stokKritis: kritis,
+    stokKritisTotal: low.length,
     pesananBermasalah: { kedaluwarsa: cancelled.filter((c) => c.paymentStatus === "kedaluwarsa").length, dibatalkan: cancelled.filter((c) => c.paymentStatus !== "kedaluwarsa").length, menungguLama: Number(waiting?.n ?? 0) },
     ulasanBurukBelumDibalas: Number(badReviews?.n ?? 0),
     saranTransfer: transfers.suggestions.map((t) => ({ produk: `${t.productName} ${t.shadeName}`, dari: t.fromName, ke: t.toName, jumlah: t.quantity })),
@@ -112,7 +120,8 @@ export function briefWaText(d: BriefData, narrative: string) {
   ];
   if (d.terlaris.length) lines.push("", "*Terlaris:*", ...d.terlaris.map((t, i) => `${i + 1}. ${t.produk} (${t.unit} pcs)`));
   const stok = d.stokMenipis.filter((s) => s.habis || s.menipis);
-  if (stok.length) lines.push("", "*Stok menipis:*", ...stok.map((s) => `${s.lokasi}: ${s.habis} habis, ${s.menipis} menipis`));
+  if (d.stokKritis?.length) lines.push("", `*Stok kritis* (5 teratas dari ${d.stokKritisTotal}):`, ...d.stokKritis.map((k) => `${k.produk} di ${k.lokasi.replace("Rona ", "")}: ${k.tersedia === 0 ? "habis" : `sisa ${k.tersedia}`}`));
+  if (stok.length) lines.push(`Per lokasi: ${stok.map((s) => `${s.lokasi.replace("Rona ", "")} ${s.habis} habis, ${s.menipis} menipis`).join("; ")}`);
   const b = d.pesananBermasalah;
   lines.push("", `*Pesanan bermasalah:* ${b.kedaluwarsa} kedaluwarsa, ${b.dibatalkan} dibatalkan, ${b.menungguLama} menunggu diproses lebih dari sehari`);
   lines.push(`*Ulasan buruk belum dibalas:* ${d.ulasanBurukBelumDibalas}`);

@@ -51,6 +51,8 @@ export function uniquePhone() {
 
 export async function addToCart(page: Page, pick: Pick) {
   await page.goto(`/p/${pick.productSlug}?shade=${pick.shadeSlug}`);
+  // WebKit: tombol sudah ada sebelum hidrasi; tunggu jaringan tenang supaya klik tidak hilang.
+  await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: "Tambah ke Keranjang", exact: true }).click();
   const drawer = page.getByRole("dialog", { name: /Keranjang/ });
   await expect(drawer).toBeVisible();
@@ -104,10 +106,19 @@ export async function loginAsDemo(page: Page, kembali = "/akun") {
   await page.goto(`/masuk?kembali=${encodeURIComponent(kembali)}`);
   await page.getByRole("button", { name: "Masuk sebagai Pembeli Demo" }).click();
   await page.waitForURL((url) => url.pathname === kembali.split("?")[0]);
+  await page.waitForLoadState("load");
 }
 
 export async function loginStaff(page: Page, label: "Owner" | "Admin Online" | "Staf Cabang Dinoyo" | "Gudang", kembali = "/admin") {
   await page.goto(`/admin/masuk?kembali=${encodeURIComponent(kembali)}`);
   await page.getByRole("button", { name: label, exact: true }).click();
-  await page.waitForURL((u) => u.pathname === kembali.split("?")[0]);
+  // WebKit kadang melaporkan "Frame load interrupted" saat location.assign menyusul navigasi aksi server; tunggu sekali lagi.
+  const target = (u: URL) => u.pathname === kembali.split("?")[0];
+  try {
+    await page.waitForURL(target);
+  } catch {
+    await page.waitForURL(target);
+  }
+  // Pengalihan penuh masih berjalan saat URL berubah; tunggu selesai supaya goto berikutnya tidak terputus.
+  await page.waitForLoadState("load");
 }

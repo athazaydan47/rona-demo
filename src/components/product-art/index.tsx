@@ -20,8 +20,41 @@ export type ProductArtProps = {
   width?: number | string;
 };
 
-// Packshot SVG yang digambar dari data. Dirender di server, ukuran mengikuti lebar kontainer.
-export function ProductArt({
+// Alamat berkas SVG packshot (route /art). Parameter diurutkan tetap supaya URL yang sama selalu identik (cache).
+export function artSrc(p: Pick<ProductArtProps, "packaging" | "shade" | "brandColor" | "brandName" | "view" | "background">) {
+  const q = new URLSearchParams({ p: p.packaging, s: p.shade.replace(/^#/, ""), b: p.brandColor.replace(/^#/, ""), n: p.brandName.slice(0, 40) });
+  if (p.view === "detail") q.set("v", "detail");
+  if (p.background === "none") q.set("bg", "none");
+  return `/art?${q.toString()}`;
+}
+
+export function artLabel(p: Pick<ProductArtProps, "packaging" | "brandName" | "view" | "title">) {
+  return p.title ?? `${packagingLabels[p.packaging]} ${p.brandName}${p.view === "detail" ? `, ${detailLabels[p.packaging].toLowerCase()}` : ""}`;
+}
+
+// Packshot sebagai <img> ke /art (bawaan sejak Fase 8A): ringan di HTML dan payload RSC, di-cache browser per
+// packshot. priority untuk gambar di atas lipatan (LCP).
+export function ProductArt({ packaging, shade, brandColor, brandName, view = "depan", background = "soft", className, title, width, priority = false }: ProductArtProps & { priority?: boolean }) {
+  const label = artLabel({ packaging, brandName, view, title });
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- SVG dari route sendiri, tidak lewat optimasi next/image
+    <img
+      src={artSrc({ packaging, shade, brandColor, brandName, view, background })}
+      alt={label}
+      width={typeof width === "number" ? width : 200}
+      height={typeof width === "number" ? width * 1.2 : 240}
+      loading={priority ? "eager" : "lazy"}
+      fetchPriority={priority ? "high" : undefined}
+      decoding="async"
+      draggable={false}
+      className={cn("block h-auto w-full select-none", className)}
+      style={{ aspectRatio: "5 / 6" }}
+    />
+  );
+}
+
+// Packshot SVG inline yang digambar dari data: dipakai galeri produk, hero, route /art dan OG, serta skrip lembar seni.
+export function ProductArtInline({
   packaging,
   shade,
   brandColor,
@@ -36,7 +69,7 @@ export function ProductArt({
   const id = `pa${rawId.replace(/[^a-zA-Z0-9]/g, "")}`;
   const ctx = buildCtx({ id, view, packaging, shade, brand: brandColor, brandName });
   const draw = shapes[packaging] ?? shapes.cream_jar;
-  const label = title ?? `${packagingLabels[packaging]} ${brandName}${view === "detail" ? `, ${detailLabels[packaging].toLowerCase()}` : ""}`;
+  const label = artLabel({ packaging, brandName, view, title });
   return (
     <svg
       viewBox="0 0 200 240"

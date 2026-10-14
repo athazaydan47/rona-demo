@@ -28,7 +28,7 @@ function Body({ text }: { text: string }) {
             setOpen(!open);
           }}
           aria-expanded={open}
-          className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-rona hover:underline"
+          className="mt-1 inline-flex min-h-8 items-center gap-1 text-xs font-semibold text-rona-gelap hover:underline"
         >
           {open ? <ChevronUp className="size-3.5" aria-hidden /> : <ChevronDown className="size-3.5" aria-hidden />} {open ? "Tutup" : "Buka pesan"}
         </button>
@@ -38,7 +38,7 @@ function Body({ text }: { text: string }) {
 }
 
 function Item({ n, onOpen }: { n: InboxRow; onOpen: (id: number) => void }) {
-  const marker = n.unread ? <span className="absolute top-3 -left-1.5 size-2.5 rounded-full bg-rona" aria-label="Belum dibaca" /> : null;
+  const marker = n.unread ? <span className="absolute top-3 -left-1.5 size-2.5 rounded-full bg-rona" role="img" aria-label="Belum dibaca" /> : null;
   if (n.channel === "wa") {
     return (
       <li className="relative pl-3" data-testid="notif" data-unread={n.unread ? "ya" : "tidak"} onClick={() => n.unread && onOpen(n.id)}>
@@ -53,7 +53,7 @@ function Item({ n, onOpen }: { n: InboxRow; onOpen: (id: number) => void }) {
           </p>
         </div>
         {n.orderNumber ? (
-          <Link href={`/pesanan/${n.orderNumber}`} className="mt-1 inline-block text-xs font-semibold text-rona hover:underline">
+          <Link href={`/pesanan/${n.orderNumber}`} className="mt-1 inline-flex min-h-8 items-center text-xs font-semibold text-rona-gelap hover:underline">
             Lihat pesanan {n.orderNumber}
           </Link>
         ) : null}

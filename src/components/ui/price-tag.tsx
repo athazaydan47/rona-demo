@@ -25,7 +25,7 @@ export function PriceTag({ price, normalPrice, size = "md", prefix, className }:
       <span className={cn("font-semibold text-kopi", s.price)}>{formatRupiah(price)}</span>
       {percent > 0 && normalPrice ? (
         <>
-          <s className={cn("text-abu-hangat/80 decoration-abu-hangat/60", s.normal)}>{formatRupiah(normalPrice)}</s>
+          <s className={cn("text-abu-hangat decoration-abu-hangat/60", s.normal)}>{formatRupiah(normalPrice)}</s>
           <span className={cn("rounded-md bg-blush py-0.5 font-semibold text-rona-gelap", s.badge)}>{percent}%</span>
         </>
       ) : null}

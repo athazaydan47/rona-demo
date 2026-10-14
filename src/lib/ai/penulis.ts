@@ -42,12 +42,14 @@ export function checkClaims(text: string, ctx: ClaimContext): ClaimIssue[] {
       issues.push({ kalimat: s, alasan: `Menyebut bahan "${ingredient}" yang tidak ada di daftar bahan aktif produk.` });
       continue;
     }
-    const numbers = [...s.matchAll(/(\d+(?:[.,]\d+)?)\s*(%|persen|jam|hours?)|spf\s*(\d+)|pa\s*(\+{1,4})/gi)];
+    // Setiap angka berjenis klaim (persen, jam, ml, gram, hari, minggu, kali, SPF, PA) wajib ada di acuan.
+    const numbers = [...s.matchAll(/(\d+(?:[.,]\d+)?)\s*(%|persen|jam|hours?|ml|gram|g\b|mg|hari|minggu|bulan|kali|x\b)|spf\s*(\d+)|pa\s*(\+{1,4})/gi)];
     const missing = numbers.find((m) => {
       if (m[3]) return !ref.includes(`spf ${m[3]}`) && !ref.includes(`spf${m[3]}`);
       if (m[4]) return !ref.includes(`pa${m[4]}`) && !ref.includes(`pa ${m[4]}`);
-      const n = m[1].replace(",", ".");
-      return !ref.includes(n) && !ref.includes(m[1]);
+      // Angka harus muncul utuh di acuan ("2" tidak boleh lolos hanya karena ada "12 jam").
+      const whole = (n: string) => new RegExp(`(^|\\D)${n.replace(/[.]/g, "\\.")}(\\D|$)`).test(ref);
+      return !whole(m[1].replace(",", ".")) && !whole(m[1]);
     });
     if (missing) issues.push({ kalimat: s, alasan: `Klaim angka "${missing[0].trim()}" tidak ada di acuan.` });
   }

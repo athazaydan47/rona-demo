@@ -230,7 +230,8 @@ const TOOLS: ToolDef[] = [
           sku: v.data!.sku,
           lokasi: loc.locs.filter((l) => locIds.includes(l.id)).map((l) => {
             const r = inv.find((x) => x.variantId === v.id && x.locationId === l.id);
-            return { nama: l.name, tersedia: Math.max(0, (r?.onHand ?? 0) - (r?.reserved ?? 0)), dipesan: r?.reserved ?? 0 };
+            // tersedia null = varian tidak dijual di lokasi itu (bukan habis).
+            return r ? { nama: l.name, tersedia: Math.max(0, r.onHand - r.reserved), dipesan: r.reserved } : { nama: l.name, tersedia: null, dipesan: 0, catatan: "tidak dijual di lokasi ini" };
           }),
           tautan: `/admin/stok/${v.id}`,
         })),

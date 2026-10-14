@@ -10,6 +10,7 @@ export function flyToCart(source: HTMLElement | null) {
   const from = source.getBoundingClientRect();
   const to = target.getBoundingClientRect();
   const clone = source.cloneNode(true) as HTMLElement;
+  clone.dataset.terbang = "1"; // penanda untuk uji kurangi gerakan
   const size = Math.min(from.width, 160);
   Object.assign(clone.style, {
     position: "fixed",

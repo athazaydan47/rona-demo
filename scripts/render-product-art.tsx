@@ -5,7 +5,7 @@ import { Fragment } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { writeFileSync } from "node:fs";
 import { packagingValues } from "@/db/schema/enums";
-import { ProductArt, packagingLabels, type ProductArtView } from "@/components/product-art";
+import { ProductArtInline as ProductArt, packagingLabels, type ProductArtView } from "@/components/product-art";
 
 export type ArtShade = { label: string; shade: string; brand: string; brandName: string };
 

@@ -28,11 +28,8 @@ export type ReviewableItem = {
 };
 
 // Nama tampil di ulasan: nama depan dan inisial nama belakang, misal "Nadia P.".
-export function reviewerDisplayName(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "Pembeli Rona";
-  return parts.length === 1 ? parts[0] : `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
-}
+import { reviewerDisplayName } from "./display-name";
+export { reviewerDisplayName };
 
 // Item yang bisa (atau sudah) diulas dari satu pesanan Selesai milik pembeli. Kosong bila bukan miliknya.
 export async function reviewableItems(db: AnyDb, customerId: number, orderNumber: string): Promise<ReviewableItem[]> {

@@ -55,6 +55,14 @@ export async function dashboardData(db: AnyDb, staff: StaffPrincipal, now: Date)
     const rows = lowRows.filter((r) => r.locationId === l.id);
     return { location: l, out: rows.filter((r) => r.available <= 0).length, low: rows.filter((r) => r.available > 0).length, items: rows.filter((r) => r.available > 0).slice(0, 4) };
   });
+  // 5 teratas paling kritis (tersedia paling sedikit, habis dulu) lintas lokasi yang diampu, plus jumlah totalnya.
+  // Hanya varian yang memang dijual di lokasi itu yang punya baris inventory, jadi "tidak dijual" tidak ikut dihitung.
+  const locName = new Map(locs.map((l) => [l.id, l.name]));
+  const critical = [...lowRows]
+    .sort((a, b) => a.available - b.available || a.productName.localeCompare(b.productName, "id"))
+    .slice(0, 5)
+    .map((r) => ({ variantId: r.variantId, productName: r.productName, shadeName: r.shadeName, locationName: locName.get(r.locationId) ?? "", available: Math.max(0, r.available) }));
+  const lowTotals = { out: lowRows.filter((r) => r.available <= 0).length, low: lowRows.filter((r) => r.available > 0).length };
 
   // Perlu tindakan.
   const actions: ActionItem[] = [];
@@ -112,6 +120,8 @@ export async function dashboardData(db: AnyDb, staff: StaffPrincipal, now: Date)
     counts,
     best,
     lowStock,
+    critical,
+    lowTotals,
     threshold,
     actions,
     recent: recent.map((r) => ({ ...r, total: finance ? r.total : null })),

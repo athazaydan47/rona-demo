@@ -61,7 +61,7 @@ test("ambil di Rona Dinoyo dengan Bayar di Toko, staf menandai lunas dan diambil
 
   await page.waitForURL(/\/pesanan\/RONA-.*\/sukses/);
   const number = orderNumberFromUrl(page.url());
-  await expect(page.getByText("Pesanan dibuat, bayar saat ambil")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pesanan dibuat, bayar saat ambil" })).toBeVisible();
   expect((await stockOf(pick.variantId, "dinoyo")).reserved).toBe(before.reserved + 1);
 
   await page.getByRole("main").getByRole("link", { name: "Lacak pesanan" }).click();

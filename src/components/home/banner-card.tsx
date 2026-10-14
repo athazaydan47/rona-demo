@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { ProductArt } from "@/components/product-art";
 import type { Packaging } from "@/db/schema/enums";
@@ -21,8 +22,8 @@ export function BannerCard({ banner, className, priority }: { banner: BannerView
         </div>
         <div className="relative h-full min-h-0" aria-hidden>
           {banner.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={banner.imageUrl} alt="" className="absolute inset-0 h-full w-full rounded-xl object-cover" loading={priority ? "eager" : "lazy"} />
+            // next/image: ukuran responsif dan prioritas untuk banner pertama (kandidat LCP beranda).
+            <Image src={banner.imageUrl} alt="" fill sizes="(min-width: 1280px) 600px, (min-width: 768px) 45vw, 45vw" className="rounded-xl object-cover" priority={priority} />
           ) : (
             <div className="absolute inset-0 flex items-end justify-center gap-1 @2xl:gap-4">
               {items.map((it, i) => (

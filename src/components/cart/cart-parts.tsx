@@ -41,14 +41,15 @@ type LineProps = {
   onQty: (qty: number) => void;
   onRemove: () => void;
   onSave: () => void;
+  priority?: boolean; // baris pertama di atas lipatan: gambar eager (kandidat LCP)
 };
 
-export function CartLineRow({ line, busy, compact, onQty, onRemove, onSave }: LineProps) {
+export function CartLineRow({ line, busy, compact, onQty, onRemove, onSave, priority = false }: LineProps) {
   const href = `/p/${line.productSlug}${line.showShade ? `?shade=${line.shadeSlug}` : ""}`;
   return (
     <li className={cn("flex gap-3 py-4", busy && "opacity-60")}>
       <Link href={href} className={cn("shrink-0 overflow-hidden rounded-xl", compact ? "w-16" : "w-20 sm:w-24")}>
-        <ProductArt packaging={line.packaging} shade={line.hex} brandColor={line.brandColor} brandName={line.brandName} title={`${line.productName}${line.showShade ? `, ${line.shadeName}` : ""}`} />
+        <ProductArt packaging={line.packaging} shade={line.hex} brandColor={line.brandColor} brandName={line.brandName} title={`${line.productName}${line.showShade ? `, ${line.shadeName}` : ""}`} priority={priority} />
       </Link>
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-semibold tracking-wide text-abu-hangat uppercase">{line.brandName}</p>
@@ -211,7 +212,7 @@ export function EmptyCart({ compact }: { compact?: boolean }) {
   return (
     <div className={cn("flex flex-col items-center text-center", compact ? "py-10" : "py-16")}>
       <div className="w-28">
-        <ProductArt packaging="lip_tint" shade="#F4DCDF" brandColor="#B8475D" brandName="Rona" title="Ilustrasi keranjang kosong" />
+        <ProductArt packaging="lip_tint" shade="#F4DCDF" brandColor="#B8475D" brandName="Rona" title="Ilustrasi keranjang kosong" priority />
       </div>
       <p className="mt-4 font-serif text-2xl text-kopi">Keranjangmu masih kosong</p>
       <p className="mt-1 max-w-xs text-sm text-abu-hangat">Mulai dari produk terlaris, atau cari shade yang cocok untukmu.</p>

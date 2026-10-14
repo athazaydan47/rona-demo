@@ -7,6 +7,7 @@ import { courierName } from "@/lib/admin/couriers";
 import { emptyColumnText, initialKanbanTab, KANBAN_FINAL, KANBAN_FINAL_DAYS, KANBAN_TAB_COOKIE, planMove } from "@/lib/admin/kanban";
 import { statusLabels, type OrderStatus } from "@/lib/orders/status";
 import { cn } from "@/lib/utils";
+import { tandaiLangkah } from "@/lib/demo/panduan";
 import { OrderCardBody, type CardOrder } from "./order-card";
 import { useStatusChange } from "./status-change";
 
@@ -21,6 +22,7 @@ export function OrdersKanban({ columns, staffId, rememberedTab = null }: { colum
   const [dragging, setDragging] = useState<CardOrder | null>(null);
   const [over, setOver] = useState<OrderStatus | null>(null);
   const [notice, setNotice] = useState<{ tone: "error" | "ok"; text: string } | null>(null);
+  const [shake, setShake] = useState<number | null>(null); // kartu yang "kembali" setelah dilepas di kolom yang tidak sah
   const [tab, setTabState] = useState<OrderStatus>(() => initialKanbanTab(columns, rememberedTab));
   // Pilihan tab diingat per staf selama sesi browser (cookie tanpa masa berlaku).
   const setTab = (s: OrderStatus) => {
@@ -34,18 +36,55 @@ export function OrdersKanban({ columns, staffId, rememberedTab = null }: { colum
     setDragging(null);
     if (o.status === to) return;
     const plan = planMove({ status: o.status as OrderStatus, method: o.method, paymentMethod: o.paymentMethod }, to);
-    // Transisi tidak sah: kartu tetap di kolomnya dan alasannya ditampilkan.
-    if (!plan.ok) return setNotice({ tone: "error", text: `${o.number}: ${plan.reason}` });
-    if (plan.permission === "pesanan.batalkan" ? !o.canCancel : !o.canChange) return setNotice({ tone: "error", text: `${o.number}: kamu tidak punya izin untuk aksi ini.` });
+    // Transisi tidak sah: kartu tetap di kolomnya (bergoyang kembali) dan alasannya ditampilkan.
+    const bounce = () => {
+      setShake(o.id);
+      window.setTimeout(() => setShake((v) => (v === o.id ? null : v)), 450);
+    };
+    if (!plan.ok) {
+      bounce();
+      return setNotice({ tone: "error", text: `${o.number}: ${plan.reason}` });
+    }
+    if (plan.permission === "pesanan.batalkan" ? !o.canCancel : !o.canChange) {
+      bounce();
+      return setNotice({ tone: "error", text: `${o.number}: kamu tidak punya izin untuk aksi ini.` });
+    }
     setNotice(null);
+    if (to === "siap_diambil") tandaiLangkah("kanban");
     change.request({ number: o.number, from: o.status as OrderStatus, to, plan, courier: o.courier ? courierName(o.courier) : null });
+  };
+
+  // Alternatif tanpa seret (keyboard dan HP): pilih status tujuan yang sah dari daftar di kartu.
+  const mover = (o: CardOrder) => {
+    if (!(o.canChange || o.canCancel)) return null;
+    const targets = columns.filter((c) => c.status !== o.status && planMove({ status: o.status as OrderStatus, method: o.method, paymentMethod: o.paymentMethod }, c.status).ok);
+    if (!targets.length) return null;
+    return (
+      <select
+        aria-label={`Pindahkan ${o.number} ke status`}
+        value=""
+        onChange={(e) => {
+          const to = e.target.value as OrderStatus | "";
+          if (to) drop(o, to);
+        }}
+        className="mt-2 h-7 w-full rounded-md border border-garis bg-porselen px-1.5 text-[11px] text-kopi focus-visible:border-rona"
+        data-testid="pindah-status"
+      >
+        <option value="">Pindahkan ke...</option>
+        {targets.map((t) => (
+          <option key={t.status} value={t.status}>
+            {statusLabels[t.status]}
+          </option>
+        ))}
+      </select>
+    );
   };
 
   const current = columns.find((c) => c.status === tab) ?? columns[0];
   return (
     <div>
       {notice ? (
-        <p className={cn("mb-3 rounded-lg px-3 py-2 text-sm", notice.tone === "error" ? "bg-[#F7E3E1] text-bahaya" : "bg-[#E5F2EA] text-sukses")} role={notice.tone === "error" ? "alert" : "status"} data-testid="kanban-pesan">
+        <p className={cn("mb-3 rounded-lg px-3 py-2 text-sm", notice.tone === "error" ? "bg-[#F7E3E1] text-bahaya" : "bg-[#EAF6EF] text-sukses")} role={notice.tone === "error" ? "alert" : "status"} data-testid="kanban-pesan">
           {notice.text}
         </p>
       ) : null}
@@ -61,10 +100,11 @@ export function OrdersKanban({ columns, staffId, rememberedTab = null }: { colum
             ))}
           </div>
         </div>
-        <ul className="mt-3 space-y-2" role="tabpanel">
+        <ul className="mt-3 space-y-2" role="list" aria-label={`Pesanan ${statusLabels[current.status]}`}>
           {current.orders.map((o) => (
             <li key={o.id} className="rounded-xl border border-garis bg-putih p-3">
               <OrderCardBody o={o} />
+              {mover(o)}
             </li>
           ))}
           {KANBAN_FINAL.includes(current.status) ? (
@@ -151,9 +191,15 @@ export function OrdersKanban({ columns, staffId, rememberedTab = null }: { colum
                         setOver(null);
                       }}
                       data-pesanan={o.number}
-                      className={cn("rounded-lg border border-garis bg-putih p-2.5 shadow-[0_1px_2px_rgb(42_31_29/0.05)]", (o.canChange || o.canCancel) && "cursor-grab active:cursor-grabbing", dragging?.id === o.id && "opacity-50")}
+                      className={cn(
+                        "rounded-lg border border-garis bg-putih p-2.5 shadow-[0_1px_2px_rgb(42_31_29/0.05)] transition-[transform,box-shadow,opacity] duration-[var(--durasi-cepat)] ease-[var(--ease-soft)] motion-reduce:transition-none",
+                        (o.canChange || o.canCancel) && "cursor-grab active:cursor-grabbing",
+                        dragging?.id === o.id && "scale-[1.02] -rotate-1 opacity-60 shadow-lift",
+                        shake === o.id && "animate-goyang",
+                      )}
                     >
                       <OrderCardBody o={o} />
+                      {mover(o)}
                     </li>
                   ))}
                   {c.total > c.orders.length ? <li className="px-1 text-center text-[11px] text-abu-hangat">dan {c.total - c.orders.length} lainnya di tampilan tabel</li> : null}

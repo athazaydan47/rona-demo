@@ -35,9 +35,10 @@ type ProductCardProps = {
   hideBadges?: CardBadge[]; // badge yang sama dengan judul section disembunyikan
   quickAdd?: boolean;
   className?: string;
+  priority?: boolean; // kartu di atas lipatan: gambar dimuat eager (kandidat LCP)
 };
 
-export function ProductCard({ product, hideBadges = [], quickAdd = true, className }: ProductCardProps) {
+export function ProductCard({ product, hideBadges = [], quickAdd = true, className, priority = false }: ProductCardProps) {
   const badge = pickCardBadge(product, hideBadges);
   const hasRating = product.reviewCount > 0;
   const hasSold = product.soldCount > 0;
@@ -58,6 +59,7 @@ export function ProductCard({ product, hideBadges = [], quickAdd = true, classNa
             brandName={product.brandName}
             title={`${product.name}${product.primaryShade ? `, shade ${product.primaryShade}` : ""}`}
             className="transition-transform duration-300 ease-soft group-hover:scale-[1.03]"
+            priority={priority}
           />
         </Link>
         {badge ? (

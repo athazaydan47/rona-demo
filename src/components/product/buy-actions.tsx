@@ -60,27 +60,27 @@ export function BuyActions({ productId, productName, shadeName, variantId, maxQt
           <p className="text-xs text-abu-hangat tabular-nums">Maks {maxQty}</p>
         </div>
       ) : null}
-      <div ref={mainButtonRef} className="mt-4 grid grid-cols-[1fr_auto_auto] gap-2 sm:grid-cols-[1fr_1fr_auto_auto]" data-aksi-utama>
+      <div ref={mainButtonRef} className="mt-4 grid grid-cols-[1fr_auto_auto] gap-2 sm:grid-cols-[1fr_1fr_auto_auto] md:grid-cols-[1fr_auto_auto] lg:grid-cols-[1fr_1fr_auto_auto]" data-aksi-utama>
         {outOfStock ? (
           <RestockDialog
             variantId={variantId}
             productName={productName}
             shadeName={shadeName || "Standar"}
             trigger={
-              <Button size="lg" variant="dark" className="col-span-2 sm:col-span-2">
+              <Button size="lg" variant="dark" className="col-span-2 sm:col-span-2 md:col-span-2 lg:col-span-2">
                 <BellRing /> Kabari aku saat tersedia
               </Button>
             }
           />
         ) : (
           <>
-            <Button size="lg" onClick={add} disabled={busy} className="col-span-2 sm:col-span-1">
+            <Button size="lg" onClick={add} disabled={busy} className="col-span-2 sm:col-span-1 md:col-span-2 lg:col-span-1">
               <ShoppingBag /> Tambah ke Keranjang
             </Button>
             <Button
               size="lg"
               variant="dark"
-              className="col-span-3 sm:col-span-1"
+              className="col-span-3 sm:col-span-1 md:col-span-3 lg:col-span-1"
               disabled={busy}
               onClick={async () => {
                 setBusy(true);

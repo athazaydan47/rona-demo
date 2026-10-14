@@ -9,7 +9,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import sharp from "sharp";
-import { ProductArt } from "@/components/product-art";
+import { ProductArtInline as ProductArt } from "@/components/product-art";
 import { imageSignature } from "@/lib/ai/mock-vision";
 import type { Packaging } from "@/db/schema/enums";
 

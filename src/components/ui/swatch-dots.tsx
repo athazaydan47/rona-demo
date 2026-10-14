@@ -14,7 +14,7 @@ export function SwatchDots({ hexes, max = 5, size = "sm", className }: SwatchDot
   const rest = hexes.length - shown.length;
   const dot = size === "sm" ? "size-3.5" : "size-5";
   return (
-    <div className={cn("flex items-center gap-1", className)} aria-label={`${hexes.length} shade`}>
+    <div className={cn("flex items-center gap-1", className)} role="img" aria-label={`${hexes.length} shade`}>
       {shown.map((hex, i) => (
         <span
           key={`${hex}-${i}`}

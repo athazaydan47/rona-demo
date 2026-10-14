@@ -3,6 +3,7 @@
 //   npm run cuplik -- --nama=fase1 --halaman=/,/design --aksi=menu
 //   --lebar=375 atau --lebar=1440   potret satu lebar saja
 //   --penuh                         perilaku lama: dengan footer, ribbon, promo bar, dan tanpa batas tinggi
+//   --tinggi=9000                   tinggi maksimal satu lembar (px), bawaan 6200; naikkan supaya lembar lebih sedikit
 //
 // Bawaan mode ringkas: footer, BottomNav, DemoRibbon, PromoBar disembunyikan, tinggi dibatasi
 // 2400 px (375) dan 1800 px (1440), dan lembar disusun beberapa baris supaya sesedikit mungkin.
@@ -173,7 +174,7 @@ function buildBlocks(segments) {
 }
 
 // Susun blok ke baris (lebar maksimal lembar), lalu baris ke lembar (tinggi maksimal MAX_SHEET_H).
-function packSheets(segments) {
+function packSheets(segments, maxSheetH = MAX_SHEET_H) {
   const inner = SHEET_WIDTH - PAD * 2;
   const rows = [];
   let row = { blocks: [], width: 0, height: 0 };
@@ -194,7 +195,7 @@ function packSheets(segments) {
   let used = 0;
   for (const r of rows) {
     const need = (sheet.length ? ROW_GAP : 0) + r.height;
-    if (sheet.length && used + need > MAX_SHEET_H) {
+    if (sheet.length && used + need > maxSheetH) {
       sheets.push(sheet);
       sheet = [];
       used = 0;
@@ -340,7 +341,7 @@ async function main() {
       console.log("selesai");
     }
 
-    const sheets = packSheets(buildSegments(shots));
+    const sheets = packSheets(buildSegments(shots), Number(args.tinggi ?? MAX_SHEET_H));
     const hash = gitShortHash();
     for (const [i, rows] of sheets.entries()) {
       const no = i + 1;

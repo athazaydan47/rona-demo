@@ -1,4 +1,4 @@
-import { ProductArt, ShadeSwatchArt } from "@/components/product-art";
+import { ProductArtInline as ProductArt, ShadeSwatchArt } from "@/components/product-art";
 
 // Komposisi still-life untuk hero desktop: 6 packshot berbagai ukuran di atas podium geometris.
 // Kanvas 640 x 520 (rasio dijaga lewat aspect-ratio), semua posisi dalam persen supaya ikut menskala.

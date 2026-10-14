@@ -531,6 +531,7 @@ PromoBar, Header + MegaMenu, SearchBox dengan saran instan, ProductArt, ProductC
 - Momen andalan: produk "terbang" ke ikon keranjang, pergantian shade dengan crossfade, angka hitung mundur yang berganti halus, kartu muncul bertahap saat digulir.
 - Hormati pengaturan "kurangi gerakan" di perangkat.
 - Polish animasi dikerjakan di fase terakhir supaya fondasinya rapi dulu (pelajaran dari Civil.co).
+- Token gerak (Fase 8A, sumber: `src/lib/motion.ts` dan `globals.css`): durasi cepat 150 ms (umpan balik sentuhan), sedang 250 ms (pergantian isi), lambat 400 ms (elemen besar); easing lembut `cubic-bezier(0.22, 1, 0.36, 1)`; pegas tenang (stiffness 260, damping 30) untuk laci dan elemen besar, pegas kenyal (stiffness 420, damping 22, CSS `--ease-pegas`) untuk badge, kartu kanban kembali, dan sheet yang dilepas. Daftar bertahap maksimal 8 langkah, 40 ms per langkah.
 
 ### Bahasa
 

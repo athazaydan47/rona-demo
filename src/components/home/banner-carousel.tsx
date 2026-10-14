@@ -59,7 +59,7 @@ export function BannerCarousel({ banners }: { banners: (BannerView & { id: numbe
       {banners.length > 1 ? (
         <div className="mt-2.5 flex justify-center gap-1.5">
           {banners.map((b, i) => (
-            <button key={b.id} type="button" onClick={() => go(i)} className="grid h-6 place-items-center px-0.5" aria-label={`Banner ${i + 1} dari ${banners.length}`} aria-current={i === index}>
+            <button key={b.id} type="button" onClick={() => go(i)} className="grid h-9 min-w-7 place-items-center px-1" aria-label={`Banner ${i + 1} dari ${banners.length}`} aria-current={i === index}>
               <span className={cn("block h-1.5 rounded-full transition-all", i === index ? "w-5 bg-rona" : "w-1.5 bg-kopi/20")} />
             </button>
           ))}

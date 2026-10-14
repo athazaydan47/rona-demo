@@ -48,7 +48,7 @@ export function CartDrawer() {
         <Dialog.Content
           aria-describedby={undefined}
           data-cart-drawer
-          className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-putih shadow-lift outline-none data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right"
+          className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-putih shadow-lift outline-none duration-[var(--durasi-lambat)] ease-[var(--ease-soft)] data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right"
         >
           <div className="flex h-14 items-center justify-between border-b border-garis px-5">
             <Dialog.Title className="font-serif text-xl text-kopi">Keranjang{view && view.count > 0 ? ` (${view.count})` : ""}</Dialog.Title>

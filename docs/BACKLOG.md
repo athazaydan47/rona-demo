@@ -106,7 +106,19 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 - Header keamanan baru dasar: belum ada Content-Security-Policy lengkap (script-src, img-src) karena peta memakai ubin OSM dan gambar inline; susun CSP penuh di Fase 8. (Fase 4.1)
 - Pool koneksi aplikasi 5 per instance di Vercel; pantau batas koneksi Neon paket gratis saat demo ramai. (Fase 4.1)
 - Migrasi otomatis jalan di setiap build produksi (`src/db/build-migrate.ts`); build preview tidak memigrasi, jadi preview dengan migrasi baru bisa error sampai produksi ikut di-deploy. Pertimbangkan cabang database Neon per preview. (Fase 6B)
-- Halaman produk memakai `export const instant = false`: dengan partialPrefetching, kedaluwarsanya tag products membuat Next merender ulang shell umum `/p/[slug]` yang membaca params di luar Suspense, dan tanpa izin memblokir semua halaman produk error 500. Bila nanti ingin shell instan untuk slug baru, pindahkan pembacaan params ke dalam Suspense dan andalkan proxy untuk 404. (Fase 6B)
+- Halaman produk memakai `export const instant = false`: dengan partialPrefetching, kedaluwarsanya tag products membuat Next merender ulang shell umum `/p/[slug]` yang membaca params di luar Suspense, dan tanpa izin memblokir semua halaman produk error 500. Bila nanti ingin shell instan untuk slug baru, pindahkan pembacaan params ke dalam Suspense dan andalkan proxy untuk 404. (Fase 6B) Dicek ulang Fase 8A: di Next 16.4 `instant` hanya mengatur validasi navigasi instan saat pengembangan, bukan prefetch; prefetch produksi tetap berjalan (5 prefetch per halaman katalog, navigasi ke produk sekitar 0,9 detik) dan 500 lama sudah hilang. Dibiarkan `false` karena halaman memang memblokir demi 404 sungguhan. (Fase 8A)
+
+## Poles Fase 8A (ditunda dengan alasan)
+
+- Animasi layout kartu katalog saat filter berganti (kartu yang tetap ada berpindah posisi): filter berganti lewat navigasi server dan kunci grid, sehingga kartu dipasang ulang; yang ada sekarang adalah kartu masuk bertahap. Animasi layout lintas pemasangan butuh LayoutGroup dan id stabil; biayanya tidak sebanding untuk grid 24 kartu. (Fase 8A)
+- Axe moderate `heading-order` (h3 setelah h1 di kartu beranda dan checkout) dan `region` (promo bar di luar landmark): hierarki heading mengikuti kartu visual dan promo bar sengaja ringan; tidak menghambat pembaca layar. (Fase 8A)
+- Audit sasaran sentuh mengecualikan tautan di dalam kalimat (mengikuti ukuran teks, praktik umum). Tautan berdiri sendiri sudah minimal 32 px. (Fase 8A)
+- Komponen `src/components/coming-soon.tsx` dan `src/components/admin/coming-soon.tsx` tidak lagi dipakai setelah /advisor dan /toko diisi; dibiarkan sampai ada izin menghapus berkas lama. (Fase 8A)
+- JS awal sekitar 890 KB mentah (20 berkas) di beranda: react-dom dan runtime Next 229 KB, Motion 135 KB (dipakai toast dan promo bar di semua halaman), Radix sekitar 130 KB tersebar. Leaflet (145 KB) hanya dimuat saat peta dibuka. Pengurangan berikutnya: ganti Motion di toast dan promo bar dengan CSS supaya Motion hanya dimuat di halaman yang butuh (galeri, grid, hitung mundur). (Fase 8A)
+- Target Lighthouse LCP di bawah 2,5 detik pada 4G tersimulasi belum tercapai (lihat laporan Fase 8A); penyumbang terbesar CSS yang memblokir render (sekitar 450 ms) dan hidrasi. Langkah berikutnya: CSS kritis inline, memecah Motion, dan mengukur dari Vercel dengan Neon sungguhan. (Fase 8A)
+- Neon cold start belum diukur dari Vercel; halaman katalog yang di-cache tidak menunggu database, bagian stok dan harga memakai kerangka Suspense. Ukur lewat `/api/kesehatan` setelah deploy. (Fase 8A)
+- Kartu produk masih mengirim daftar varian lengkap untuk tambah cepat (sekitar 30 KB di beranda); dipangkas bersama pemindahan katalog ke SQL. (Fase 8A)
+- Ukuran HTML beranda masih sekitar 790 KB (dari 2.458 KB) karena payload RSC menyalin seluruh pohon komponen server (sekitar 480 rows); langkah berikutnya memindahkan bagian yang jarang berubah (mega menu unggulan, etalase merek) ke komponen klien yang menerima data ringkas. (Fase 8A)
 
 ## Aturan cache
 
@@ -115,6 +127,8 @@ Temuan visual dan teknis yang sengaja ditunda ke fase polish. Tambahkan temuan b
 - `getBrands` di-cache dengan tag brands dan products karena memuat jumlah produk dan produk terlaris per merek; perubahan status produk di admin harus merevalidasi tag products. (Fase 2.1)
 
 ## Selesai
+- Poles Fase 8A: 404 dan 500 bermerek, delapan halaman bantuan dari satu sumber teks, perayap tautan internal, token gerak dan animasi (terbang ke keranjang, badge, laci, sheet usap, flip hitung mundur, kuota, kartu bertahap, kanban terangkat dan kembali, angka naik, sorotan pesanan baru, gelembung obrolan), kontras AA dan label aksesibilitas, keyboard untuk pemilih shade dan kanban, etalase /tentang-demo, panduan demo 5 menit, WebKit dan axe di Playwright, ProductArt sebagai gambar `/art` (HTML beranda 2.458 KB menjadi sekitar 790 KB). (Fase 8A)
+- Dari review 7B: label kolom Asisten Admin manusiawi, pertanyaan balik dengan pilihan cepat, pemeriksa klaim deskripsi untuk semua satuan dengan evaluasi `npm run eval:deskripsi`, balasan ulasan dengan nama panggilan tanpa data pribadi, stok cabang membedakan "tidak dijual" dari "habis" (seed versi 11, lalu 12 dengan stok gudang sunscreen Advisor), Kabar Harian dan dashboard menampilkan 5 stok paling kritis. (Fase 8A)
 - Tombol Tanya Rona di HP bulat ikon saja dan menyingkir saat digulir ke bawah; panel Kesehatan AI di Laporan; tarif dan kurs di satu konfigurasi yang juga dipakai evaluasi. (Fase 7B, dari review 7C)
 - Asisten Admin, saran transfer dan flash sale yang menjadi draf, panduan gaya bahasa, penulis deskripsi, draf balasan ulasan, Kabar Harian, dan tab Rona Advisor. (Fase 7B)
 

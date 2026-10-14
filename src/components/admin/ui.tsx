@@ -35,7 +35,7 @@ export function Denied({ message = "Kamu tidak punya akses ke halaman ini." }: {
       <ShieldAlert className="mx-auto size-8 text-bahaya" aria-hidden />
       <h1 className="mt-2 font-serif text-2xl text-kopi">Akses ditolak</h1>
       <p className="mt-1 text-sm text-abu-hangat">{message}</p>
-      <Link href="/admin" className="mt-4 inline-block text-sm font-semibold text-rona hover:underline">
+      <Link href="/admin" className="mt-4 inline-flex min-h-10 items-center text-sm font-semibold text-rona hover:underline">
         Kembali ke Dashboard
       </Link>
     </div>

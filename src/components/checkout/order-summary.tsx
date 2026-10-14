@@ -18,7 +18,7 @@ function Rows({ cart, pricing }: { cart: CartView; pricing: PricedCart }) {
           return (
             <li key={l.itemId} className="flex items-center gap-3 py-3">
               <span className="relative w-12 shrink-0 overflow-hidden rounded-lg">
-                <ProductArt packaging={l.packaging} shade={l.hex} brandColor={l.brandColor} brandName={l.brandName} title="" />
+                <ProductArt packaging={l.packaging} shade={l.hex} brandColor={l.brandColor} brandName={l.brandName} title="" priority={i < 2} />
                 <span className="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full bg-kopi text-[10px] font-bold text-putih tabular-nums">{l.quantity}</span>
               </span>
               <span className="min-w-0 flex-1">
@@ -48,7 +48,7 @@ function Rows({ cart, pricing }: { cart: CartView; pricing: PricedCart }) {
           </div>
         ) : null}
         <div className="flex justify-between gap-3">
-          <dt className="text-abu-hangat">{s?.method === "ambil" ? "Ambil di toko" : "Ongkir"}</dt>
+          <dt className="text-abu-hangat">{s?.method === "ambil" ? "Ambil di Toko" : "Ongkir"}</dt>
           <dd className="whitespace-nowrap tabular-nums">{s ? (s.method === "ambil" ? "Gratis" : formatRupiah(s.cost)) : <span className="text-xs text-abu-hangat">Pilih kurir dulu</span>}</dd>
         </div>
         {s && s.discount > 0 ? (

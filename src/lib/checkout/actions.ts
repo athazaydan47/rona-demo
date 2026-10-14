@@ -23,6 +23,7 @@ import { regionName, zoneForRegency } from "@/lib/regions";
 import { couriers, etaLabel, instantAvailability, type CourierCode, type Zone } from "@/lib/shipping";
 import { siteUrl } from "@/lib/site";
 import { scheduleEmailDispatch } from "@/lib/email/schedule";
+import { cookieSecure } from "@/lib/cookie-secure";
 
 export type CourierOption = { code: CourierCode; name: string; service: string; cost: number; payable: number; etaLabel: string; shipsToday: boolean; disabledNote: string | null };
 export type PickupOption = { slug: string; name: string; district: string; address: string; hoursLabel: string; enough: boolean; readyLabel: string };
@@ -247,6 +248,6 @@ export async function placeOrderAction(raw: z.input<typeof placeSchema>): Promis
   // Simpan token pesanan di perangkat supaya tamu bisa membuka pesanannya lagi tanpa tautan.
   const jar = await cookies();
   const prev = (jar.get(ORDERS_COOKIE)?.value ?? "").split(".").filter(Boolean).slice(-9);
-  jar.set(ORDERS_COOKIE, [...prev, result.accessToken].join("."), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 24 * 90 });
+  jar.set(ORDERS_COOKIE, [...prev, result.accessToken].join("."), { httpOnly: true, sameSite: "lax", secure: cookieSecure(), path: "/", maxAge: 60 * 60 * 24 * 90 });
   return { ok: true, number: result.number, token: result.accessToken, paymentMethod: result.paymentMethod };
 }

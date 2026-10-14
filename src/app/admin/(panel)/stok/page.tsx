@@ -25,9 +25,10 @@ export const metadata: Metadata = { title: "Stok" };
 type SP = { q?: string; merek?: string; kategori?: string; status?: string; hal?: string };
 type Props = { searchParams: Promise<SP> };
 
-function cellTone(available: number, threshold: number) {
+function cellTone(available: number | null, threshold: number) {
+  if (available == null) return "text-abu-hangat";
   if (available <= 0) return "bg-[#F7E3E1] text-bahaya";
-  if (available <= threshold) return "bg-[#FBEEDC] text-peringatan";
+  if (available <= threshold) return "bg-[#FBEEDC] text-peringatan-teks";
   return "";
 }
 
@@ -87,7 +88,7 @@ async function Content({ searchParams }: Props) {
   const href = (over: Partial<SP>) => `/admin/stok?${new URLSearchParams(Object.entries({ ...sp, ...over }).filter(([, v]) => v) as [string, string][])}`;
   return (
     <>
-      <PageHead title="Stok" description={`Tersedia = stok fisik dikurangi dipesan. ${allLocations(me) ? "Semua lokasi." : "Hanya lokasi yang kamu ampu."} Menipis bila tersedia ${m.threshold} atau kurang.`}>
+      <PageHead title="Stok" description={`Tersedia = stok fisik dikurangi dipesan. ${allLocations(me) ? "Semua lokasi." : "Hanya lokasi yang kamu ampu."} Menipis bila tersedia ${m.threshold} atau kurang. Tanda "-" berarti varian tidak dijual di lokasi itu.`}>
         {can(me, "stok.masuk") ? (
           <Button asChild size="sm">
             <Link href="/admin/stok/masuk">
@@ -168,7 +169,7 @@ async function Content({ searchParams }: Props) {
                   <div key={l.id} className={cn("flex items-center justify-between rounded-md border border-garis px-2 py-1 text-xs", cellTone(c.available, m.threshold))}>
                     <span className="truncate">{l.name.replace("Rona ", "")}</span>
                     <span className="font-semibold tabular-nums">
-                      {c.available}
+                      {c.available ?? "-"}
                       {c.reserved ? <span className="font-normal text-abu-hangat"> +{c.reserved}</span> : null}
                     </span>
                   </div>
@@ -212,9 +213,9 @@ async function Content({ searchParams }: Props) {
                 {m.locations.map((l) => {
                   const c = r.cells[l.id];
                   return (
-                    <td key={l.id} className={cn("px-3 py-2 text-right whitespace-nowrap tabular-nums", cellTone(c.available, m.threshold))} data-lokasi={l.slug} data-tersedia={c.available}>
-                      <span className="font-semibold">{c.available}</span>
-                      <span className="text-xs text-abu-hangat"> · {c.reserved}</span>
+                    <td key={l.id} className={cn("px-3 py-2 text-right whitespace-nowrap tabular-nums", cellTone(c.available, m.threshold))} data-lokasi={l.slug} data-tersedia={c.available ?? "-"} title={c.available == null ? "Tidak dijual di lokasi ini" : undefined}>
+                      <span className="font-semibold">{c.available ?? "-"}</span>
+                      {c.available == null ? null : <span className="text-xs text-abu-hangat"> · {c.reserved}</span>}
                     </td>
                   );
                 })}

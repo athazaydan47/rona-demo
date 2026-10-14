@@ -6,6 +6,7 @@ import { Dialog } from "radix-ui";
 import { AlertTriangle, Bot, Loader2, Mic, SendHorizontal, Square, X } from "lucide-react";
 import { useFloatingPosition } from "@/components/ai/floating-position";
 import { Button } from "@/components/ui/button";
+import { Bubble, TypingDots } from "@/components/ui/chat-parts";
 import type { RoleSlug } from "@/lib/admin/permissions";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ type Msg = {
   status?: string;
   tabel?: Table | null;
   tautan?: { label: string; href: string }[];
+  pilihan?: string[];
   angka?: { nilai: string; sumber: string }[];
   peringatan?: string | null;
   kind?: "jawab" | "langsung" | "tidak_tersedia" | "galat";
@@ -208,9 +210,9 @@ export function AdminAssistant({ role }: { role: RoleSlug }) {
         buf = lines.pop() ?? "";
         for (const line of lines) {
           if (!line.trim()) continue;
-          const e = JSON.parse(line) as { type: string; text?: string; teks?: string; status?: Msg["kind"]; tabel?: Table | null; tautan?: Msg["tautan"]; angka?: Msg["angka"]; peringatan?: string | null };
+          const e = JSON.parse(line) as { type: string; text?: string; teks?: string; status?: Msg["kind"]; tabel?: Table | null; tautan?: Msg["tautan"]; pilihan?: string[]; angka?: Msg["angka"]; peringatan?: string | null };
           if (e.type === "status") update({ status: e.text });
-          if (e.type === "done") update({ text: e.teks ?? "", status: undefined, tabel: e.tabel, tautan: e.tautan, angka: e.angka, peringatan: e.peringatan, kind: e.status });
+          if (e.type === "done") update({ text: e.teks ?? "", status: undefined, tabel: e.tabel, tautan: e.tautan, pilihan: e.pilihan, angka: e.angka, peringatan: e.peringatan, kind: e.status });
         }
       }
     } catch {
@@ -268,15 +270,13 @@ export function AdminAssistant({ role }: { role: RoleSlug }) {
               ) : null}
               {messages.map((m, i) =>
                 m.role === "user" ? (
-                  <p key={i} className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-kopi px-3.5 py-2 text-sm text-putih">
-                    {m.text}
-                  </p>
+                  <Bubble key={i} side="kanan" className="max-w-[85%]">
+                    <p className="rounded-2xl rounded-br-md bg-kopi px-3.5 py-2 text-sm text-putih">{m.text}</p>
+                  </Bubble>
                 ) : (
-                  <div key={i} className="max-w-[98%] space-y-2" data-testid="jawaban-asisten">
+                  <Bubble key={i} className="max-w-[98%] space-y-2" testId="jawaban-asisten">
                     {m.status && !m.text ? (
-                      <p className="inline-flex items-center gap-2 rounded-2xl bg-putih px-3.5 py-2 text-sm text-abu-hangat">
-                        <Loader2 className="size-3.5 animate-spin" aria-hidden /> {m.status}...
-                      </p>
+                      <TypingDots status={m.status} />
                     ) : m.kind === "tidak_tersedia" || m.kind === "galat" ? (
                       <p className="rounded-2xl border border-dashed border-garis bg-putih px-3.5 py-2 text-sm text-abu-hangat" role="status" data-testid="asisten-tidak-tersedia">
                         {m.text}
@@ -288,6 +288,15 @@ export function AdminAssistant({ role }: { role: RoleSlug }) {
                       <p className="flex items-start gap-1.5 rounded-lg bg-[#FBEEDC] px-3 py-2 text-xs text-[#8A5512]" data-testid="peringatan-angka">
                         <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden /> {m.peringatan}
                       </p>
+                    ) : null}
+                    {m.pilihan?.length && i === messages.length - 1 ? (
+                      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Pilihan cepat">
+                        {m.pilihan.map((p) => (
+                          <button key={p} type="button" onClick={() => send(p)} disabled={busy} className="rounded-pill border border-garis bg-porselen px-3 py-1.5 text-xs font-medium hover:border-rona/40 disabled:opacity-50" data-testid="pilihan-asisten">
+                            {p}
+                          </button>
+                        ))}
+                      </div>
                     ) : null}
                     {m.tabel ? <AnswerTable t={m.tabel} /> : null}
                     {m.tautan?.length ? (
@@ -311,7 +320,7 @@ export function AdminAssistant({ role }: { role: RoleSlug }) {
                         </ul>
                       </details>
                     ) : null}
-                  </div>
+                  </Bubble>
                 ),
               )}
             </div>

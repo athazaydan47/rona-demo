@@ -79,7 +79,7 @@ export function ProductGallery({ images, variantKey, mainRef }: Props) {
 
       {/* HP */}
       <div className="md:hidden">
-        <div ref={scrollerRef} className="-mx-4 flex snap-x snap-mandatory overflow-x-auto scrollbar-none" aria-label="Galeri produk" role="region">
+        <div ref={scrollerRef} className="-mx-4 flex snap-x snap-mandatory overflow-x-auto scrollbar-none" aria-label="Galeri produk" role="region" tabIndex={0}>
           {images.map((img, i) => (
             <div key={img.key} data-slide={i} className="w-full shrink-0 snap-center px-4">
               <div className="overflow-hidden rounded-card bg-porselen" style={{ aspectRatio: "5 / 6" }} ref={i === 0 ? (mainRef as React.RefObject<HTMLDivElement>) : undefined}>

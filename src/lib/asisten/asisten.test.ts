@@ -209,8 +209,10 @@ describe("pemeriksa klaim deskripsi", () => {
     const issues = checkClaims("Mengandung retinol untuk tekstur halus. Mencerahkan dalam 7 hari dengan 99% kepuasan. Dijamin menyembuhkan jerawat.", ctx);
     expect(issues).toHaveLength(3);
     expect(issues[0].alasan).toContain("retinol");
-    expect(issues[1].alasan).toContain("99%");
+    expect(issues[1].alasan).toContain("7 hari"); // satuan hari ikut diperiksa sejak Fase 8A
     expect(issues[2].alasan).toContain("terlarang");
+    expect(checkClaims("Isi bersih 30 ml, cukup untuk 2 bulan.", ctx)[0].alasan).toContain("2 bulan");
+    expect(checkClaims("Isi bersih 30 ml.", ctx)).toEqual([]);
     expect(checkClaims("SPF 50 melindungi seharian.", ctx)[0].alasan).toContain("SPF 50");
     expect(checkClaims("Cocok juga untuk kakao lover.", ctx)).toEqual([]); // kata dihindari dicek per kata
     expect(checkClaims("Halo kak, ini serum ringan.", ctx)[0].alasan).toContain("kak");
@@ -238,5 +240,19 @@ describe("atribusi Advisor di laporan", () => {
     const item = (orderId: number, source: string | null, price: number) => ({ orderId, variantId: 1, sku: "", productId: 1, productName: "", productSlug: "", shadeName: "", hex: "", packaging: "", brandId: 1, brandName: "", brandColor: "", categoryId: 1, categoryName: "", parentCategoryName: "", quantity: 1, unitPrice: price, normalPrice: price, priceSource: "normal", flashSaleItemId: null, source });
     const data = { range, orders: [order(1, 200_000), order(2, 100_000), order(3, 300_000)], items: [item(1, "advisor", 80_000), item(1, null, 120_000), item(2, null, 100_000), item(3, "rutinitas", 300_000)], firstRevenueAt: new Map(), flashSlots: [], vouchers: [], advisor: { conversations: 40, cartAdds: 9 } } as ReportData;
     expect(advisorPerformance(data)).toEqual({ conversations: 40, cartAdds: 9, orders: 1, ordersShare: 33.3, itemSales: 80_000, aovWith: 200_000, aovWithout: 200_000, ordersWithout: 2 });
+  });
+});
+
+describe("label tabel asisten (Fase 8A)", () => {
+  it("kepala kolom selalu label manusia, bukan camelCase atau snake_case", async () => {
+    const { humanizeHeader, looksMachine, formatCell } = await import("./label");
+    for (const k of ["penjualanBarangRp", "jumlah_pesanan", "unit", "merek", "nama", "omzetRp", "stok_tersedia"]) {
+      const h = humanizeHeader(k);
+      expect(looksMachine(h), `${k} -> ${h}`).toBe(false);
+      expect(h).not.toMatch(/[a-z][A-Z]|_/);
+    }
+    expect(humanizeHeader("penjualanBarangRp")).toBe("Penjualan barang");
+    expect(formatCell("penjualanBarangRp", "1290000")).toBe("Rp 1.290.000");
+    expect(formatCell("unit", "12")).toBe("12");
   });
 });

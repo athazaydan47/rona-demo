@@ -5,6 +5,7 @@ import "./globals.css";
 import { env } from "@/lib/env";
 import { getCategoryTree, getLocations, getPromoMessages } from "@/lib/catalog/queries";
 import { DemoRibbon } from "@/components/layout/demo-ribbon";
+import { DemoGuide } from "@/components/demo/demo-guide";
 import { PromoBar } from "@/components/layout/promo-bar";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -17,7 +18,7 @@ import { CartDrawer } from "@/components/cart/cart-drawer";
 const fraunces = Fraunces({
   subsets: ["latin"],
   variable: "--font-fraunces",
-  axes: ["opsz", "SOFT"],
+  axes: ["opsz"], // sumbu SOFT tidak dipakai; dibuang supaya berkas font lebih kecil (Fase 8A)
   display: "swap",
 });
 
@@ -68,6 +69,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <CartDrawer />
           </Suspense>
           <Toaster />
+          {/* Panduan demo membaca pathname dan query, jadi dibungkus Suspense. */}
+          {env.demoMode ? (
+            <Suspense fallback={null}>
+              <DemoGuide />
+            </Suspense>
+          ) : null}
         </MobileMenuProvider>
       </body>
     </html>

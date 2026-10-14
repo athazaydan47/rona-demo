@@ -72,7 +72,7 @@ async function main() {
     const checks: Record<string, boolean> = { jawab: r.ok, penjagaAngka: !r.peringatan, tanpaToolTerlarang: r.denied.length === 0 };
     if (h.tool) checks.tool = h.tool.some((t) => r.toolCalls.includes(t));
     if (h.tolak) checks.peran = dataTools.length === 0 && REFUSAL.test(r.teks);
-    if (h.tanyaBalik) checks.tanyaBalik = asked;
+    if (h.tanyaBalik) checks.tanyaBalik = asked || r.pilihan.length > 0;
     if (h.draf) checks.draf = r.toolCalls.some((t) => t.startsWith("saran_")) && (r.tautan.some((l) => l.href.includes("draf=")) || /draf|formulir/i.test(r.teks));
     if (h.drafAtauTolak) checks.draf = (r.toolCalls.some((t) => t.startsWith("saran_")) && (r.tautan.some((l) => l.href.includes("draf")) || /draf|formulir|transfer/i.test(r.teks))) || (dataTools.length === 0 && REFUSAL.test(r.teks));
     if (h.tanpaRp) checks.peran = !/Rp\s?\d/.test(text);

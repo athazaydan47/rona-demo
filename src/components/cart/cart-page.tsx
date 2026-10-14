@@ -27,8 +27,8 @@ export function CartPage({ initial }: { initial: CartView | null }) {
           <>
             <FreeShippingBar remaining={view.pricing.freeShipping.remaining} threshold={view.pricing.freeShipping.threshold} cap={view.pricing.freeShipping.cap} />
             <ul className="mt-2 divide-y divide-garis rounded-card border border-garis bg-putih px-4">
-              {view.lines.map((l) => (
-                <CartLineRow key={l.itemId} line={l} busy={cart.busyItem === l.itemId} onQty={(q) => cart.setQuantity(l.itemId, q)} onRemove={() => cart.remove(l.itemId)} onSave={() => cart.saveForLater(l.itemId, true)} />
+              {view.lines.map((l, i) => (
+                <CartLineRow key={l.itemId} line={l} priority={i < 2} busy={cart.busyItem === l.itemId} onQty={(q) => cart.setQuantity(l.itemId, q)} onRemove={() => cart.remove(l.itemId)} onSave={() => cart.saveForLater(l.itemId, true)} />
               ))}
             </ul>
           </>

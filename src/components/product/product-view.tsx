@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { PriceTag } from "@/components/ui/price-tag";
 import { RatingStars } from "@/components/ui/rating-stars";
 import { toast } from "@/components/ui/toast";
-import { ProductArt, ShadeSwatchArt, type SwatchTexture } from "@/components/product-art";
+import { ProductArtInline, ShadeSwatchArt, type SwatchTexture } from "@/components/product-art";
 import { FlashCountdown } from "@/components/flash/flash-countdown";
 import { QuotaBar } from "@/components/flash/quota-bar";
 import { Breadcrumb } from "@/components/catalog/breadcrumb";
@@ -101,8 +101,8 @@ export function ProductView({ product, live, siteUrl, shadeProfile = null, extra
   }, [profile, product.hasShades, variants]);
 
   const images: GalleryImage[] = [
-    { key: "depan", label: "Tampak depan", node: <ProductArt packaging={product.packaging} shade={selected.hex} brandColor={product.brand.color} brandName={product.brand.name} title={`${product.name}, ${selected.shadeName}, tampak depan`} /> },
-    { key: "detail", label: "Tampak detail", node: <ProductArt packaging={product.packaging} shade={selected.hex} brandColor={product.brand.color} brandName={product.brand.name} view="detail" title={`${product.name}, ${selected.shadeName}, tampak detail`} /> },
+    { key: "depan", label: "Tampak depan", node: <ProductArtInline packaging={product.packaging} shade={selected.hex} brandColor={product.brand.color} brandName={product.brand.name} title={`${product.name}, ${selected.shadeName}, tampak depan`} /> },
+    { key: "detail", label: "Tampak detail", node: <ProductArtInline packaging={product.packaging} shade={selected.hex} brandColor={product.brand.color} brandName={product.brand.name} view="detail" title={`${product.name}, ${selected.shadeName}, tampak detail`} /> },
     {
       key: "swatch",
       label: "Swatch tekstur",

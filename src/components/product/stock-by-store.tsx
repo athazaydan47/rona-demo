@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 type Props = { locations: LiveLocation[]; stock: Record<string, number>; shadeName?: string };
 
-const toneClass = { habis: "text-bahaya", terbatas: "text-peringatan", tersedia: "text-sukses" } as const;
+const toneClass = { habis: "text-bahaya", terbatas: "text-peringatan-teks", tersedia: "text-sukses", tidak_dijual: "text-abu-hangat" } as const;
 
 // Ketersediaan shade terpilih di Gudang Online dan tiap cabang, dibaca segar.
 // HP: bertumpuk (nama dan stok, lalu alamat dan jam, lalu keterangan). Desktop: ikon, info, status di kanan.
@@ -18,9 +18,10 @@ export function StockByStore({ locations, stock, shadeName }: Props) {
       </div>
       <ul className="divide-y divide-garis">
         {locations.map((loc) => {
+          const carried = loc.slug in stock;
           const qty = stock[loc.slug] ?? 0;
-          const s = stockLabel(qty);
-          const hint = fulfillmentHint(loc, qty);
+          const s = carried ? stockLabel(qty) : { text: "Tidak dijual di cabang ini", tone: "tidak_dijual" as const };
+          const hint = carried ? fulfillmentHint(loc, qty) : null;
           const Icon = loc.type === "gudang" ? Truck : Store;
           return (
             <li key={loc.slug} className="px-4 py-3 md:flex md:items-start md:gap-3">

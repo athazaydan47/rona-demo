@@ -8,6 +8,7 @@ import { PriceTag } from "@/components/ui/price-tag";
 import { toast } from "@/components/ui/toast";
 import { addToCart } from "@/lib/cart/client-cart";
 import type { ProductCardVariant } from "@/lib/catalog/catalog-queries";
+import { useSwipeDown } from "@/lib/use-swipe-down";
 import { cn } from "@/lib/utils";
 
 type QuickAddProps = {
@@ -32,6 +33,7 @@ function useIsDesktop() {
 export function QuickAdd({ productName, variants, className }: QuickAddProps) {
   const [open, setOpen] = useState(false);
   const desktop = useIsDesktop();
+  const swipe = useSwipeDown(() => setOpen(false));
   const anyStock = variants.some((v) => v.inStock);
 
   const trigger = (
@@ -91,9 +93,12 @@ export function QuickAdd({ productName, variants, className }: QuickAddProps) {
         <Dialog.Overlay className="fixed inset-0 z-50 bg-kopi/40 backdrop-blur-[2px] data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <Dialog.Content
           aria-describedby={undefined}
-          className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-[20px] bg-putih p-5 pb-[max(20px,env(safe-area-inset-bottom))] shadow-lift outline-none transition-transform duration-250 ease-soft data-[state=closed]:translate-y-full data-[state=open]:translate-y-0"
+          data-sheet
+          className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-[20px] bg-putih p-5 pb-[max(20px,env(safe-area-inset-bottom))] shadow-lift outline-none transition-transform duration-[var(--durasi-lambat)] ease-[var(--ease-soft)] data-[state=closed]:translate-y-full data-[state=open]:translate-y-0"
         >
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-garis" />
+          <div className="-mx-5 -mt-5 cursor-grab touch-none px-5 pt-3 pb-1" {...swipe} aria-hidden>
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-garis" />
+          </div>
           <div className="mb-3 flex items-start justify-between gap-3">
             <Dialog.Title className="line-clamp-2 text-base font-semibold text-kopi">{productName}</Dialog.Title>
             <Dialog.Close className="grid size-9 shrink-0 place-items-center rounded-full text-abu-hangat hover:bg-porselen" aria-label="Tutup">

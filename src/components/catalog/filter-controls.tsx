@@ -1,5 +1,7 @@
 "use client";
 
+import { useSwipeDown } from "@/lib/use-swipe-down";
+
 import { useRef, useState } from "react";
 import { Dialog } from "radix-ui";
 import { SlidersHorizontal, X } from "lucide-react";
@@ -47,6 +49,7 @@ export function FilterPanel({ filters, facets, labels, basePath, hide }: Omit<Pr
 export function FilterSheet({ filters, facets, labels, basePath, scopeQuery, total, hide }: Props) {
   const { apply } = useCatalogUrl(basePath);
   const [open, setOpen] = useState(false);
+  const swipe = useSwipeDown(() => setOpen(false));
   const [pendingFilters, setPendingFilters] = useState(filters);
   const [count, setCount] = useState<number | null>(total);
   const abortRef = useRef<AbortController | null>(null);
@@ -87,8 +90,12 @@ export function FilterSheet({ filters, facets, labels, basePath, scopeQuery, tot
         <Dialog.Overlay className="fixed inset-0 z-50 bg-kopi/40 backdrop-blur-[2px] data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <Dialog.Content
           aria-describedby={undefined}
-          className="fixed inset-x-0 bottom-0 z-50 flex max-h-[88vh] flex-col rounded-t-[20px] bg-putih shadow-lift outline-none transition-transform duration-250 ease-soft data-[state=closed]:translate-y-full data-[state=open]:translate-y-0"
+          data-sheet
+          className="fixed inset-x-0 bottom-0 z-50 flex max-h-[88vh] flex-col rounded-t-[20px] bg-putih shadow-lift outline-none transition-transform duration-[var(--durasi-lambat)] ease-[var(--ease-soft)] data-[state=closed]:translate-y-full data-[state=open]:translate-y-0"
         >
+          <div className="touch-none pt-2" {...swipe} aria-hidden>
+            <div className="mx-auto h-1 w-10 rounded-full bg-garis" />
+          </div>
           <div className="flex items-center justify-between border-b border-garis px-5 py-3">
             <Dialog.Title className="font-serif text-xl text-kopi">Filter</Dialog.Title>
             <div className="flex items-center gap-2">

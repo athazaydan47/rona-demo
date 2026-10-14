@@ -9,6 +9,7 @@ import { canAccessOrder, getOrderDetail } from "./queries";
 import { normalizePhone } from "./rules";
 import { expireIfDue } from "./service";
 import { siteUrl } from "@/lib/site";
+import { cookieSecure } from "@/lib/cookie-secure";
 
 async function cookieTokens() {
   return ((await cookies()).get(ORDERS_COOKIE)?.value ?? "").split(".").filter(Boolean);
@@ -17,7 +18,7 @@ async function cookieTokens() {
 async function rememberToken(token: string) {
   const jar = await cookies();
   const prev = (jar.get(ORDERS_COOKIE)?.value ?? "").split(".").filter(Boolean).filter((t) => t !== token).slice(-9);
-  jar.set(ORDERS_COOKIE, [...prev, token].join("."), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 24 * 90 });
+  jar.set(ORDERS_COOKIE, [...prev, token].join("."), { httpOnly: true, sameSite: "lax", secure: cookieSecure(), path: "/", maxAge: 60 * 60 * 24 * 90 });
 }
 
 // Dipakai halaman bayar untuk memantau status (dengan pengecekan kedaluwarsa malas).

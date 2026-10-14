@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
   },
   /* config options here */
   cacheComponents: true,
+  // Foto banner dan produk dari Vercel Blob lewat next/image (Fase 8A); gambar lifestyle lokal tidak butuh pola.
+  images: { remotePatterns: [{ protocol: "https", hostname: "**.public.blob.vercel-storage.com" }], formats: ["image/avif", "image/webp"] },
   // Addon native (rasterisasi gambar OG) tidak dibundel, dimuat langsung oleh Node.
   serverExternalPackages: ["@resvg/resvg-js"],
   partialPrefetching: true,

@@ -245,7 +245,7 @@ export function FlashManager({ weekStart, slots, nowIso, defaultDate, initialSlo
                       );
                     })
                   ) : (
-                    <span className="text-xs text-abu-hangat/70">Tidak ada slot</span>
+                    <span className="text-xs text-abu-hangat">Tidak ada slot</span>
                   )}
                 </div>
               </div>

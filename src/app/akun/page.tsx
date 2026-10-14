@@ -62,7 +62,7 @@ async function Summary() {
       <div>
         <div className="mb-3 flex items-baseline justify-between">
           <h2 className="font-serif text-xl text-kopi">Pesanan aktif</h2>
-          <Link href="/akun/pesanan" className="text-sm font-semibold text-rona hover:underline">
+          <Link href="/akun/pesanan" className="inline-flex min-h-9 items-center text-sm font-semibold text-rona hover:underline">
             Semua pesanan
           </Link>
         </div>

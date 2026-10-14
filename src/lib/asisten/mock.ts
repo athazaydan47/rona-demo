@@ -32,7 +32,8 @@ function locationIn(q: string) {
   return undefined;
 }
 
-type Intent = { tool: string; args: Record<string, unknown> } | { direct: string };
+type Intent = { tool: string; args: Record<string, unknown> } | { direct: string; pilihan?: string[] };
+export const COMPARE_CHOICES = ["Hari ini dibanding kemarin", "Minggu ini dibanding minggu lalu", "Bulan ini dibanding bulan lalu"];
 
 export function adminIntent(raw: string): Intent {
   const q = raw.toLowerCase();
@@ -68,10 +69,11 @@ export function adminIntent(raw: string): Intent {
   if (/per cabang|cabang mana|tiap cabang/.test(q)) return { tool: "penjualan_per", args: { dimensi: "cabang", periode: periode ?? "30 hari terakhir" } };
   if (/terlaris|paling laku|best ?seller/.test(q)) return { tool: "produk_terlaris", args: { periode: periode ?? "30 hari terakhir", ...(lokasi ? { cabang: lokasi } : {}) } };
   if (/omzet|penjualan|pendapatan|jualan|revenue/.test(q)) {
-    if (!periode && /banding/.test(q)) return { direct: "Mau dibandingkan untuk periode apa? Misal minggu ini dibanding minggu lalu." };
+    if (!periode && /banding/.test(q)) return { direct: "Mau dibandingkan untuk periode apa?", pilihan: COMPARE_CHOICES };
     const pembanding = /banding\w*\s+(?:dengan\s+)?(minggu lalu|bulan lalu|kemarin)/.exec(q)?.[1];
     return { tool: "ringkasan_penjualan", args: { periode: periode ?? "30 hari terakhir", ...(pembanding ? { pembanding } : {}), ...(lokasi ? { cabang: lokasi } : {}) } };
   }
+  if (/banding/.test(q)) return { direct: "Mau dibandingkan untuk periode apa?", pilihan: COMPARE_CHOICES };
   return { direct: "Aku belum paham pertanyaannya. Coba sebut datanya, misal omzet minggu ini atau stok cushion 02N di Dinoyo." };
 }
 
@@ -106,7 +108,7 @@ function compose(name: string, r: R): { teks: string; angka: { nilai: string; su
       return {
         teks: `Stok tersedia per ${r.waktu}, ${r.cabang}.`,
         angka: [],
-        tabel: { kolom: ["Varian", "Lokasi", "Tersedia"], baris: v.flatMap((x) => (x.lokasi as R[]).map((l) => [`${x.produk} ${x.shade}`, String(l.nama), String(l.tersedia)])).slice(0, 6) },
+        tabel: { kolom: ["Varian", "Lokasi", "Tersedia"], baris: v.flatMap((x) => (x.lokasi as R[]).map((l) => [`${x.produk} ${x.shade}`, String(l.nama), l.tersedia == null ? "-" : String(l.tersedia)])).slice(0, 6) },
         tautan: v[0] ? [{ label: "Buka buku stok", href: String(v[0].tautan) }] : [],
       };
     }
@@ -140,7 +142,7 @@ export function adminMockTurn(req: GenRequest): GenResponse {
   if (req.toolMode === "ANY") {
     const intent = adminIntent(lastUser(req.contents));
     const allowed = new Set((req.tools ?? []).map((t) => t.name));
-    if ("direct" in intent) return reply([call("jawabLangsung", { teks: intent.direct })], req);
+    if ("direct" in intent) return reply([call("jawabLangsung", { teks: intent.direct, ...(intent.pilihan ? { pilihan: intent.pilihan } : {}) })], req);
     if (!allowed.has(intent.tool)) return reply([call("jawabLangsung", { teks: "Maaf, data itu di luar izin peranmu. Coba tanyakan ke owner, ya." })], req);
     return reply([call(intent.tool, intent.args)], req);
   }

@@ -6,6 +6,7 @@ import { Accordion, Dialog } from "radix-ui";
 import { ChevronDown, ChevronRight, Menu, X } from "lucide-react";
 import type { CategoryNode } from "@/lib/catalog/queries";
 import { cn } from "@/lib/utils";
+import { HELP_LINKS } from "@/lib/content/bantuan";
 
 type Ctx = { open: boolean; setOpen: (v: boolean) => void };
 const MobileMenuContext = createContext<Ctx | null>(null);
@@ -93,7 +94,7 @@ export function MobileMenuSheet({ categories }: { categories: CategoryNode[] }) 
                             className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm text-kopi hover:bg-porselen"
                           >
                             {sub.name}
-                            <ChevronRight className="size-4 text-abu-hangat/70" />
+                            <ChevronRight className="size-4 text-abu-hangat" />
                           </Link>
                         </li>
                       ))}
@@ -117,7 +118,17 @@ export function MobileMenuSheet({ categories }: { categories: CategoryNode[] }) 
             </ul>
           </nav>
           <div className="border-t border-garis p-4 text-xs text-abu-hangat">
-            Butuh bantuan? Chat kami lewat WhatsApp, Senin sampai Sabtu 09.00 sampai 21.00 WIB.
+            <p className="mb-2 font-semibold tracking-wide text-kopi uppercase">Bantuan</p>
+            <ul className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+              {HELP_LINKS.map((l) => (
+                <li key={l.href}>
+                  <Link href={l.href} onClick={() => setOpen(false)} className="text-sm text-kopi hover:text-rona-gelap">
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3">Chat kami lewat WhatsApp, Senin sampai Sabtu 09.00 sampai 21.00 WIB.</p>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

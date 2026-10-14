@@ -16,6 +16,11 @@
   --color-sukses: #2f7a55;
   --color-peringatan: #c77d1a;
   --color-bahaya: #b3261e;
+  /* Varian teks (Fase 8A): sage, emas, dan peringatan asli terlalu terang untuk teks (kontras di bawah 4,5:1 di latar
+     terang). Token asli tetap untuk ikon, badge berlatar kopi, dan bilah; teks memakai varian -teks (AA, minimal 5:1). */
+  --color-peringatan-teks: #8a5512;
+  --color-sage-teks: #4f6a4e;
+  --color-emas-teks: #866a36;
 
   /* Huruf */
   --font-serif: var(--font-fraunces), "Iowan Old Style", Georgia, serif;
@@ -47,11 +52,78 @@
   --shadow-ring: 0 0 0 3px rgb(184 71 93 / 0.25);
 
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Token gerak (Fase 8A), kembar dengan src/lib/motion.ts: cepat untuk umpan balik sentuhan, sedang untuk pergantian
+     isi, lambat untuk elemen besar. ease-pegas memantul sedikit untuk kembali ke posisi. */
+  --durasi-cepat: 150ms;
+  --durasi-sedang: 250ms;
+  --durasi-lambat: 400ms;
+  --ease-pegas: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --animate-denyut: denyut 1s ease-in-out infinite;
+  --animate-muncul: muncul var(--durasi-sedang) var(--ease-soft) both;
+  --animate-goyang: goyang 420ms var(--ease-pegas);
+  --animate-cahaya: cahaya 2.4s ease-out both;
+
+  @keyframes denyut {
+    0%,
+    80%,
+    100% {
+      opacity: 0.35;
+      transform: translateY(0);
+    }
+    40% {
+      opacity: 1;
+      transform: translateY(-2px);
+    }
+  }
+  @keyframes muncul {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes goyang {
+    0% {
+      transform: translateX(0);
+    }
+    30% {
+      transform: translateX(-6px);
+    }
+    60% {
+      transform: translateX(4px);
+    }
+    100% {
+      transform: translateX(0);
+    }
+  }
+  @keyframes cahaya {
+    0% {
+      background-color: var(--color-blush);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
 }
 
 @layer base {
   :root {
     color-scheme: light;
+  }
+  /* Kurangi gerakan: semua animasi dan transisi jadi seketika, gulir halus dimatikan. Komponen Motion juga memeriksa
+     useReducedMotion supaya tidak menggerakkan transform. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
   html {
     scroll-behavior: smooth;

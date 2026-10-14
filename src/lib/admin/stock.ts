@@ -43,7 +43,7 @@ export type MatrixRow = {
   shadeName: string;
   hex: string;
   sku: string;
-  cells: Record<number, { onHand: number; reserved: number; available: number }>;
+  cells: Record<number, { onHand: number; reserved: number; available: number | null }>; // available null = tidak dijual di lokasi itu
 };
 
 export type MatrixFilters = { q?: string | null; brand?: string | null; category?: string | null; status?: "semua" | "menipis" | "habis"; page?: number; pageSize?: number };
@@ -87,15 +87,15 @@ export async function stockMatrix(db: AnyDb, staff: StaffPrincipal, f: MatrixFil
     cells: Object.fromEntries(
       locIds.map((id) => {
         const i = byKey.get(`${v.variantId}:${id}`);
-        const onHand = i?.onHand ?? 0;
-        const reserved = i?.reserved ?? 0;
-        return [id, { onHand, reserved, available: Math.max(0, onHand - reserved) }];
+        if (!i) return [id, { onHand: 0, reserved: 0, available: null }];
+        return [id, { onHand: i.onHand, reserved: i.reserved, available: Math.max(0, i.onHand - i.reserved) }];
       }),
     ),
   }));
   const counts = { semua: rows.length, menipis: 0, habis: 0 };
+  // Habis dan menipis hanya dihitung untuk lokasi yang menjual varian itu (available null diabaikan).
   const isOut = (r: MatrixRow) => locIds.some((id) => r.cells[id].available === 0);
-  const isLow = (r: MatrixRow) => locIds.some((id) => r.cells[id].available > 0 && r.cells[id].available <= threshold);
+  const isLow = (r: MatrixRow) => locIds.some((id) => (r.cells[id].available ?? 0) > 0 && (r.cells[id].available ?? 0) <= threshold);
   counts.habis = rows.filter(isOut).length;
   counts.menipis = rows.filter(isLow).length;
   if (f.status === "habis") rows = rows.filter(isOut);

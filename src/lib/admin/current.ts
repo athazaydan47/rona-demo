@@ -6,6 +6,7 @@ import { db } from "@/db/client";
 import { now } from "@/lib/clock";
 import { readStaffSession, STAFF_COOKIE } from "./auth";
 import type { StaffPrincipal } from "./permissions";
+import { cookieSecure } from "@/lib/cookie-secure";
 
 export const currentStaff = cache(async (): Promise<StaffPrincipal | null> => {
   const token = (await cookies()).get(STAFF_COOKIE)?.value;
@@ -19,4 +20,4 @@ export async function requireStaff(path: string): Promise<StaffPrincipal> {
   return s;
 }
 
-export const staffCookieOptions = (expires: Date) => ({ httpOnly: true, sameSite: "lax" as const, secure: process.env.NODE_ENV === "production", path: "/", expires });
+export const staffCookieOptions = (expires: Date) => ({ httpOnly: true, sameSite: "lax" as const, secure: cookieSecure(), path: "/", expires });

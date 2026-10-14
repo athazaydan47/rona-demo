@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { countdownTo, pad2 } from "@/lib/flash";
+import { DURASI, EASE_LEMBUT } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 type FlashCountdownProps = {
@@ -19,6 +21,31 @@ const sizes = {
 };
 
 // Hitung mundur yang berdetak di klien. Angka awal dari server supaya tidak melompat saat hidrasi.
+// Satu kotak angka: nilai lama turun keluar, nilai baru masuk dari atas (flip halus), tanpa mengubah ukuran kotak.
+function Digit({ value, size }: { value: string; size: keyof typeof sizes }) {
+  const reduce = useReducedMotion();
+  return (
+    <span className={cn("relative grid place-items-center overflow-hidden rounded-lg bg-kopi font-semibold text-putih tabular-nums", sizes[size])} suppressHydrationWarning>
+      <span className="invisible" aria-hidden>
+        {value}
+      </span>
+      <AnimatePresence initial={false}>
+        <motion.span
+          key={value}
+          initial={reduce ? { opacity: 0 } : { y: "-70%", opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={reduce ? { opacity: 0 } : { y: "70%", opacity: 0 }}
+          transition={{ duration: DURASI.sedang, ease: [...EASE_LEMBUT] }}
+          className="absolute inset-0 grid place-items-center"
+          suppressHydrationWarning
+        >
+          {value}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
 export function FlashCountdown({ target, label, size = "md", className, onZero }: FlashCountdownProps) {
   const targetDate = new Date(target);
   const [now, setNow] = useState<Date | null>(null);
@@ -43,9 +70,7 @@ export function FlashCountdown({ target, label, size = "md", className, onZero }
       <span className="flex items-center gap-1" suppressHydrationWarning>
         {parts.map((p, i) => (
           <span key={i} className="flex items-center gap-1">
-            <span className={cn("grid place-items-center rounded-lg bg-kopi font-semibold text-putih tabular-nums", sizes[size])} suppressHydrationWarning>
-              {now ? p : "--"}
-            </span>
+            <Digit value={now ? p : "--"} size={size} />
             {i < 2 ? <span className="font-semibold text-kopi">:</span> : null}
           </span>
         ))}

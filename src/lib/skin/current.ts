@@ -7,6 +7,7 @@ import { getProfile, saveSkinProfile } from "@/lib/account/profile";
 import { currentCustomer } from "@/lib/auth/current";
 import { now } from "@/lib/clock";
 import { decodeProfileCookie, encodeProfileCookie, PROFILE_COOKIE, PROFILE_COOKIE_MAX_AGE, shouldAdoptGuestProfile } from "./profile";
+import { cookieSecure } from "@/lib/cookie-secure";
 
 export async function currentSkinProfile(): Promise<SkinProfile | null> {
   // Data per pengunjung dan jam: hanya saat request, tidak ikut prerender.
@@ -26,7 +27,7 @@ export async function storeSkinProfile(profile: SkinProfile) {
     await saveSkinProfile(db, me.customerId, profile);
     return "akun" as const;
   }
-  (await cookies()).set(PROFILE_COOKIE, encodeProfileCookie(profile), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: PROFILE_COOKIE_MAX_AGE });
+  (await cookies()).set(PROFILE_COOKIE, encodeProfileCookie(profile), { httpOnly: true, sameSite: "lax", secure: cookieSecure(), path: "/", maxAge: PROFILE_COOKIE_MAX_AGE });
   return "cookie" as const;
 }
 

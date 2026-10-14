@@ -54,7 +54,7 @@ async function Content({ searchParams }: { searchParams: Promise<SP> }) {
             <div className="rounded-2xl bg-[#E9E4DC] p-4 sm:p-6" aria-label="Pratinjau pesan WhatsApp">
               <div className="ml-auto max-w-xl rounded-2xl rounded-tr-sm bg-[#DCF8C6] px-4 py-3 text-sm whitespace-pre-line text-[#1F2C34] shadow-sm" data-testid="gelembung-wa">
                 {briefWaText(selected.data as unknown as BriefData, selected.narrative)}
-                <span className="mt-1 block text-right text-[10px] text-[#667781]">07.00</span>
+                <span className="mt-1 block text-right text-[10px] text-[#4b5b62]">07.00</span>
               </div>
             </div>
             <CopyForWa text={briefWaText(selected.data as unknown as BriefData, selected.narrative)} />

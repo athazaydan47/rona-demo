@@ -58,7 +58,7 @@ export function PhotoAssist({ onApply, onManual }: { onApply: (s: QuizSuggestion
           </ul>
           <p className="mt-2 text-xs text-abu-hangat">
             Baca juga{" "}
-            <Link href="/kebijakan-privasi#foto" className="font-semibold text-rona hover:underline">
+            <Link href="/kebijakan/privasi#foto" className="font-semibold text-rona hover:underline">
               kebijakan privasi soal foto
             </Link>
             .

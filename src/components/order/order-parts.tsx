@@ -62,7 +62,7 @@ export function OrderCosts({ order }: { order: OrderDetail }) {
       {row("Subtotal", formatRupiah(p.normalSubtotal))}
       {p.productDiscount > 0 ? row("Diskon produk", `-${formatRupiah(p.productDiscount)}`, "text-sukses") : null}
       {p.voucherDiscount > 0 ? row(`Voucher ${p.voucherCode ?? ""}`.trim(), `-${formatRupiah(p.voucherDiscount)}`, "text-sukses") : null}
-      {order.method === "ambil" ? row("Ambil di toko", "Gratis") : row(`Ongkir${order.service ? ` (${order.service})` : ""}`, formatRupiah(p.shippingCost))}
+      {order.method === "ambil" ? row("Ambil di Toko", "Gratis") : row(`Ongkir${order.service ? ` (${order.service})` : ""}`, formatRupiah(p.shippingCost))}
       {p.shippingDiscount > 0 ? row("Potongan ongkir", `-${formatRupiah(p.shippingDiscount)}`, "text-sukses") : null}
       {p.pointsUsed > 0 ? row("Poin", `-${formatRupiah(p.pointsUsed)}`, "text-sukses") : null}
       <div className="flex justify-between gap-3 border-t border-garis pt-3 text-base">
